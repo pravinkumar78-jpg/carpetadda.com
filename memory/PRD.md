@@ -179,3 +179,6 @@
 - Apply Loan: PropertyDetail + ProjectDetail "Apply Loan" buttons link /home-loan?property_id|project_id&property_name&property_cost (project uses price_from); HomeLoan reads params → linked-listing banner, Property Finalised=yes, cost prefilled; FIXED latent bug: submit now actually sends property_cost/loan_amount/property_finalised/property_id/project_id; leads identifiable by source=home_loan + linked listing
 - Properties/Projects list layout: mobile falls back to grid (list hidden md-only)
 - Verified: 31/31 pytest, yarn build clean, browser checks (gallery loads via proxy, Apply Loan prefill ₹4.34 Cr, floating WA, fetch-nearby real OSM data, mobile menu submenu+close, unit plan upload UI)
+
+## Fix (2026-08-13 — Invalid Host header on preview)
+- After adding the dev proxy + restarting the frontend, webpack-dev-server rejected the preview domain's Host header ("Invalid Host header" page). Root fix: `allowedHosts: "all"` in craco.config.js devServer config. Verified: public preview URL returns 200 and homepage renders.
