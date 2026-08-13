@@ -129,7 +129,7 @@ export function MyListings({ items, onChanged, editBase = "/dashboard/list-prope
               <tr key={p.id} className="border-b border-slate-100 last:border-0">
                 <td className="px-4 py-3"><div className="font-medium text-slate-900 line-clamp-1">{p[nameKey]}</div><div className="text-xs text-slate-500 capitalize">{p.location?.replace("-", " ")}</div></td>
                 <td className="px-4 py-3 rupee">{formatINR(p.listing_type === "rent" ? p.rent : p.price)}</td>
-                <td className="px-4 py-3"><span className={`text-xs font-semibold px-2.5 py-1 rounded-full capitalize ${p.status === "active" ? "bg-emerald-50 text-emerald-700" : p.status === "archived" ? "bg-amber-50 text-amber-700" : "bg-slate-100 text-slate-500"}`}>{p.status}</span></td>
+                <td className="px-4 py-3"><span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${p.status === "active" ? "bg-emerald-50 text-emerald-700" : p.status === "pending_review" ? "bg-amber-50 text-amber-700" : p.status === "rejected" ? "bg-rose-50 text-rose-600" : p.status === "archived" ? "bg-slate-100 text-slate-500" : "bg-slate-100 text-slate-500"}`}>{({ active: "Approved · Live", pending_review: "Pending Review", rejected: "Rejected", archived: "Archived", draft: "Draft" })[p.status] || p.status}</span></td>
                 <td className="px-4 py-3">
                   <div className="flex items-center justify-end gap-1">
                     <Link to={`${editBase}/${p.id}/edit`} data-testid={`mylist-edit-${p.id}`} title="Edit" className="p-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"><PencilSimple size={14} /></Link>

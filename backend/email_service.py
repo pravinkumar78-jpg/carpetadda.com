@@ -152,6 +152,18 @@ async def send_lead_notification(lead: dict, kind: str = "Property", ctx: dict |
     subject = f"[CarpetAdda Lead] {kind} · {lead.get('name', 'Unknown')} · {subject_target}"
 
     if await _send_smtp(cfg["to"], subject, html):
+        sent_business = True
+    else:
+        sent_business = False
+
+    # extra recipients: assigned/approved agent or developer (already eligibility-filtered by caller)
+    for extra in ctx.get("extra_recipients", []) or []:
+        try:
+            await _send_smtp(extra, subject, html)
+        except Exception as e:
+            log.warning("Lead email to %s failed: %s", extra, e)
+
+    if sent_business:
         return True
 
     if not cfg["key"]:

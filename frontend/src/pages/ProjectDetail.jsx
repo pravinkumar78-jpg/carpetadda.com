@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext } from "@/components/ui/carousel";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import ScheduleVisitDialog from "@/components/ScheduleVisitDialog";
+import ScrollVisitPopup from "@/components/ScrollVisitPopup";
 
 export default function ProjectDetail() {
   const { slug } = useParams();
@@ -338,6 +339,7 @@ export default function ProjectDetail() {
       </div>
 
       <ScheduleVisitDialog open={visitOpen} onOpenChange={setVisitOpen} projectId={p.id} targetName={p.name} />
+      <ScrollVisitPopup projectId={p.id} targetName={p.name} />
     </div>
   );
 }

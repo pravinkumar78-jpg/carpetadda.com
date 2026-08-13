@@ -58,7 +58,22 @@ export function AgentDashboard() {
                     <td className="px-4 py-3 font-medium text-slate-900">{l.name}</td>
                     <td className="px-4 py-3"><a href={`tel:${l.phone}`} className="text-blue-600">{l.phone}</a></td>
                     <td className="px-4 py-3 text-slate-500 text-xs capitalize">{(l.source || "").replace(/_/g, " ")}</td>
-                    <td className="px-4 py-3 capitalize text-slate-600">{l.status}</td>
+                    <td className="px-4 py-3">
+                      <select
+                        data-testid={`agent-lead-status-${l.id}`}
+                        value={l.status || "new"}
+                        onChange={async (e) => {
+                          try {
+                            await api.put(`/leads/${l.id}`, { status: e.target.value });
+                            toast.success(`Lead marked ${e.target.value}`);
+                            loadLeads();
+                          } catch (err) { toast.error(err?.response?.data?.detail || "Update failed"); }
+                        }}
+                        className="h-8 text-xs border border-slate-200 rounded-lg px-2 bg-white capitalize"
+                      >
+                        {["new", "contacted", "converted", "lost"].map(s => <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>)}
+                      </select>
+                    </td>
                   </tr>
                 ))}
               </tbody>

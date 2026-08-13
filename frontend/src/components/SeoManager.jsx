@@ -25,6 +25,7 @@ export function applySeo(seo, page) {
   setMeta('meta[property="og:description"]', { property: "og:description" }, seo?.og_description || seo?.meta_description);
   setMeta('meta[property="og:image"]', { property: "og:image" }, seo?.og_image);
   setMeta('link[rel="canonical"]', { rel: "canonical" }, seo?.canonical_url);
+  setMeta('meta[name="robots"]', { name: "robots" }, seo?.robots);
 }
 
 export default function SeoManager() {

@@ -67,10 +67,15 @@ export default function ProjectForm() {
 
   useEffect(() => {
     if (id) {
-      api.get(`/projects/${id}`).then(r => {
+      api.get(`/my/projects/${id}`).then(r => {
         setF({ ...empty(), ...r.data, seo: { ...empty().seo, ...(r.data.seo || {}) } });
         setLoaded(true);
-      }).catch(() => { toast.error("Project not found"); nav(backTo); });
+      }).catch(() => {
+        api.get(`/projects/${id}`).then(r => {
+          setF({ ...empty(), ...r.data, seo: { ...empty().seo, ...(r.data.seo || {}) } });
+          setLoaded(true);
+        }).catch(() => { toast.error("Project not found"); nav(backTo); });
+      });
     }
   }, [id, nav]);
 
@@ -103,7 +108,7 @@ export default function ProjectForm() {
       } else {
         await api.post("/projects", payload);
       }
-      toast.success(publish ? "Project published" : "Saved as draft");
+      toast.success(id ? "Project updated" : publish ? (inAdmin ? "Project published" : "Submitted for admin review") : "Draft saved");
       nav(backTo);
     } catch (err) { toast.error(err.response?.data?.detail || "Save failed"); }
     finally { setSaving(false); }
@@ -117,7 +122,7 @@ export default function ProjectForm() {
     { k: "amenities", label: "Amenities", icon: Sparkle },
     { k: "media", label: "Media", icon: ImageIcon },
     { k: "seo", label: "SEO", icon: MagnifyingGlass },
-    { k: "flags", label: "Flags & Homepage", icon: Flag },
+    ...(inAdmin ? [{ k: "flags", label: "Flags & Homepage", icon: Flag }] : []),
   ];
 
   return (
@@ -136,7 +141,7 @@ export default function ProjectForm() {
             {id && f.status === "active" && <Link to={`/project/${f.slug}`} target="_blank" className="px-4 py-2 border border-slate-200 rounded-lg text-sm text-slate-700 hover:bg-blue-50 flex items-center gap-1.5"><Eye size={14} /> View Live</Link>}
             <button onClick={() => save(false)} disabled={saving} className="px-4 py-2 border border-blue-200 bg-blue-50 text-blue-700 rounded-lg text-sm font-medium hover:bg-blue-100 flex items-center gap-1.5 disabled:opacity-50"><FloppyDisk size={14} /> Save Draft</button>
             <button onClick={() => save(true)} disabled={saving} className="px-5 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 shadow-sm flex items-center gap-1.5 disabled:opacity-50">
-              <Upload size={14} weight="bold" /> {saving ? "Saving…" : "Publish"}
+              <Upload size={14} weight="bold" /> {saving ? "Saving…" : (inAdmin ? "Publish" : "Submit for Admin Review")}
             </button>
           </div>
         </div>

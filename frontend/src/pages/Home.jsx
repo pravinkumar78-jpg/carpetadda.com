@@ -136,7 +136,7 @@ export default function Home() {
 
       {/* Best Resale Properties */}
       {hp.best_resale.length > 0 && (
-        <Section title="Best Properties" eyebrow="Ready to move · Resale" more="/properties?listing_type=sale" bg="section-blue">
+        <Section title="Best Ready to Move Properties" eyebrow="Ready to move · Resale" more="/properties?listing_type=sale" bg="section-blue">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {hp.best_resale.map(p => <PropertyCard key={p.id} p={p} />)}
           </div>

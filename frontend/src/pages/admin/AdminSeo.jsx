@@ -23,7 +23,7 @@ const MAJOR_PAGES = [
   ["/developers", "Developers"],
 ];
 
-const EMPTY = { meta_title: "", meta_description: "", meta_keywords: "", og_title: "", og_description: "", og_image: "", canonical_url: "" };
+const EMPTY = { meta_title: "", meta_description: "", meta_keywords: "", og_title: "", og_description: "", og_image: "", canonical_url: "", robots: "index,follow" };
 
 export default function AdminSeo() {
   const [page, setPage] = useState("/");
@@ -80,9 +80,20 @@ export default function AdminSeo() {
         <F label="Meta Description"><Textarea rows={2} data-testid="seo-meta-description" value={form.meta_description || ""} onChange={e => set("meta_description", e.target.value)} placeholder="155-character summary for search results" /></F>
         <F label="Meta Keywords"><Input data-testid="seo-meta-keywords" value={form.meta_keywords || ""} onChange={e => set("meta_keywords", e.target.value)} placeholder="2 bhk dombivli, buy flat mumbai" /></F>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <F label="OG Title"><Input data-testid="seo-og-title" value={form.og_title || ""} onChange={e => set("og_title", e.target.value)} /></F>
+          <F label="Robots">
+            <Select value={form.robots || "index,follow"} onValueChange={v => set("robots", v)}>
+              <SelectTrigger data-testid="seo-robots" className="border-slate-200"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="index,follow">index, follow</SelectItem>
+                <SelectItem value="noindex,follow">noindex, follow</SelectItem>
+                <SelectItem value="index,nofollow">index, nofollow</SelectItem>
+                <SelectItem value="noindex,nofollow">noindex, nofollow</SelectItem>
+              </SelectContent>
+            </Select>
+          </F>
           <F label="Canonical URL"><Input data-testid="seo-canonical" value={form.canonical_url || ""} onChange={e => set("canonical_url", e.target.value)} placeholder="https://carpetadda.com/…" /></F>
         </div>
+        <F label="OG Title"><Input data-testid="seo-og-title" value={form.og_title || ""} onChange={e => set("og_title", e.target.value)} /></F>
         <F label="OG Description"><Textarea rows={2} data-testid="seo-og-description" value={form.og_description || ""} onChange={e => set("og_description", e.target.value)} /></F>
         <F label="OG Image"><ImageUpload value={form.og_image || ""} onChange={v => set("og_image", v)} kind="og" dataTestid="seo-og-image-upload" /></F>
         <button onClick={save} disabled={busy} data-testid="seo-save" className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-lg text-sm font-semibold shadow-sm disabled:opacity-60 transition-colors">

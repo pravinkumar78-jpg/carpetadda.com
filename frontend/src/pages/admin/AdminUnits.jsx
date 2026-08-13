@@ -15,10 +15,11 @@ import {
 
 const STATUSES = [
   { key: "available", label: "Available", cls: "bg-emerald-100 text-emerald-700 border-emerald-200" },
+  { key: "limited",   label: "Limited Units", cls: "bg-amber-100 text-amber-700 border-amber-200" },
   { key: "hold",      label: "Hold",      cls: "bg-slate-100 text-slate-700 border-slate-200" },
   { key: "token",     label: "Token",     cls: "bg-amber-100 text-amber-700 border-amber-200" },
   { key: "booked",    label: "Booked",    cls: "bg-blue-100 text-blue-700 border-blue-200" },
-  { key: "sold",      label: "Sold",      cls: "bg-rose-100 text-rose-700 border-rose-200" },
+  { key: "sold",      label: "Sold Out",  cls: "bg-rose-100 text-rose-700 border-rose-200" },
 ];
 const statusMeta = (k) => STATUSES.find(s => s.key === k) || STATUSES[0];
 
@@ -329,21 +330,23 @@ function BulkAddDialog({ open, onClose, projectId, onDone }) {
 function UnitFormDialog({ open, onClose, projectId, unit, onDone }) {
   const [form, setForm] = useState(unit || {
     unit_no: "", tower: "A", floor: 1, typology: "2 BHK",
-    carpet_area: "", price: "", status: "available",
-    buyer_name: "", buyer_phone: "", notes: "", facing: "",
+    carpet_area: "", balcony: "", parking: "", price: "", status: "available",
+    notes: "", facing: "", unit_plan: "", description: "", published: true,
   });
   const [busy, setBusy] = useState(false);
   const isEdit = !!unit;
 
   const submit = async (e) => {
     e.preventDefault();
-    if (!form.unit_no?.trim()) { toast.error("Unit no. required"); return; }
     setBusy(true);
     try {
       const payload = {
         ...form,
+        unit_no: form.unit_no?.trim() || `U-${Date.now().toString(36).toUpperCase()}`,
         floor: form.floor === "" || form.floor === null ? null : parseInt(form.floor),
         carpet_area: form.carpet_area === "" || form.carpet_area === null ? null : parseFloat(form.carpet_area),
+        balcony: form.balcony === "" || form.balcony === null ? null : parseInt(form.balcony),
+        parking: form.parking === "" || form.parking === null ? null : parseInt(form.parking),
         price: form.price === "" || form.price === null ? null : parseFloat(form.price),
       };
       if (isEdit) {
@@ -351,7 +354,7 @@ function UnitFormDialog({ open, onClose, projectId, unit, onDone }) {
         toast.success("Unit updated");
       } else {
         await api.post(`/projects/${projectId}/units`, payload);
-        toast.success("Unit added");
+        toast.success(form.published ? "Unit saved & published" : "Unit saved as draft");
       }
       onDone(); onClose();
     } catch (err) {
@@ -361,17 +364,18 @@ function UnitFormDialog({ open, onClose, projectId, unit, onDone }) {
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-xl" data-testid="unit-form-dialog">
+      <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto" data-testid="unit-form-dialog">
         <DialogHeader><DialogTitle className="text-2xl">{isEdit ? "Edit unit" : "Add unit"}</DialogTitle></DialogHeader>
         <form onSubmit={submit} className="space-y-4">
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Unit no. *"><Input required data-testid="unit-form-no" value={form.unit_no || ""} onChange={e => setForm({...form, unit_no: e.target.value})} /></Field>
+            <Field label="Configuration"><Input data-testid="unit-form-config" placeholder="e.g. 2 BHK" value={form.typology || ""} onChange={e => setForm({...form, typology: e.target.value})} /></Field>
+            <Field label="Unit no. (auto if blank)"><Input data-testid="unit-form-no" value={form.unit_no || ""} onChange={e => setForm({...form, unit_no: e.target.value})} /></Field>
+            <Field label="Carpet (sqft)"><Input type="number" value={form.carpet_area ?? ""} onChange={e => setForm({...form, carpet_area: e.target.value})} /></Field>
+            <Field label="Balcony"><Input type="number" value={form.balcony ?? ""} onChange={e => setForm({...form, balcony: e.target.value})} /></Field>
+            <Field label="Parking"><Input type="number" value={form.parking ?? ""} onChange={e => setForm({...form, parking: e.target.value})} /></Field>
+            <Field label="Price (₹)"><Input type="number" value={form.price ?? ""} onChange={e => setForm({...form, price: e.target.value})} /></Field>
             <Field label="Tower"><Input value={form.tower || ""} onChange={e => setForm({...form, tower: e.target.value})} /></Field>
             <Field label="Floor"><Input type="number" value={form.floor ?? ""} onChange={e => setForm({...form, floor: e.target.value})} /></Field>
-            <Field label="Facing"><Input value={form.facing || ""} onChange={e => setForm({...form, facing: e.target.value})} /></Field>
-            <Field label="Typology"><Input placeholder="e.g. 2 BHK" value={form.typology || ""} onChange={e => setForm({...form, typology: e.target.value})} /></Field>
-            <Field label="Carpet area (sqft)"><Input type="number" value={form.carpet_area ?? ""} onChange={e => setForm({...form, carpet_area: e.target.value})} /></Field>
-            <Field label="Price (₹)"><Input type="number" value={form.price ?? ""} onChange={e => setForm({...form, price: e.target.value})} /></Field>
             <Field label="Status">
               <Select value={form.status || "available"} onValueChange={v => setForm({...form, status: v})}>
                 <SelectTrigger data-testid="unit-form-status"><SelectValue /></SelectTrigger>
@@ -380,14 +384,20 @@ function UnitFormDialog({ open, onClose, projectId, unit, onDone }) {
                 </SelectContent>
               </Select>
             </Field>
-            <Field label="Buyer name"><Input value={form.buyer_name || ""} onChange={e => setForm({...form, buyer_name: e.target.value})} /></Field>
-            <Field label="Buyer phone"><Input value={form.buyer_phone || ""} onChange={e => setForm({...form, buyer_phone: e.target.value})} /></Field>
+            <Field label="Facing"><Input value={form.facing || ""} onChange={e => setForm({...form, facing: e.target.value})} /></Field>
           </div>
-          <Field label="Notes"><Textarea rows={2} value={form.notes || ""} onChange={e => setForm({...form, notes: e.target.value})} /></Field>
+          <Field label="Upload Unit Plan">
+            <ImageUpload value={form.unit_plan || ""} onChange={v => setForm({...form, unit_plan: v})} kind="projects" dataTestid="unit-plan-upload" allowUrl={false} />
+          </Field>
+          <Field label="Description"><Textarea rows={2} data-testid="unit-form-description" value={form.description || ""} onChange={e => setForm({...form, description: e.target.value})} placeholder="Corner unit, east facing, deck view…" /></Field>
+          <Field label="Notes (internal)"><Textarea rows={2} value={form.notes || ""} onChange={e => setForm({...form, notes: e.target.value})} /></Field>
+          <label className="flex items-center gap-2 text-sm text-slate-700">
+            <input type="checkbox" data-testid="unit-form-published" checked={!!form.published} onChange={e => setForm({...form, published: e.target.checked})} /> Published (visible on project page)
+          </label>
           <DialogFooter>
             <button type="button" onClick={onClose} className="px-4 py-2 border border-slate-200 rounded-lg text-sm">Cancel</button>
             <button type="submit" disabled={busy} data-testid="unit-form-submit" className="px-5 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:opacity-60">
-              {busy ? "Saving…" : (isEdit ? "Save changes" : "Add unit")}
+              {busy ? "Saving…" : (form.published ? "Save & Publish" : "Save changes")}
             </button>
           </DialogFooter>
         </form>

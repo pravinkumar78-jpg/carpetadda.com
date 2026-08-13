@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ArrowLeft, FloppyDisk, Upload, Eye, Info, House, MapPin, Sparkle, Image as ImageIcon, MagnifyingGlass, Flag } from "@phosphor-icons/react";
+import { ArrowLeft, FloppyDisk, Upload, Eye, Info, House, MapPin, Sparkle, Image as ImageIcon, MagnifyingGlass, Flag, Camera, Crosshair } from "@phosphor-icons/react";
 import ImageUpload from "@/components/ImageUpload";
 import RichTextEditor from "@/components/RichTextEditor";
 
@@ -31,7 +31,7 @@ const empty = () => ({
   carpet_area: 800, builtup_area: 960,
   city: "dombivli", location: "dombivli-east", address: "", lat: null, lng: null,
   amenities: [], features: [], images: [], main_image: "",
-  unit_plan: "", video_url: "", google_map_link: "", nearby_locations: [],
+  unit_plan: "", video_url: "", google_map_link: "", nearby_locations: [], verification: {},
   rera_number: "", status: "draft", verified: true, featured: false,
   investor_property: false, best_resale: false, flags: [],
   seo: { title: "", description: "", slug: "", focus_keyword: "", canonical: "", og_title: "", og_description: "", og_image: "" },
@@ -76,15 +76,20 @@ export default function PropertyForm() {
 
   useEffect(() => {
     if (id) {
-      api.get(`/properties/${id}`).then(r => {
+      api.get(`/my/properties/${id}`).then(r => {
         setF({ ...empty(), ...r.data, seo: { ...empty().seo, ...(r.data.seo || {}) } });
         setLoaded(true);
-      }).catch(() => { toast.error("Property not found"); nav(backTo); });
+      }).catch(() => {
+        api.get(`/properties/${id}`).then(r => {
+          setF({ ...empty(), ...r.data, seo: { ...empty().seo, ...(r.data.seo || {}) } });
+          setLoaded(true);
+        }).catch(() => { toast.error("Property not found"); nav(backTo); });
+      });
     }
   }, [id, nav]);
 
   if (!ready) return null;
-  if (!user || !["admin", "super_admin", "agent", "developer", "owner"].includes(user.role)) return <Navigate to="/login" />;
+  if (!user || !["admin", "super_admin", "agent", "developer", "owner", "user"].includes(user.role)) return <Navigate to="/login" />;
   if (!loaded) return <div className="p-20 text-center text-slate-500">Loading…</div>;
 
   const set = (k, v) => setF(prev => ({ ...prev, [k]: v }));
@@ -111,7 +116,7 @@ export default function PropertyForm() {
       } else {
         await api.post("/properties", payload);
       }
-      toast.success(publish ? "Property published" : "Saved as draft");
+      toast.success(id ? "Property updated" : publish ? (inAdmin ? "Property published" : "Submitted for admin review") : "Draft saved");
       nav(backTo);
     } catch (err) { toast.error(err.response?.data?.detail || "Save failed"); }
     finally { setSaving(false); }
@@ -126,7 +131,7 @@ export default function PropertyForm() {
     { k: "amenities", label: "Amenities", icon: Sparkle },
     { k: "media", label: "Media", icon: ImageIcon },
     { k: "seo", label: "SEO", icon: MagnifyingGlass },
-    { k: "flags", label: "Flags", icon: Flag },
+    ...(inAdmin ? [{ k: "flags", label: "Flags", icon: Flag }] : []),
   ];
 
   return (
@@ -145,7 +150,7 @@ export default function PropertyForm() {
             {id && f.status === "active" && <Link to={`/property/${f.slug}`} target="_blank" className="px-4 py-2 border border-slate-200 rounded-lg text-sm text-slate-700 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-1.5"><Eye size={14} /> View Live</Link>}
             <button onClick={() => save(false)} disabled={saving} className="px-4 py-2 border border-blue-200 bg-blue-50 text-blue-700 rounded-lg text-sm font-medium hover:bg-blue-100 flex items-center gap-1.5 disabled:opacity-50" data-testid="save-draft"><FloppyDisk size={14} /> Save Draft</button>
             <button onClick={() => save(true)} disabled={saving} className="px-5 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 shadow-sm shadow-blue-500/25 flex items-center gap-1.5 disabled:opacity-50" data-testid="publish">
-              <Upload size={14} weight="bold" /> {saving ? "Saving…" : "Publish"}
+              <Upload size={14} weight="bold" /> {saving ? "Saving…" : (inAdmin ? "Publish" : "Submit for Admin Review")}
             </button>
           </div>
         </div>
@@ -248,6 +253,58 @@ export default function PropertyForm() {
                     return { name, distance, category };
                   }))} placeholder="DMart | 500m | Shopping&#10;Metro Station | 1.2km | Transit" />
               </F>
+
+              {/* Optional on-site verification: camera capture + current location */}
+              <div className="border border-blue-200 bg-blue-50/50 rounded-xl p-5">
+                <div className="text-sm font-semibold text-slate-900 mb-1">On-Site Verification <span className="text-xs font-normal text-slate-500">(optional — can be done any time before/after approval)</span></div>
+                <p className="text-xs text-slate-500 mb-4">Capture interior photos on-site and pin the live location. Admin reviews these to grant the Verified Property badge.</p>
+                <div className="flex flex-wrap gap-2 mb-3">
+                  <label className="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-blue-200 text-blue-700 rounded-lg text-sm font-medium cursor-pointer hover:bg-blue-50 transition-colors">
+                    <Camera size={15} weight="bold" /> Open Camera / Capture Interior
+                    <input type="file" accept="image/*" capture="environment" className="hidden" data-testid="verify-camera-input" multiple
+                      onChange={async (e) => {
+                        const files = Array.from(e.target.files || []);
+                        if (!files.length) return;
+                        const imgs = [...(f.verification?.images || [])];
+                        for (const file of files) {
+                          const fd = new FormData();
+                          fd.append("file", file);
+                          try {
+                            const { data } = await api.post("/admin/uploads?kind=verifications", fd, { headers: { "Content-Type": "multipart/form-data" } });
+                            imgs.push(data.url);
+                          } catch { toast.error("Upload failed for one image"); }
+                        }
+                        set("verification", { ...(f.verification || {}), images: imgs, captured_at: new Date().toISOString() });
+                        toast.success("Verification photos attached");
+                        e.target.value = "";
+                      }} />
+                  </label>
+                  <button type="button" data-testid="verify-location-btn" onClick={() => {
+                    if (!navigator.geolocation) { toast.error("Geolocation not supported on this device"); return; }
+                    navigator.geolocation.getCurrentPosition(
+                      (pos) => {
+                        set("lat", Number(pos.coords.latitude.toFixed(6)));
+                        set("lng", Number(pos.coords.longitude.toFixed(6)));
+                        set("verification", { ...(f.verification || {}), lat: pos.coords.latitude, lng: pos.coords.longitude, captured_at: new Date().toISOString() });
+                        toast.success("Current location captured");
+                      },
+                      () => toast.error("Location permission denied"),
+                      { enableHighAccuracy: true, timeout: 10000 }
+                    );
+                  }} className="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-blue-200 text-blue-700 rounded-lg text-sm font-medium hover:bg-blue-50 transition-colors">
+                    <Crosshair size={15} weight="bold" /> Use Current Location
+                  </button>
+                </div>
+                {(f.verification?.images || []).length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {f.verification.images.map((src, i) => (
+                      <img key={i} src={src} alt={`Verification ${i + 1}`} className="w-20 h-20 rounded-lg object-cover border border-slate-200" />
+                    ))}
+                  </div>
+                )}
+                {f.verification?.lat && <div className="text-xs text-emerald-700 font-medium mt-2">Location captured: {f.verification.lat.toFixed(5)}, {f.verification.lng.toFixed(5)}</div>}
+                {f.verified && <div className="text-xs font-semibold text-emerald-700 mt-2">✓ Verified Property (by admin)</div>}
+              </div>
             </div>
           )}
 

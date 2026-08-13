@@ -7,6 +7,7 @@ import { Buildings, ChartBar, UserCircle, ChatCircle, House, Package, ListChecks
 import AdminProperties from "@/pages/admin/AdminProperties";
 import AdminProjects from "@/pages/admin/AdminProjects";
 import AdminLeads from "@/pages/admin/AdminLeads";
+import AdminSiteVisits from "@/pages/admin/AdminSiteVisits";
 import AdminUsers from "@/pages/admin/AdminUsers";
 import AdminFAQs from "@/pages/admin/AdminFAQs";
 import AdminTestimonials from "@/pages/admin/AdminTestimonials";
@@ -21,6 +22,7 @@ const TABS = [
   ["properties", "Properties", House],
   ["projects", "Projects", Buildings],
   ["leads", "Leads", ChatCircle],
+  ["site-visits", "Site Visits", ListChecks],
   ["blogs", "Blog", Article],
   ["testimonials", "Testimonials", Star],
   ["faqs", "FAQs", Question],
@@ -75,6 +77,7 @@ export default function AdminPanel() {
             <TabsContent value="properties"><AdminProperties /></TabsContent>
             <TabsContent value="projects"><AdminProjects /></TabsContent>
             <TabsContent value="leads"><AdminLeads /></TabsContent>
+            <TabsContent value="site-visits"><AdminSiteVisits /></TabsContent>
             <TabsContent value="blogs"><AdminBlogs /></TabsContent>
             <TabsContent value="testimonials"><AdminTestimonials /></TabsContent>
             <TabsContent value="faqs"><AdminFAQs /></TabsContent>
@@ -98,8 +101,12 @@ function Overview({ stats, go, nav }) {
     { icon: Buildings, label: "Total Projects", val: stats.projects_total, color: "blue", go: "projects" },
     { icon: ChatCircle, label: "New Leads", val: stats.leads_new, color: "amber", go: "leads" },
     { icon: ListChecks, label: "Total Leads", val: stats.leads_total, color: "blue", go: "leads" },
-    { icon: ListChecks, label: "Site Visits", val: stats.site_visits_total, color: "blue", go: "leads" },
+    { icon: ListChecks, label: "Site Visits", val: stats.site_visits_total, color: "blue", go: "site-visits" },
     { icon: UserCircle, label: "Users", val: stats.users_total, color: "blue", go: "users" },
+    { icon: Users, label: "Agents", val: stats.agents_total, color: "blue", go: "users" },
+    { icon: Buildings, label: "Developers", val: stats.developers_total, color: "blue", go: "users" },
+    { icon: ListChecks, label: "Pending Reviews", val: (stats.properties_pending || 0) + (stats.projects_pending || 0), color: "amber", go: "properties" },
+    { icon: Package, label: "Approved Live", val: stats.approved_total, color: "emerald", go: "projects" },
     { icon: Archive, label: "Archived", val: (stats.properties_archived || 0) + (stats.projects_archived || 0), color: "amber", go: "archive" },
   ];
   const styles = {

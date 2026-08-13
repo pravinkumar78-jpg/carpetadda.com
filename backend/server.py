@@ -394,7 +394,7 @@ async def featured_properties(limit: int = 8):
 @api.get("/properties/{slug_or_id}")
 async def get_property(slug_or_id: str):
     doc = await db.properties.find_one({"$or": [{"slug": slug_or_id}, {"id": slug_or_id}]}, PROJ)
-    if not doc or doc.get("status") == "archived":
+    if not doc or doc.get("status") != "active":
         raise HTTPException(404, "Property not found")
     await db.properties.update_one({"id": doc["id"]}, {"$inc": {"views": 1}})
     developer = await db.developers.find_one({"id": doc.get("developer_id")}, PROJ) if doc.get("developer_id") else None
@@ -407,13 +407,41 @@ async def get_property(slug_or_id: str):
     return {**doc, "developer": developer, "agent": agent, "project": project, "similar": similar}
 
 
-@api.post("/properties", dependencies=[Depends(require_roles("admin", "agent", "developer", "owner"))])
+@api.post("/properties", dependencies=[Depends(require_roles("admin", "agent", "developer", "owner", "user"))])
 async def create_property(body: Property, u: dict = Depends(current_user)):
+    account = await db.users.find_one({"id": u["sub"]}, {"_id": 0, "active": 1})
+    if account and account.get("active") is False:
+        raise HTTPException(403, "Your account is blocked. Contact admin.")
     body.owner_id = u["sub"]
     if u["role"] in ("agent",) and not body.agent_id:
         body.agent_id = u["sub"]
+    if u["role"] not in ("admin", "super_admin"):
+        body.status = "pending_review"
+        body.verified = False
+        body.featured = False
     await db.properties.insert_one(body.model_dump())
     return _clean(body.model_dump())
+
+
+# Owner/admin edit view: lets owners open pending/rejected/archived listings for correction
+@api.get("/my/properties/{pid}")
+async def get_my_property(pid: str, u: dict = Depends(current_user)):
+    doc = await db.properties.find_one({"id": pid}, PROJ)
+    if not doc:
+        raise HTTPException(404, "Not found")
+    if u["role"] not in ("admin", "super_admin") and doc.get("owner_id") != u["sub"] and doc.get("agent_id") != u["sub"]:
+        raise HTTPException(403, "Not your listing")
+    return doc
+
+
+@api.get("/my/projects/{pid}")
+async def get_my_project(pid: str, u: dict = Depends(current_user)):
+    doc = await db.projects.find_one({"id": pid}, PROJ)
+    if not doc:
+        raise HTTPException(404, "Not found")
+    if u["role"] not in ("admin", "super_admin") and doc.get("owner_id") != u["sub"]:
+        raise HTTPException(403, "Not your project")
+    return doc
 
 
 @api.put("/properties/{pid}")
@@ -459,6 +487,63 @@ async def restore_property(pid: str, u: dict = Depends(current_user)):
     await _can_manage_listing(u, "properties", pid)
     await db.properties.update_one({"id": pid}, {"$set": {"status": "active", "updated_at": _now_iso_str()}})
     return {"ok": True, "status": "active"}
+
+
+# ---------------- Review workflow (admin) ----------------
+@api.put("/admin/properties/{pid}/approve", dependencies=[Depends(require_roles("admin"))])
+async def approve_property(pid: str):
+    res = await db.properties.update_one({"id": pid}, {"$set": {"status": "active", "reviewed_at": _now_iso_str()}})
+    if not res.matched_count:
+        raise HTTPException(404, "Not found")
+    return {"ok": True, "status": "active"}
+
+
+@api.put("/admin/properties/{pid}/reject", dependencies=[Depends(require_roles("admin"))])
+async def reject_property(pid: str, body: dict = Body(default={})):
+    res = await db.properties.update_one({"id": pid}, {"$set": {"status": "rejected", "rejection_reason": body.get("reason"), "reviewed_at": _now_iso_str()}})
+    if not res.matched_count:
+        raise HTTPException(404, "Not found")
+    return {"ok": True, "status": "rejected"}
+
+
+@api.put("/admin/properties/{pid}/verify", dependencies=[Depends(require_roles("admin"))])
+async def verify_property(pid: str):
+    res = await db.properties.update_one({"id": pid}, {"$set": {"verified": True, "verified_at": _now_iso_str()}})
+    if not res.matched_count:
+        raise HTTPException(404, "Not found")
+    return {"ok": True, "verified": True}
+
+
+@api.put("/admin/projects/{pid}/approve", dependencies=[Depends(require_roles("admin"))])
+async def approve_project(pid: str):
+    res = await db.projects.update_one({"id": pid}, {"$set": {"status": "active", "reviewed_at": _now_iso_str()}})
+    if not res.matched_count:
+        raise HTTPException(404, "Not found")
+    return {"ok": True, "status": "active"}
+
+
+@api.put("/admin/projects/{pid}/reject", dependencies=[Depends(require_roles("admin"))])
+async def reject_project(pid: str, body: dict = Body(default={})):
+    res = await db.projects.update_one({"id": pid}, {"$set": {"status": "rejected", "rejection_reason": body.get("reason"), "reviewed_at": _now_iso_str()}})
+    if not res.matched_count:
+        raise HTTPException(404, "Not found")
+    return {"ok": True, "status": "rejected"}
+
+
+@api.put("/admin/users/{uid}/block", dependencies=[Depends(require_roles("admin"))])
+async def block_user(uid: str):
+    res = await db.users.update_one({"id": uid}, {"$set": {"active": False, "blocked_at": _now_iso_str()}})
+    if not res.matched_count:
+        raise HTTPException(404, "Not found")
+    return {"ok": True, "active": False}
+
+
+@api.put("/admin/users/{uid}/unblock", dependencies=[Depends(require_roles("admin"))])
+async def unblock_user(uid: str):
+    res = await db.users.update_one({"id": uid}, {"$set": {"active": True}, "$unset": {"blocked_at": ""}})
+    if not res.matched_count:
+        raise HTTPException(404, "Not found")
+    return {"ok": True, "active": True}
 
 
 @api.post("/properties/{pid}/duplicate", dependencies=[Depends(require_roles("admin"))])
@@ -533,7 +618,7 @@ async def featured_projects(limit: int = 6):
 @api.get("/projects/{slug_or_id}")
 async def get_project(slug_or_id: str):
     doc = await db.projects.find_one({"$or": [{"slug": slug_or_id}, {"id": slug_or_id}]}, PROJ)
-    if not doc or doc.get("status") == "archived":
+    if not doc or doc.get("status") != "active":
         raise HTTPException(404, "Project not found")
     developer = await db.developers.find_one({"id": doc.get("developer_id")}, PROJ)
     properties = await db.properties.find({"project_id": doc["id"], "status": "active"}, PROJ).limit(12).to_list(12)
@@ -545,7 +630,14 @@ async def get_project(slug_or_id: str):
 
 @api.post("/projects", dependencies=[Depends(require_roles("admin", "developer"))])
 async def create_project(body: Project, u: dict = Depends(current_user)):
+    account = await db.users.find_one({"id": u["sub"]}, {"_id": 0, "active": 1, "role": 1})
+    if account and account.get("active") is False:
+        raise HTTPException(403, "Your account is blocked. Contact admin.")
     body.owner_id = u["sub"]
+    if u["role"] not in ("admin", "super_admin"):
+        body.status = "pending_review"
+        body.verified = False
+        body.featured = False
     await db.projects.insert_one(body.model_dump())
     return _clean(body.model_dump())
 
@@ -1068,14 +1160,32 @@ async def create_lead(body: Lead, background: BackgroundTasks):
 
     # enrich context (property / project title) for the notification email
     ctx: dict[str, str] = {}
+    extra_recipients: list[str] = []
     if body.property_id:
-        prop = await db.properties.find_one({"id": body.property_id}, {"_id": 0, "title": 1})
+        prop = await db.properties.find_one({"id": body.property_id}, {"_id": 0, "title": 1, "agent_id": 1, "owner_id": 1, "status": 1})
         if prop:
             ctx["property_title"] = prop.get("title")
+            # notify the assigned/owning agent only when the listing is live (approved)
+            if prop.get("status") == "active":
+                for ref in (prop.get("agent_id"), prop.get("owner_id")):
+                    if not ref:
+                        continue
+                    agent = await db.agents.find_one({"id": ref}, {"_id": 0, "email": 1}) or \
+                            await db.users.find_one({"id": ref}, {"_id": 0, "email": 1, "active": 1, "role": 1})
+                    if agent and agent.get("email") and agent.get("active", True) is not False:
+                        if agent["email"] not in extra_recipients:
+                            extra_recipients.append(agent["email"])
     if body.project_id:
-        proj = await db.projects.find_one({"id": body.project_id}, {"_id": 0, "name": 1})
+        proj = await db.projects.find_one({"id": body.project_id}, {"_id": 0, "name": 1, "owner_id": 1, "status": 1})
         if proj:
             ctx["project_name"] = proj.get("name")
+            if proj.get("status") == "active" and proj.get("owner_id"):
+                dev = await db.users.find_one({"id": proj["owner_id"]}, {"_id": 0, "email": 1, "active": 1, "role": 1})
+                if dev and dev.get("email") and dev.get("active", True) is not False and dev.get("role") in ("developer", "agent"):
+                    if dev["email"] not in extra_recipients:
+                        extra_recipients.append(dev["email"])
+    if extra_recipients:
+        ctx["extra_recipients"] = extra_recipients
 
     kind_map = {
         "property_page": "Property",
@@ -1152,7 +1262,25 @@ async def create_site_visit(body: SiteVisit, background: BackgroundTasks):
 
 @api.get("/site-visits", dependencies=[Depends(require_roles("admin", "agent"))])
 async def list_site_visits(limit: int = 100):
-    return await db.site_visits.find({}, PROJ).sort([("created_at", -1)]).to_list(limit)
+    rows = await db.site_visits.find({}, PROJ).sort([("created_at", -1)]).to_list(limit)
+    for r in rows:
+        if r.get("property_id") and not r.get("property_title"):
+            prop = await db.properties.find_one({"id": r["property_id"]}, {"_id": 0, "title": 1, "agent_id": 1})
+            if prop:
+                r["property_title"] = prop.get("title")
+                if prop.get("agent_id"):
+                    ag = await db.agents.find_one({"id": prop["agent_id"]}, {"_id": 0, "name": 1})
+                    if ag:
+                        r["agent_name"] = ag.get("name")
+        if r.get("project_id") and not r.get("project_name"):
+            proj = await db.projects.find_one({"id": r["project_id"]}, {"_id": 0, "name": 1, "owner_id": 1})
+            if proj:
+                r["project_name"] = proj.get("name")
+                if proj.get("owner_id"):
+                    dev = await db.users.find_one({"id": proj["owner_id"]}, {"_id": 0, "name": 1})
+                    if dev:
+                        r["developer_name"] = dev.get("name")
+    return rows
 
 
 # ---------------- Favorites ----------------
@@ -1215,14 +1343,17 @@ async def admin_stats():
         "properties_total": await db.properties.count_documents({"status": {"$ne": "archived"}}),
         "properties_active": await db.properties.count_documents({"status": "active"}),
         "properties_archived": await db.properties.count_documents({"status": "archived"}),
+        "properties_pending": await db.properties.count_documents({"status": "pending_review"}),
         "projects_total": await db.projects.count_documents({"status": {"$ne": "archived"}}),
         "projects_archived": await db.projects.count_documents({"status": "archived"}),
+        "projects_pending": await db.projects.count_documents({"status": "pending_review"}),
+        "approved_total": await db.properties.count_documents({"status": "active"}) + await db.projects.count_documents({"status": "active"}),
+        "agents_total": await db.users.count_documents({"role": "agent"}),
+        "developers_total": await db.users.count_documents({"role": "developer"}),
         "leads_total": await db.leads.count_documents({}),
         "leads_new": await db.leads.count_documents({"status": "new"}),
         "site_visits_total": await db.site_visits.count_documents({}),
         "users_total": await db.users.count_documents({}),
-        "developers_total": await db.developers.count_documents({}),
-        "agents_total": await db.agents.count_documents({}),
     }
 
 

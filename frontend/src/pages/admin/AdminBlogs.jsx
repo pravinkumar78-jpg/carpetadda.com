@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Pencil, Trash, Eye, EyeSlash, Article } from "@phosphor-icons/react";
 import ImageUpload from "@/components/ImageUpload";
 import RichTextEditor from "@/components/RichTextEditor";
@@ -39,7 +40,7 @@ export default function AdminBlogs() {
           <h2 className="text-xl font-bold text-slate-900">Blog Posts</h2>
           <p className="text-sm text-slate-500">Write and publish blog posts. SEO-editable per post.</p>
         </div>
-        <button data-testid="blog-add" onClick={() => setEditing({ title: "", slug: "", excerpt: "", content: "", cover_image: "", category: "guides", author: "Editorial Team", published: true, seo: { title: "", description: "" } })} className="inline-flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2.5 rounded-lg shadow-md shadow-blue-500/20">
+        <button data-testid="blog-add" onClick={() => setEditing({ title: "", slug: "", excerpt: "", content: "", cover_image: "", category: "Real Estate News", author: "Editorial Team", published: true, seo: { title: "", description: "" } })} className="inline-flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2.5 rounded-lg shadow-md shadow-blue-500/20">
           <Plus size={16} weight="bold" /> New Post
         </button>
       </div>
@@ -119,7 +120,14 @@ function BlogDialog({ row, onClose, onSaved }) {
           <div className="grid grid-cols-2 gap-3">
             <Field label="Title *"><Input required data-testid="blog-title" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} className="h-11 rounded-lg border-slate-200" /></Field>
             <Field label="Slug (URL)"><Input value={form.slug || ""} onChange={e => setForm({ ...form, slug: e.target.value })} placeholder="auto-from-title" className="h-11 rounded-lg border-slate-200" /></Field>
-            <Field label="Category"><Input value={form.category || ""} onChange={e => setForm({ ...form, category: e.target.value })} placeholder="guides / market / legal" className="h-11 rounded-lg border-slate-200" /></Field>
+            <Field label="Category">
+              <Select value={form.category || "Real Estate News"} onValueChange={v => setForm({ ...form, category: v })}>
+                <SelectTrigger data-testid="blog-category" className="h-11 rounded-lg border-slate-200"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {BLOG_CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </Field>
             <Field label="Author"><Input value={form.author || ""} onChange={e => setForm({ ...form, author: e.target.value })} className="h-11 rounded-lg border-slate-200" /></Field>
           </div>
           <Field label="Cover image">
@@ -153,6 +161,11 @@ function BlogDialog({ row, onClose, onSaved }) {
     </Dialog>
   );
 }
+
+const BLOG_CATEGORIES = [
+  "Real Estate News", "Buying Guide", "Selling Guide", "Home Loan",
+  "Property Investment", "Dombivli", "Thane", "Navi Mumbai", "Market Updates", "Projects",
+];
 
 function Field({ label, children }) {
   return (

@@ -104,7 +104,7 @@ function TestimonialDialog({ row, onClose, onSaved }) {
 
   return (
     <Dialog open onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-xl" data-testid="testimonial-dialog">
+      <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto" data-testid="testimonial-dialog">
         <DialogHeader><DialogTitle className="text-2xl">{isEdit ? "Edit Testimonial" : "Add Testimonial"}</DialogTitle></DialogHeader>
         <form onSubmit={submit} className="space-y-4">
           <div className="grid grid-cols-2 gap-3">

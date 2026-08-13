@@ -1,14 +1,15 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import api from "@/lib/api";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
-import { Pencil, Copy, Plus, MagnifyingGlass, ShieldCheck, Star, Archive } from "@phosphor-icons/react";
+import { Pencil, Copy, Plus, MagnifyingGlass, ShieldCheck, Star, Archive, Eye } from "@phosphor-icons/react";
 import { formatINR } from "@/lib/format";
 
 const CITIES = ["mumbai", "thane", "navi-mumbai", "dombivli", "kalyan"];
-const STATUSES = ["draft", "pending", "active", "sold", "rented", "archived"];
+const STATUSES = ["draft", "pending_review", "active", "rejected", "sold", "rented", "archived"];
+const STATUS_LABEL = { pending_review: "Pending Review", active: "Approved", rejected: "Rejected", draft: "Draft", archived: "Archived" };
 
 
 export default function AdminProperties() {
@@ -31,6 +32,16 @@ export default function AdminProperties() {
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [page, status, city]);
 
   const onSearch = (e) => { e.preventDefault(); setPage(1); load(); };
+
+  const review = async (r, action) => {
+    if (action === "reject" && !confirm(`Reject "${r.title}"? The owner can correct and resubmit it.`)) return;
+    if (action === "approve" && !confirm(`Approve "${r.title}" and make it live?`)) return;
+    try {
+      await api.put(`/admin/properties/${r.id}/${action}`, {});
+      toast.success(action === "approve" ? "Approved — now live" : "Rejected — owner can resubmit");
+      load();
+    } catch { toast.error("Action failed"); }
+  };
 
   const archive = async (id) => {
     if (!confirm("Archive this property? It will be hidden from the site. You can restore it anytime from the Archive tab.")) return;
@@ -104,12 +115,12 @@ export default function AdminProperties() {
                   <td className="px-4 py-3 font-semibold text-slate-900 whitespace-nowrap">{formatINR(r.listing_type === "rent" ? r.rent : r.price)}</td>
                   <td className="px-4 py-3 text-slate-600 capitalize">{r.location?.replace("-"," ")}</td>
                   <td className="px-4 py-3">
-                    <span className={`text-xs px-2.5 py-1 rounded-full font-semibold capitalize ${
+                    <span className={`text-xs px-2.5 py-1 rounded-full font-semibold ${
                       r.status === "active" ? "bg-emerald-50 text-emerald-700 border border-emerald-200" :
-                      r.status === "draft" ? "bg-slate-100 text-slate-600 border border-slate-200" :
-                      r.status === "pending" ? "bg-amber-50 text-amber-700 border border-amber-200" :
+                      r.status === "pending_review" ? "bg-amber-50 text-amber-700 border border-amber-200" :
+                      r.status === "rejected" ? "bg-rose-50 text-rose-700 border border-rose-200" :
                       "bg-slate-100 text-slate-600 border border-slate-200"
-                    }`}>{r.status}</span>
+                    }`}>{STATUS_LABEL[r.status] || r.status}</span>
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2 justify-center">
@@ -123,8 +134,15 @@ export default function AdminProperties() {
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-end gap-1">
-                      <button data-testid={`edit-${r.id}`} onClick={() => nav(`/admin/properties/${r.id}/edit`)} className="p-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"><Pencil size={14} /></button>
-                      <button data-testid={`dup-${r.id}`} onClick={() => duplicate(r.id)} className="p-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"><Copy size={14} /></button>
+                      {r.status === "pending_review" && (
+                        <>
+                          <button data-testid={`approve-${r.id}`} onClick={() => review(r, "approve")} className="px-2.5 py-1.5 text-xs font-semibold bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors">Approve</button>
+                          <button data-testid={`reject-${r.id}`} onClick={() => review(r, "reject")} className="px-2.5 py-1.5 text-xs font-semibold bg-rose-50 text-rose-600 border border-rose-200 rounded-lg hover:bg-rose-100 transition-colors">Reject</button>
+                        </>
+                      )}
+                      <Link to={`/property/${r.slug}`} target="_blank" title="View listing" className="p-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"><Eye size={14} /></Link>
+                      <button data-testid={`edit-${r.id}`} onClick={() => nav(`/admin/properties/${r.id}/edit`)} title="Edit" className="p-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"><Pencil size={14} /></button>
+                      <button data-testid={`dup-${r.id}`} onClick={() => duplicate(r.id)} title="Duplicate" className="p-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"><Copy size={14} /></button>
                       <button data-testid={`archive-${r.id}`} onClick={() => archive(r.id)} title="Archive (restorable)" className="p-2 text-slate-600 hover:text-amber-600 hover:bg-amber-50 rounded transition-colors"><Archive size={14} /></button>
                     </div>
                   </td>

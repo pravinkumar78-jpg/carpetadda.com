@@ -4,7 +4,7 @@ import api from "@/lib/api";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
-import { Pencil, Plus, MagnifyingGlass, Star, Package, Archive } from "@phosphor-icons/react";
+import { Pencil, Plus, MagnifyingGlass, Star, Package, Archive, Eye } from "@phosphor-icons/react";
 import { formatINR } from "@/lib/format";
 
 const CITIES = ["mumbai", "thane", "navi-mumbai", "dombivli", "kalyan"];
@@ -27,6 +27,16 @@ export default function AdminProjects() {
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [page, city]);
 
   const onSearch = (e) => { e.preventDefault(); setPage(1); load(); };
+
+  const review = async (r, action) => {
+    if (action === "reject" && !confirm(`Reject "${r.name}"? The owner can correct and resubmit it.`)) return;
+    if (action === "approve" && !confirm(`Approve "${r.name}" and make it live?`)) return;
+    try {
+      await api.put(`/admin/projects/${r.id}/${action}`, {});
+      toast.success(action === "approve" ? "Approved — now live" : "Rejected — owner can resubmit");
+      load();
+    } catch { toast.error("Action failed"); }
+  };
 
   const archive = async (id) => {
     if (!confirm("Archive this project? It will be hidden from the site. You can restore it anytime from the Archive tab.")) return;
@@ -95,8 +105,15 @@ export default function AdminProjects() {
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-end gap-1">
+                      {r.status === "pending_review" && (
+                        <>
+                          <button onClick={() => review(r, "approve")} data-testid={`approve-proj-${r.id}`} className="px-2.5 py-1.5 text-xs font-semibold bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors">Approve</button>
+                          <button onClick={() => review(r, "reject")} data-testid={`reject-proj-${r.id}`} className="px-2.5 py-1.5 text-xs font-semibold bg-rose-50 text-rose-600 border border-rose-200 rounded-lg hover:bg-rose-100 transition-colors">Reject</button>
+                        </>
+                      )}
+                      <Link to={`/project/${r.slug}`} target="_blank" title="View listing" className="p-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"><Eye size={14} /></Link>
                       <button onClick={() => nav(`/admin/projects/${r.id}/units`)} data-testid={`units-proj-${r.id}`} title="Manage Units" className="p-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"><Package size={14} /></button>
-                      <button onClick={() => nav(`/admin/projects/${r.id}/edit`)} data-testid={`edit-proj-${r.id}`} className="p-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"><Pencil size={14} /></button>
+                      <button onClick={() => nav(`/admin/projects/${r.id}/edit`)} data-testid={`edit-proj-${r.id}`} title="Edit" className="p-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"><Pencil size={14} /></button>
                       <button onClick={() => archive(r.id)} data-testid={`archive-proj-${r.id}`} title="Archive (restorable)" className="p-2 text-slate-600 hover:text-amber-600 hover:bg-amber-50 rounded transition-colors"><Archive size={14} /></button>
                     </div>
                   </td>

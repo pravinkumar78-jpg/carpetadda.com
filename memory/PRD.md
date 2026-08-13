@@ -67,6 +67,23 @@
 - API: register auto-verify, change password + re-login, forgot-password generic response, 403 on non-owner archive, FAQ list, seo pages, admin user create, CMS page CRUD + public fetch
 - UI: hero text, header items, property slider + balconies + nearby tabs (Metro filter verified), FAQs live, user/agent/developer dashboards, full property form in agent dashboard, project form in developer dashboard, CMS page publish → footer link → public page with SEO title, home loan 9 fields, mobile instant scroll, zero console errors
 
+## Implemented (2026-08-13, iteration 4 — approval workflow & ops)
+- Approval workflow: non-admin submissions → status pending_review (invisible publicly until admin approve → active; reject → owner retains access via /my/properties/{id} for correction); block/unblock user accounts (blocked = 403 login + cannot publish, listings preserved); admin Approve/Reject buttons with confirms on Properties/Projects tabs; status labels (Pending Review/Approved/Rejected/Archived) shown in dashboards
+- Agent/Developer forms: publish button = "Submit for Admin Review"; Flags tab (verified/featured) hidden from non-admins; backend force-strips verified/featured for non-admin creates
+- Admin: Site Visits tab (enriched with listing + agent/developer names, status dropdown), Overview cards all real DB counts (incl. Pending Reviews, Approved Live, Agents, Developers), Users tab: create user + role edit + activate/deactivate + block/unblock with confirms
+- Schedule Visit popup appears once per listing per session after 40% scroll; feeds Site Visits + email pipeline
+- Lead emails now also go to the assigned agent/developer of approved listings (plus business inbox); blocked/inactive accounts excluded
+- Property camera/location verification: optional camera capture (mobile capture=environment) + Use Current Location in Location tab; admin /verify endpoint grants the Verified badge
+- Units: statuses Available/Limited Units/Hold/Token/Booked/Sold Out; buyer fields removed; unit plan upload; description; published toggle
+- Blog: category dropdown with 10 real categories; Testimonial dialog scrollable; SEO: robots field added, tab verified error-free
+- Home: "Best Ready to Move Properties"; city/category counts confirmed DB-real
+- Terms of Use CMS page created + auto-linked in footer
+- Fixed: public detail endpoints 404 for pending/rejected/draft listings; /my/properties|projects owner edit view added
+
+## Verified (iteration 4)
+- API: agent submit → pending_review (public 404) → admin approve → live 200 → reject → owner still sees via /my → agent self-approve 403 → block user → login 403 → unblock → 200
+- UI: scroll popup at 40% → schedule dialog → visit saved → appears in Admin Site Visits with names; SEO tab dropdown/save no overlay error; agent form label + hidden flags; home title; real counts
+
 ## Pending manual step
 - Add SMTP credentials (or EMERGENT_EMAIL_KEY) to backend/.env per backend/.env.example to activate live email delivery (lead alerts, verification, password reset). Until then emails are skipped and accounts auto-verify.
 

@@ -189,6 +189,12 @@ class Property(BaseDoc):
     available_from: Optional[str] = None
     lease_duration: Optional[str] = None
 
+    # Optional on-site camera/location verification (agent captures; admin verifies)
+    verification: dict = Field(default_factory=dict)  # {images: [], lat, lng, captured_at}
+    verified_at: Optional[str] = None
+    reviewed_at: Optional[str] = None
+    rejection_reason: Optional[str] = None
+
     seo: dict = Field(default_factory=dict)
 
 
@@ -269,6 +275,7 @@ class SeoPage(BaseDoc):
     og_description: Optional[str] = None
     og_image: Optional[str] = None
     canonical_url: Optional[str] = None
+    robots: Optional[str] = None  # e.g. "index,follow" | "noindex,nofollow"
 
 
 # ---------- Lead / Enquiry ----------

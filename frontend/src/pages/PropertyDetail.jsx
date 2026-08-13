@@ -71,6 +71,7 @@ import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import ScheduleVisitDialog from "@/components/ScheduleVisitDialog";
+import ScrollVisitPopup from "@/components/ScrollVisitPopup";
 
 export default function PropertyDetail() {
   const { slug } = useParams();
@@ -338,6 +339,7 @@ export default function PropertyDetail() {
       </div>
 
       <ScheduleVisitDialog open={visitOpen} onOpenChange={setVisitOpen} propertyId={p.id} targetName={p.title} />
+      <ScrollVisitPopup propertyId={p.id} targetName={p.title} />
     </div>
   );
 }

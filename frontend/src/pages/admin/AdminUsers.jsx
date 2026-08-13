@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Pencil, Key, Trash, MagnifyingGlass, Plus } from "@phosphor-icons/react";
+import { Pencil, Key, Trash, MagnifyingGlass, Plus, Prohibit } from "@phosphor-icons/react";
 import { useAuth } from "@/lib/auth";
 
 const ROLES = ["user", "agent", "developer", "owner", "admin", "super_admin"];
@@ -41,8 +41,18 @@ export default function AdminUsers() {
   };
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [role]);
 
-  const remove = async (u) => {
-    if (u.id === me.id) return toast.error("You cannot delete your own account");
+  const toggleBlock = async (u) => {
+    const blocking = u.active !== false;
+    if (u.id === me.id && blocking) return toast.error("You cannot block your own account");
+    if (!confirm(blocking ? `Block ${u.name}? They won't be able to log in or publish. Listings are preserved.` : `Unblock ${u.name}?`)) return;
+    try {
+      await api.put(`/admin/users/${u.id}/${blocking ? "block" : "unblock"}`);
+      toast.success(blocking ? "User blocked" : "User unblocked");
+      load();
+    } catch (err) { toast.error(err?.response?.data?.detail || "Action failed"); }
+  };
+
+  const remove = async (u) => {    if (u.id === me.id) return toast.error("You cannot delete your own account");
     if (!confirm(`Delete ${u.name} (${u.email})? This is permanent.`)) return;
     try { await api.delete(`/admin/users/${u.id}`); toast.success("Deleted"); load(); }
     catch (err) { toast.error(err?.response?.data?.detail || "Delete failed"); }
@@ -103,7 +113,8 @@ export default function AdminUsers() {
                   <td className="px-4 py-3 text-slate-500 text-xs">{u.created_at ? new Date(u.created_at).toLocaleDateString() : "—"}</td>
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-end gap-1">
-                      <button onClick={() => setEditing(u)} data-testid={`user-edit-${u.id}`} title="Change role" className="p-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"><Pencil size={14} /></button>
+                      <button onClick={() => setEditing(u)} data-testid={`user-edit-${u.id}`} title="Edit user / change role" className="p-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"><Pencil size={14} /></button>
+                      <button onClick={() => toggleBlock(u)} data-testid={`user-block-${u.id}`} title={u.active === false ? "Unblock user" : "Block user"} className="p-2 text-slate-600 hover:text-orange-600 hover:bg-orange-50 rounded transition-colors"><Prohibit size={14} /></button>
                       <button onClick={() => setPwUser(u)} data-testid={`user-pw-${u.id}`} title="Reset password" className="p-2 text-slate-600 hover:text-amber-600 hover:bg-amber-50 rounded transition-colors"><Key size={14} /></button>
                       <button onClick={() => remove(u)} data-testid={`user-del-${u.id}`} title="Delete user" className="p-2 text-slate-600 hover:text-rose-600 hover:bg-rose-50 rounded transition-colors"><Trash size={14} /></button>
                     </div>
@@ -179,13 +190,18 @@ function CreateUserDialog({ onClose, onSaved }) {
 function RoleDialog({ user, onClose, onSaved }) {
   const [role, setRole] = useState(user.role);
   const [verified, setVerified] = useState(!!user.verified);
+  const [active, setActive] = useState(user.active !== false);
   const [busy, setBusy] = useState(false);
 
   const submit = async (e) => {
     e.preventDefault();
+    const changingRole = role !== user.role;
+    const deactivating = !active && user.active !== false;
+    if (changingRole && !confirm(`Change ${user.name}'s role from "${user.role}" to "${role}"?`)) return;
+    if (deactivating && !confirm(`Deactivate ${user.name}? They won't be able to log in or publish. Their listings are preserved.`)) return;
     setBusy(true);
     try {
-      await api.put(`/admin/users/${user.id}`, { role, verified });
+      await api.put(`/admin/users/${user.id}`, { role, verified, active });
       toast.success("User updated");
       onSaved();
     } catch (err) { toast.error(err?.response?.data?.detail || "Update failed"); }
@@ -195,7 +211,7 @@ function RoleDialog({ user, onClose, onSaved }) {
   return (
     <Dialog open onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="max-w-md" data-testid="role-dialog">
-        <DialogHeader><DialogTitle className="text-2xl">Change role · {user.name}</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle className="text-2xl">Edit user · {user.name}</DialogTitle></DialogHeader>
         <form onSubmit={submit} className="space-y-4">
           <div>
             <div className="text-xs font-semibold text-slate-600 mb-1">Role</div>
@@ -205,7 +221,10 @@ function RoleDialog({ user, onClose, onSaved }) {
             </Select>
           </div>
           <label className="flex items-center gap-2 text-sm text-slate-700">
-            <input type="checkbox" checked={verified} onChange={e => setVerified(e.target.checked)} /> Verified
+            <input type="checkbox" checked={verified} onChange={e => setVerified(e.target.checked)} /> Email verified
+          </label>
+          <label className="flex items-center gap-2 text-sm text-slate-700">
+            <input type="checkbox" data-testid="role-active" checked={active} onChange={e => setActive(e.target.checked)} /> Active (can log in & publish)
           </label>
           <DialogFooter>
             <button type="button" onClick={onClose} className="px-4 py-2 border border-slate-200 rounded-lg text-sm font-medium hover:bg-slate-50">Cancel</button>
