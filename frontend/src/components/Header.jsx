@@ -62,7 +62,9 @@ export default function Header() {
           ) : (
             <Link to="/login" data-testid="header-login" className="text-sm font-medium px-3 py-2 rounded-md text-slate-700 hover:text-blue-600 transition-colors">Sign-in</Link>
           )}
-          <Link to="/post-property" data-testid="header-post-property" className="text-sm px-5 py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 shadow-sm hover:shadow-md transition-all">List Property</Link>
+          {!user && (
+            <Link to="/post-property" data-testid="header-post-property" className="text-sm px-5 py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 shadow-sm hover:shadow-md transition-all">List Property</Link>
+          )}
         </div>
 
         <Sheet open={open} onOpenChange={setOpen}>
@@ -108,7 +110,9 @@ export default function Header() {
               ) : (
                 <Link to="/login" onClick={() => setOpen(false)} data-testid="mobile-nav-signin" className="text-base py-3 px-3 rounded-md hover:bg-blue-50 hover:text-blue-600 text-slate-800">Sign-in</Link>
               )}
-              <Link to="/post-property" onClick={() => setOpen(false)} data-testid="mobile-nav-list-property" className="mt-4 text-center bg-blue-600 text-white py-3 px-4 rounded-lg font-medium">List Property</Link>
+              {!user && (
+                <Link to="/post-property" onClick={() => setOpen(false)} data-testid="mobile-nav-list-property" className="mt-4 text-center bg-blue-600 text-white py-3 px-4 rounded-lg font-medium">List Property</Link>
+              )}
             </div>
           </SheetContent>
         </Sheet>

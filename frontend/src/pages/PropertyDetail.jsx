@@ -4,6 +4,7 @@ import api from "@/lib/api";
 import PropertyMap from "@/components/PropertyMap";
 import PropertyCard from "@/components/PropertyCard";
 import { formatINR, formatArea } from "@/lib/format";
+import { waPropertyMsg } from "@/lib/whatsapp";
 import { MapPin, Bed, Bathtub, ArrowsOutSimple, Car, Buildings, Calendar, ShieldCheck, PhoneCall, WhatsappLogo, Heart, ShareNetwork, Download, CaretRight, CalendarBlank, Compass, FileText, Sparkle, SwimmingPool, Barbell, WifiHigh, Tree, Lightning, Elevator, Drop, GameController, Flower, SoccerBall, ShoppingBag, Bank } from "@phosphor-icons/react";
 import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext } from "@/components/ui/carousel";
 
@@ -98,7 +99,7 @@ export default function PropertyDetail() {
   if (!p) return <div className="max-w-4xl mx-auto p-20 text-center text-slate-500">Loading…</div>;
 
   const price = p.listing_type === "rent" ? `${formatINR(p.rent)}/mo` : formatINR(p.price);
-  const waMsg = `https://wa.me/918828830707?text=${encodeURIComponent(`Hi, I'm interested in ${p.title} (${window.location.href})`)}`;
+  const waMsg = waPropertyMsg(p);
   const hasHtml = (p.description || "").includes("<");
 
   const submitEnquiry = async (e) => {

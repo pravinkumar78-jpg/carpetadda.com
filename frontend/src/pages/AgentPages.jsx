@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import api from "@/lib/api";
 import PropertyCard from "@/components/PropertyCard";
 import { Star, PhoneCall, WhatsappLogo, EnvelopeSimple, ArrowRight, MapPin } from "@phosphor-icons/react";
+import { waAgentMsg } from "@/lib/whatsapp";
 
 export function Agents() {
   const [items, setItems] = useState([]);
@@ -29,7 +30,7 @@ export function Agents() {
                   <p className="text-sm text-slate-600 line-clamp-2">{a.bio}</p>
                 </div>
               </Link>
-              <a href="https://wa.me/918828830707" target="_blank" rel="noopener" data-testid={`agent-wa-${a.slug}`} aria-label={`WhatsApp CarpetAdda about ${a.name}`}
+              <a href={waAgentMsg(a)} target="_blank" rel="noopener" data-testid={`agent-wa-${a.slug}`} aria-label={`WhatsApp CarpetAdda about ${a.name}`}
                 className="absolute bottom-4 right-4 p-2.5 bg-emerald-500 text-white rounded-full hover:bg-emerald-600 transition-colors shadow-sm">
                 <WhatsappLogo size={16} weight="fill" />
               </a>
@@ -63,7 +64,7 @@ export function AgentDetail() {
             <p className="text-slate-700 mt-4 leading-relaxed">{a.bio}</p>
             <div className="flex flex-wrap gap-3 mt-6">
               <a href={`tel:${a.phone}`} className="flex items-center gap-2 px-5 py-3 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"><PhoneCall size={14}/> {a.phone}</a>
-              <a href="https://wa.me/918828830707" target="_blank" rel="noopener" data-testid="agent-detail-whatsapp" className="flex items-center gap-2 px-5 py-3 bg-emerald-500 text-white rounded-lg text-sm font-medium hover:bg-emerald-600 transition-colors"><WhatsappLogo size={14}/> WhatsApp</a>
+              <a href={waAgentMsg(a)} target="_blank" rel="noopener" data-testid="agent-detail-whatsapp" className="flex items-center gap-2 px-5 py-3 bg-emerald-500 text-white rounded-lg text-sm font-medium hover:bg-emerald-600 transition-colors"><WhatsappLogo size={14}/> WhatsApp</a>
               {a.email && <a href={`mailto:${a.email}`} className="flex items-center gap-2 px-5 py-3 border border-slate-200 rounded-lg text-sm font-medium text-slate-700 hover:bg-blue-50 hover:border-blue-300 hover:text-blue-600 transition-colors"><EnvelopeSimple size={14}/> Email</a>}
             </div>
           </div>

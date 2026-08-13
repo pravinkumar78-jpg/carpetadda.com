@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { Star, WhatsappLogo, ArrowUpRight } from "@phosphor-icons/react";
+import { waAgentMsg } from "@/lib/whatsapp";
 import Reveal from "./Reveal";
 
 export default function Directory({ developers, agents, testimonials }) {
@@ -46,7 +47,7 @@ export default function Directory({ developers, agents, testimonials }) {
                       <Star size={11} weight="fill" /> {a.rating?.toFixed(1)} · {a.total_listings} LISTINGS
                     </div>
                   </div>
-                  <a href="https://wa.me/918828830707" target="_blank" rel="noopener" data-testid="agent-btn-contact" aria-label={`Contact ${a.name} via CarpetAdda WhatsApp`}
+                  <a href={waAgentMsg(a)} target="_blank" rel="noopener" data-testid="agent-btn-contact" aria-label={`Contact ${a.name} via CarpetAdda WhatsApp`}
                     className="w-9 h-9 rounded-full border border-amber-500/30 flex items-center justify-center text-[#E6C665] hover:bg-amber-500/10 transition-colors shrink-0">
                     <WhatsappLogo size={16} />
                   </a>

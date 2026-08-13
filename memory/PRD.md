@@ -182,3 +182,9 @@
 
 ## Fix (2026-08-13 — Invalid Host header on preview)
 - After adding the dev proxy + restarting the frontend, webpack-dev-server rejected the preview domain's Host header ("Invalid Host header" page). Root fix: `allowedHosts: "all"` in craco.config.js devServer config. Verified: public preview URL returns 200 and homepage renders.
+
+## Implemented (2026-08-13, iteration 12 — email readiness, WA context, header)
+- Email go-live prep: SMTP_* placeholders + LEAD_RECIPIENT_EMAIL=contact@carpetadda.com added to backend/.env (no secrets in code); pipeline verified: every form (contact/requirement/property/project/home-loan/site-visit) + verification + password reset route through send_lead_notification/send_account_email → SMTP first, Emergent-key fallback, clean skip-with-log when unconfigured; agent/developer copies only for active listings, blocked accounts excluded
+- WhatsApp context: new src/lib/whatsapp.js (WA_NUMBER 918828830707, waLink/waPropertyMsg/waProjectMsg/waAgentMsg with name/ID/location/config/price, URL-encoded); applied to property cards, project cards (new button, both layouts), property/project detail buttons, agents list/detail, home directory
+- Header: List Property hidden for logged-in users (desktop + mobile menu); visible logged-out (register flow); dashboard List Property retained
+- Verified in browser: logged-out shows button, logged-in hides it; encoded contextual WA hrefs on cards; lead POST 200 with clean email-skip log

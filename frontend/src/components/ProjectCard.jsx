@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
-import { MapPin, Buildings, Calendar, ArrowRight } from "@phosphor-icons/react";
+import { MapPin, Buildings, Calendar, ArrowRight, WhatsappLogo } from "@phosphor-icons/react";
 import { formatINR } from "@/lib/format";
+import { waProjectMsg } from "@/lib/whatsapp";
 
 export default function ProjectCard({ p, layout = "grid" }) {
   if (layout === "list") {
@@ -29,6 +30,11 @@ export default function ProjectCard({ p, layout = "grid" }) {
             <div className="flex items-center gap-4 text-xs text-slate-500">
               <span className="flex items-center gap-1"><Buildings size={12} className="text-blue-500" /> {p.total_units} units</span>
               <span className="flex items-center gap-1"><Calendar size={12} className="text-blue-500" /> {p.possession_date}</span>
+              <a href={waProjectMsg(p)} target="_blank" rel="noopener" data-testid={`project-wa-${p.id}`} aria-label={`WhatsApp about ${p.name}`}
+                onClick={e => e.stopPropagation()}
+                className="p-2 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-500 hover:text-white transition-colors">
+                <WhatsappLogo size={14} weight="fill" />
+              </a>
             </div>
           </div>
         </div>
@@ -60,7 +66,14 @@ export default function ProjectCard({ p, layout = "grid" }) {
           <span className="flex items-center gap-1"><Buildings size={12} className="text-blue-500" /> {p.total_units} units</span>
           <span className="flex items-center gap-1"><Calendar size={12} className="text-blue-500" /> {p.possession_date}</span>
         </div>
-        <div className="text-blue-600 text-sm font-medium flex items-center gap-1 pt-1 group-hover:gap-2 transition-all">View Project <ArrowRight size={14} /></div>
+        <div className="flex items-center justify-between pt-1">
+          <div className="text-blue-600 text-sm font-medium flex items-center gap-1 group-hover:gap-2 transition-all">View Project <ArrowRight size={14} /></div>
+          <a href={waProjectMsg(p)} target="_blank" rel="noopener" data-testid={`project-wa-${p.id}`} aria-label={`WhatsApp about ${p.name}`}
+            onClick={e => e.stopPropagation()}
+            className="p-2 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-500 hover:text-white transition-colors">
+            <WhatsappLogo size={15} weight="fill" />
+          </a>
+        </div>
       </div>
     </Link>
   );

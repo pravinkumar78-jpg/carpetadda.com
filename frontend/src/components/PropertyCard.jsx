@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { Heart, MapPin, Bathtub, Bed, ArrowsOutSimple, WhatsappLogo, PhoneCall, SealCheck, ArrowRight } from "@phosphor-icons/react";
 import { formatINR, formatArea } from "@/lib/format";
+import { waPropertyMsg } from "@/lib/whatsapp";
 import { useAuth } from "@/lib/auth";
 import api from "@/lib/api";
 import { useState } from "react";
@@ -20,7 +21,7 @@ export default function PropertyCard({ p, layout = "grid" }) {
   };
 
   const price = p.listing_type === "rent" ? formatINR(p.rent) + "/mo" : formatINR(p.price);
-  const wa = `https://wa.me/918828830707?text=${encodeURIComponent(`Hi, I'm interested in ${p.title} (${p.slug})`)}`;
+  const wa = waPropertyMsg(p);
 
   if (layout === "list") {
     return (
