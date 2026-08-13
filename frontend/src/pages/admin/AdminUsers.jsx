@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Pencil, Key, Trash, MagnifyingGlass } from "@phosphor-icons/react";
+import { Pencil, Key, Trash, MagnifyingGlass, Plus } from "@phosphor-icons/react";
 import { useAuth } from "@/lib/auth";
 
 const ROLES = ["user", "agent", "developer", "owner", "admin", "super_admin"];
