@@ -22,7 +22,7 @@ EMAIL_BASE_URL = "https://integrations.emergentagent.com"
 def _cfg():
     return {
         "key": os.environ.get("EMERGENT_EMAIL_KEY"),
-        "from_name": os.environ.get("EMAIL_FROM_NAME", "CarpetAdda"),
+        "from_name": os.environ.get("SMTP_FROM_NAME") or os.environ.get("EMAIL_FROM_NAME", "CarpetAdda"),
         "to": os.environ.get("LEAD_RECIPIENT_EMAIL", "contact@carpetadda.com"),
         "smtp_host": os.environ.get("SMTP_HOST"),
         "smtp_port": int(os.environ.get("SMTP_PORT", "465")),

@@ -84,6 +84,19 @@
 - API: agent submit → pending_review (public 404) → admin approve → live 200 → reject → owner still sees via /my → agent self-approve 403 → block user → login 403 → unblock → 200
 - UI: scroll popup at 40% → schedule dialog → visit saved → appears in Admin Site Visits with names; SEO tab dropdown/save no overlay error; agent form label + hidden flags; home title; real counts
 
+## Implemented (2026-08-13, iteration 5 — SEO nav + polish)
+- SEO moved to left sidebar as its own group below Settings: SEO ▸ Pages opens the page-by-page SEO editor (meta/OG/canonical/robots)
+- ResizeObserver runtime error fixed at the ROOT: ResizeObserver callbacks now defer to requestAnimationFrame (eliminates the loop), plus capture-phase error interception as a safety net — verified with dropdown spam + refresh + page switching, zero overlays
+- Pending Review quick-filter chip on admin Properties and Projects
+- Rejection now opens a reason modal (required) and emails the listing owner (listing name, status, reason, resubmit instructions); reason stored in DB
+- Agent workspace leads tab: performance board (Total/Contacted/Converted/Conversion rate) from real lead data
+- email_service now reads SMTP_FROM_NAME; .env.example documents SMTP_HOST/PORT/USER/PASSWORD/FROM_EMAIL/FROM_NAME
+- Admin property status dropdown shows proper labels
+
+## Verified (iteration 5)
+- UI: SEO ▸ Pages open/switch/save/refresh — no runtime error; Pending Review chip filters (0 shown, correct after QA cleanup); agent performance board renders real counts; rejection dialog code path
+- Note: rejection email sends only once SMTP is configured (env-based, no hardcoded credentials)
+
 ## Pending manual step
 - Add SMTP credentials (or EMERGENT_EMAIL_KEY) to backend/.env per backend/.env.example to activate live email delivery (lead alerts, verification, password reset). Until then emails are skipped and accounts auto-verify.
 

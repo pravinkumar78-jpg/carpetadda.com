@@ -58,8 +58,8 @@ export default function AdminSeo() {
   return (
     <div data-testid="admin-seo">
       <div className="mb-5">
-        <h2 className="text-xl font-bold text-slate-900">SEO Management</h2>
-        <p className="text-sm text-slate-500">Edit meta tags and Open Graph data for the main website pages.</p>
+        <h2 className="text-xl font-bold text-slate-900">SEO → Pages</h2>
+        <p className="text-sm text-slate-500">Select a website page below to edit its SEO settings.</p>
       </div>
 
       <div className="card-premium p-6 lg:p-8 space-y-4 max-w-3xl">

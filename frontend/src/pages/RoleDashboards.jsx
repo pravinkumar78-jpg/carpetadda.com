@@ -45,7 +45,15 @@ export function AgentDashboard() {
       )}
 
       {tab === "leads" && (
-        <div className="card-premium overflow-hidden" data-testid="agent-leads">
+        <div className="space-y-5">
+          <StatGrid stats={(() => {
+            const total = leads.length;
+            const contacted = leads.filter(l => ["contacted", "converted"].includes(l.status)).length;
+            const converted = leads.filter(l => l.status === "converted").length;
+            const rate = total ? `${Math.round((converted / total) * 100)}%` : "—";
+            return [["Total Leads", total], ["Contacted", contacted], ["Converted", converted], ["Conversion Rate", rate]];
+          })()} />
+          <div className="card-premium overflow-hidden" data-testid="agent-leads">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-slate-50 border-b border-slate-200 text-xs uppercase text-slate-500">
@@ -78,6 +86,7 @@ export function AgentDashboard() {
                 ))}
               </tbody>
             </table>
+            </div>
           </div>
         </div>
       )}

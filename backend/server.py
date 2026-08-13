@@ -498,11 +498,36 @@ async def approve_property(pid: str):
     return {"ok": True, "status": "active"}
 
 
+async def _notify_rejection(collection: str, doc_id: str, name_key: str, reason: str | None):
+    doc = await db[collection].find_one({"id": doc_id}, PROJ)
+    if not doc:
+        return
+    owner = None
+    for ref in (doc.get("owner_id"), doc.get("agent_id")):
+        if ref:
+            owner = await db.users.find_one({"id": ref}, {"_id": 0, "email": 1, "name": 1, "active": 1})
+            if owner:
+                break
+    if not owner or not owner.get("email"):
+        return
+    listing_name = doc.get("title") or doc.get("name") or "your listing"
+    kind = "Property" if collection == "properties" else "Project"
+    await send_account_email(
+        owner["email"],
+        f"{kind} update: \"{listing_name}\" needs changes",
+        f"<p>Hello {owner.get('name', '')},</p>"
+        f"<p>Your {kind.lower()} <b>{listing_name}</b> was reviewed and its status is now <b>Rejected</b>.</p>"
+        f"<p><b>Reason from our review team:</b> {reason or 'Not specified'}</p>"
+        f"<p>Please correct the listing from your dashboard and submit it again for review. Your listing and its data are fully preserved.</p>",
+    )
+
+
 @api.put("/admin/properties/{pid}/reject", dependencies=[Depends(require_roles("admin"))])
 async def reject_property(pid: str, body: dict = Body(default={})):
     res = await db.properties.update_one({"id": pid}, {"$set": {"status": "rejected", "rejection_reason": body.get("reason"), "reviewed_at": _now_iso_str()}})
     if not res.matched_count:
         raise HTTPException(404, "Not found")
+    await _notify_rejection("properties", pid, "title", body.get("reason"))
     return {"ok": True, "status": "rejected"}
 
 
@@ -527,6 +552,7 @@ async def reject_project(pid: str, body: dict = Body(default={})):
     res = await db.projects.update_one({"id": pid}, {"$set": {"status": "rejected", "rejection_reason": body.get("reason"), "reviewed_at": _now_iso_str()}})
     if not res.matched_count:
         raise HTTPException(404, "Not found")
+    await _notify_rejection("projects", pid, "name", body.get("reason"))
     return {"ok": True, "status": "rejected"}
 
 

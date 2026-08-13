@@ -6,6 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Pencil, Plus, MagnifyingGlass, Star, Package, Archive, Eye } from "@phosphor-icons/react";
 import { formatINR } from "@/lib/format";
+import RejectDialog from "@/pages/admin/RejectDialog";
+import { Link } from "react-router-dom";
 
 const CITIES = ["mumbai", "thane", "navi-mumbai", "dombivli", "kalyan"];
 
@@ -16,24 +18,27 @@ export default function AdminProjects() {
   const [q, setQ] = useState("");
   const [city, setCity] = useState("");
   const [page, setPage] = useState(1);
+  const [rejecting, setRejecting] = useState(null);
+  const [status, setStatus] = useState("");
 
   const load = async () => {
     const params = new URLSearchParams({ page: String(page), page_size: "20" });
     if (q) params.set("q", q);
     if (city) params.set("city", city);
+    if (status) params.set("status", status);
     const { data } = await api.get(`/admin/projects?${params.toString()}`);
     setRows(data.items); setTotal(data.total);
   };
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, [page, city]);
+  useEffect(() => { load(); /* eslint-disable-next-line */ }, [page, city, status]);
 
   const onSearch = (e) => { e.preventDefault(); setPage(1); load(); };
 
   const review = async (r, action) => {
-    if (action === "reject" && !confirm(`Reject "${r.name}"? The owner can correct and resubmit it.`)) return;
+    if (action === "reject") { setRejecting(r); return; }
     if (action === "approve" && !confirm(`Approve "${r.name}" and make it live?`)) return;
     try {
       await api.put(`/admin/projects/${r.id}/${action}`, {});
-      toast.success(action === "approve" ? "Approved — now live" : "Rejected — owner can resubmit");
+      toast.success("Approved — now live");
       load();
     } catch { toast.error("Action failed"); }
   };
@@ -57,6 +62,13 @@ export default function AdminProjects() {
           <Input value={q} onChange={e => setQ(e.target.value)} placeholder="Search project name…" className="pl-9 h-10 border-slate-200 rounded-lg" data-testid="admin-proj-search" />
         </form>
         <div className="flex items-center gap-2">
+          <button
+            data-testid="filter-pending-review"
+            onClick={() => { setStatus(status === "pending_review" ? "" : "pending_review"); setPage(1); }}
+            className={`h-10 px-4 rounded-lg text-xs font-semibold transition-colors border ${status === "pending_review" ? "bg-amber-500 text-white border-amber-500" : "bg-white text-amber-700 border-amber-300 hover:bg-amber-50"}`}
+          >
+            Pending Review
+          </button>
           <Select value={city} onValueChange={v => { setCity(v === "all" ? "" : v); setPage(1); }}>
             <SelectTrigger className="w-36 h-10 border-slate-200 rounded-lg"><SelectValue placeholder="All cities" /></SelectTrigger>
             <SelectContent>
@@ -79,6 +91,7 @@ export default function AdminProjects() {
                 <th className="px-4 py-3 text-left font-semibold">Price</th>
                 <th className="px-4 py-3 text-left font-semibold">Possession</th>
                 <th className="px-4 py-3 text-left font-semibold">RERA</th>
+                <th className="px-4 py-3 text-left font-semibold">Status</th>
                 <th className="px-4 py-3 text-center font-semibold">Featured</th>
                 <th className="px-4 py-3 text-right font-semibold">Actions</th>
               </tr>
@@ -98,6 +111,14 @@ export default function AdminProjects() {
                   <td className="px-4 py-3 font-semibold text-slate-900 whitespace-nowrap">{formatINR(r.price_from)}<span className="text-slate-400"> — {formatINR(r.price_to)}</span></td>
                   <td className="px-4 py-3 text-slate-600">{r.possession_date}</td>
                   <td className="px-4 py-3 text-xs text-slate-600 font-mono">{r.rera_number || "—"}</td>
+                  <td className="px-4 py-3">
+                    <span className={`text-xs px-2.5 py-1 rounded-full font-semibold ${
+                      r.status === "active" ? "bg-emerald-50 text-emerald-700 border border-emerald-200" :
+                      r.status === "pending_review" ? "bg-amber-50 text-amber-700 border border-amber-200" :
+                      r.status === "rejected" ? "bg-rose-50 text-rose-700 border border-rose-200" :
+                      "bg-slate-100 text-slate-600 border border-slate-200"
+                    }`}>{({ pending_review: "Pending Review", active: "Approved", rejected: "Rejected", draft: "Draft", archived: "Archived" })[r.status] || r.status}</span>
+                  </td>
                   <td className="px-4 py-3 text-center">
                     <button onClick={() => toggleFeatured(r)} className={`p-1.5 rounded ${r.featured ? "text-amber-500" : "text-slate-300 hover:text-slate-500"}`}>
                       <Star size={16} weight={r.featured ? "fill" : "regular"} />
@@ -134,6 +155,7 @@ export default function AdminProjects() {
         </div>
       </div>
 
+      {rejecting && <RejectDialog row={rejecting} kind="projects" onClose={() => setRejecting(null)} onDone={load} />}
     </div>
   );
 }

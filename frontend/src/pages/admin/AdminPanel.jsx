@@ -3,7 +3,7 @@ import { Navigate, Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import api from "@/lib/api";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Buildings, ChartBar, UserCircle, ChatCircle, House, Package, ListChecks, Question, Star, Article, Users, Gear, MagnifyingGlass, Archive } from "@phosphor-icons/react";
+import { Buildings, ChartBar, UserCircle, ChatCircle, House, Package, ListChecks, Question, Star, Article, Users, Gear, MagnifyingGlass, Archive, CaretDown } from "@phosphor-icons/react";
 import AdminProperties from "@/pages/admin/AdminProperties";
 import AdminProjects from "@/pages/admin/AdminProjects";
 import AdminLeads from "@/pages/admin/AdminLeads";
@@ -27,7 +27,6 @@ const TABS = [
   ["testimonials", "Testimonials", Star],
   ["faqs", "FAQs", Question],
   ["pages", "Pages", Article],
-  ["seo", "SEO", MagnifyingGlass],
   ["archive", "Archive", Archive],
   ["users", "Users", Users],
   ["settings", "Settings", Gear],
@@ -38,6 +37,7 @@ export default function AdminPanel() {
   const nav = useNavigate();
   const [stats, setStats] = useState(null);
   const [tab, setTab] = useState("overview");
+  const [seoOpen, setSeoOpen] = useState(false);
 
   useEffect(() => {
     if (user?.role === "admin" || user?.role === "super_admin") api.get("/admin/stats").then(r => setStats(r.data));
@@ -70,6 +70,23 @@ export default function AdminPanel() {
                 <Icon size={16} weight="bold" /> {l}
               </TabsTrigger>
             ))}
+            {/* SEO submenu (below Settings) */}
+            <button
+              type="button"
+              data-testid="admin-tab-seo"
+              onClick={() => setSeoOpen(o => !o)}
+              className={`justify-start rounded-lg px-4 py-2.5 text-sm font-medium text-slate-600 flex items-center gap-2.5 w-auto lg:w-full hover:bg-blue-50 hover:text-blue-600 transition-colors ${tab.startsWith("seo") ? "text-blue-600" : ""}`}
+            >
+              <MagnifyingGlass size={16} weight="bold" /> SEO
+              <CaretDown size={12} weight="bold" className={`ml-auto transition-transform ${seoOpen ? "rotate-180" : ""}`} />
+            </button>
+            {seoOpen && (
+              <div className="lg:pl-8 flex flex-row lg:flex-col gap-1 w-full">
+                <TabsTrigger value="seo" data-testid="admin-tab-seo-pages" className="justify-start rounded-lg px-4 py-2 text-sm font-medium data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-sm text-slate-500 flex items-center gap-2.5 w-auto lg:w-full">
+                  <Article size={14} /> Pages
+                </TabsTrigger>
+              </div>
+            )}
           </TabsList>
 
           <div className="min-w-0">

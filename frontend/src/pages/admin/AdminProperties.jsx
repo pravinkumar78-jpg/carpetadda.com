@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Pencil, Copy, Plus, MagnifyingGlass, ShieldCheck, Star, Archive, Eye } from "@phosphor-icons/react";
 import { formatINR } from "@/lib/format";
+import RejectDialog from "@/pages/admin/RejectDialog";
 
 const CITIES = ["mumbai", "thane", "navi-mumbai", "dombivli", "kalyan"];
 const STATUSES = ["draft", "pending_review", "active", "rejected", "sold", "rented", "archived"];
@@ -20,6 +21,7 @@ export default function AdminProperties() {
   const [status, setStatus] = useState("");
   const [city, setCity] = useState("");
   const [page, setPage] = useState(1);
+  const [rejecting, setRejecting] = useState(null);
 
   const load = async () => {
     const params = new URLSearchParams({ page: String(page), page_size: "20" });
@@ -34,11 +36,11 @@ export default function AdminProperties() {
   const onSearch = (e) => { e.preventDefault(); setPage(1); load(); };
 
   const review = async (r, action) => {
-    if (action === "reject" && !confirm(`Reject "${r.title}"? The owner can correct and resubmit it.`)) return;
+    if (action === "reject") { setRejecting(r); return; }
     if (action === "approve" && !confirm(`Approve "${r.title}" and make it live?`)) return;
     try {
       await api.put(`/admin/properties/${r.id}/${action}`, {});
-      toast.success(action === "approve" ? "Approved — now live" : "Rejected — owner can resubmit");
+      toast.success("Approved — now live");
       load();
     } catch { toast.error("Action failed"); }
   };
@@ -67,11 +69,18 @@ export default function AdminProperties() {
           <Input data-testid="admin-prop-search" value={q} onChange={e => setQ(e.target.value)} placeholder="Search title, slug, address…" className="pl-9 h-10 border-slate-200 rounded-lg" />
         </form>
         <div className="flex items-center gap-2 flex-wrap">
+          <button
+            data-testid="filter-pending-review"
+            onClick={() => { setStatus(status === "pending_review" ? "" : "pending_review"); setPage(1); }}
+            className={`h-10 px-4 rounded-lg text-xs font-semibold transition-colors border ${status === "pending_review" ? "bg-amber-500 text-white border-amber-500" : "bg-white text-amber-700 border-amber-300 hover:bg-amber-50"}`}
+          >
+            Pending Review
+          </button>
           <Select value={status} onValueChange={v => { setStatus(v === "all" ? "" : v); setPage(1); }}>
             <SelectTrigger className="w-36 h-10 border-slate-200 rounded-lg" data-testid="admin-prop-status"><SelectValue placeholder="All statuses" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All statuses</SelectItem>
-              {STATUSES.map(s => <SelectItem key={s} value={s} className="capitalize">{s}</SelectItem>)}
+              {STATUSES.map(s => <SelectItem key={s} value={s}>{STATUS_LABEL[s] || s.charAt(0).toUpperCase() + s.slice(1)}</SelectItem>)}
             </SelectContent>
           </Select>
           <Select value={city} onValueChange={v => { setCity(v === "all" ? "" : v); setPage(1); }}>
@@ -163,6 +172,7 @@ export default function AdminProperties() {
         </div>
       </div>
 
+      {rejecting && <RejectDialog row={rejecting} kind="properties" onClose={() => setRejecting(null)} onDone={load} />}
     </div>
   );
 }

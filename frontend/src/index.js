@@ -4,20 +4,44 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import "@/index.css";
 import App from "@/App";
 
-// Suppress benign ResizeObserver loop errors (radix dropdowns/popovers trigger these during measurement;
-// they are harmless but the webpack dev overlay escalates them to a full-screen error)
+// ─── ResizeObserver loop fix (root cause) ─────────────────────────────
+// Radix popovers/selects measure layout inside ResizeObserver callbacks, which can
+// produce the benign "ResizeObserver loop completed" notification storm. The CRA dev
+// overlay escalates this to a full-screen error. Two layers of defense:
+// 1) Defer RO callbacks to the next animation frame (eliminates the loop entirely).
+// 2) Capture-phase error interception so the message never reaches the dev overlay.
+if (typeof window !== "undefined" && window.ResizeObserver) {
+  const NativeRO = window.ResizeObserver;
+  window.ResizeObserver = class extends NativeRO {
+    constructor(callback) {
+      let frame = 0;
+      super((entries, observer) => {
+        cancelAnimationFrame(frame);
+        frame = requestAnimationFrame(() => callback(entries, observer));
+      });
+    }
+  };
+}
+
 const isResizeObserverError = (msg) =>
   typeof msg === "string" && (msg.includes("ResizeObserver loop completed") || msg.includes("ResizeObserver loop limit exceeded"));
 
-window.addEventListener("error", (e) => {
-  if (isResizeObserverError(e.message)) {
+const swallowRO = (e) => {
+  if (isResizeObserverError(e.message || e.error?.message)) {
+    e.stopImmediatePropagation();
+    e.preventDefault();
+    return false;
+  }
+  return undefined;
+};
+// capture phase: fires before the dev overlay's bubble-phase handlers
+window.addEventListener("error", swallowRO, true);
+window.addEventListener("unhandledrejection", (e) => {
+  if (isResizeObserverError(e.reason?.message)) {
     e.stopImmediatePropagation();
     e.preventDefault();
   }
-});
-window.addEventListener("unhandledrejection", (e) => {
-  if (isResizeObserverError(e.reason?.message)) e.preventDefault();
-});
+}, true);
 
 
 const queryClient = new QueryClient({
