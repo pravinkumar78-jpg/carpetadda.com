@@ -146,3 +146,6 @@
 - P1: ProjectForm data-testids on key fields/tabs/developer select/publish controls
 - P2: SMTP creds for live email (backend/.env per .env.example)
 - P2: hero image rotation via settings CMS; AI Search restyle
+
+## Visual edit (2026-08-13, agentic edit — SearchBar)
+- Hero search card: WHITE background + thin BLACK outer border (was #C3CFF5); Buy/Rent/Projects tabs now #708DE6 with WHITE text (active = same colour + shadow/bold); no layout/functionality change; verified via computed styles
