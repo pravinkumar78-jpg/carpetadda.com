@@ -155,7 +155,10 @@ export default function Properties() {
 
           <div>
             {layout === "list" ? (
-              <div className="space-y-4">{items.map(p => <PropertyCard key={p.id} p={p} layout="list" />)}</div>
+              <>
+                <div className="space-y-4 hidden md:block">{items.map(p => <PropertyCard key={p.id} p={p} layout="list" />)}</div>
+                <div className="grid grid-cols-1 gap-6 md:hidden">{items.map(p => <PropertyCard key={p.id} p={p} />)}</div>
+              </>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                 {items.map(p => <PropertyCard key={p.id} p={p} />)}

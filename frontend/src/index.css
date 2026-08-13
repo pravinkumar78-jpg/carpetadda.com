@@ -391,3 +391,17 @@ html.dark {
    paint above dialogs/popups (root fix for Schedule-Visit-behind-map). */
 .leaflet-container { position: relative; z-index: 0; isolation: isolate; }
 .leaflet-pane, .leaflet-control, .leaflet-top, .leaflet-bottom { z-index: 1; }
+
+/* Standardized public typography for rich descriptions — Poppins, fixed
+   sizes/spacing; only inline text colour is allowed through. */
+.rich-content { font-family: 'Poppins', ui-sans-serif, system-ui, sans-serif !important; font-size: 0.95rem; line-height: 1.75; color: #334155; }
+.rich-content * { font-family: inherit !important; font-size: inherit !important; line-height: inherit !important; letter-spacing: normal !important; }
+.rich-content p { margin: 0 0 0.85em; }
+.rich-content ul, .rich-content ol { margin: 0 0 0.9em; padding-left: 1.3em; }
+.rich-content ul { list-style: disc; }
+.rich-content ol { list-style: decimal; }
+.rich-content li { margin-bottom: 0.25em; }
+.rich-content h1, .rich-content h2, .rich-content h3, .rich-content h4 { font-size: 1.15rem !important; font-weight: 600; margin: 1em 0 0.5em; color: #0f172a; }
+.rich-content b, .rich-content strong { font-weight: 600; }
+.dark .rich-content { color: #C4D6D0; }
+.dark .rich-content h1, .dark .rich-content h2, .dark .rich-content h3, .dark .rich-content h4 { color: #ffffff; }

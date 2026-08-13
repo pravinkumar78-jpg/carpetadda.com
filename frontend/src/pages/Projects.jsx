@@ -116,7 +116,10 @@ export default function Projects() {
         </div>
 
         {layout === "list" ? (
-          <div className="space-y-4 pb-12">{items.map(p => <ProjectCard key={p.id} p={p} layout="list" />)}</div>
+          <>
+            <div className="space-y-4 pb-12 hidden md:block">{items.map(p => <ProjectCard key={p.id} p={p} layout="list" />)}</div>
+            <div className="grid grid-cols-1 gap-6 pb-12 md:hidden">{items.map(p => <ProjectCard key={p.id} p={p} />)}</div>
+          </>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-12">{items.map(p => <ProjectCard key={p.id} p={p} />)}</div>
         )}

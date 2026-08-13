@@ -21,6 +21,7 @@ export default function Header() {
   const { user, logout } = useAuth();
   const nav = useNavigate();
   const [open, setOpen] = useState(false);
+  const [propOpen, setPropOpen] = useState(false);
 
   return (
     <header data-testid="site-header" className="sticky top-0 z-40 bg-white border-b border-slate-200 shadow-[0_1px_3px_rgba(15,23,42,0.05)]">
@@ -68,13 +69,31 @@ export default function Header() {
           <SheetTrigger asChild>
             <button data-testid="mobile-menu-btn" className="lg:hidden p-2 text-slate-700"><List size={26} /></button>
           </SheetTrigger>
-          <SheetContent side="right" className="w-80 bg-white">
-            <div className="mt-8 flex flex-col gap-1">
+          <SheetContent side="right" className="w-80 bg-white flex flex-col p-0 overflow-hidden">
+            <div className="mt-8 flex-1 min-h-0 overflow-y-auto overscroll-contain px-6 pb-6 flex flex-col gap-1" data-testid="mobile-menu-scroll">
               <Link to="/" onClick={() => setOpen(false)} data-testid="mobile-nav-home" className="text-base font-medium py-3 px-3 rounded-md hover:bg-blue-50 hover:text-blue-600 text-slate-800">Home</Link>
-              <div className="text-xs uppercase tracking-widest text-slate-400 font-semibold px-3 pt-3 pb-1">Properties</div>
-              {PROPERTY_MENU.map(i => (
-                <Link key={i.to} to={i.to} onClick={() => setOpen(false)} data-testid={`mobile-${i.tid}`} className="text-base py-2.5 px-6 rounded-md hover:bg-blue-50 hover:text-blue-600 text-slate-800">{i.label}</Link>
-              ))}
+
+              {/* Collapsible Properties submenu */}
+              <div>
+                <button
+                  type="button"
+                  onClick={() => setPropOpen(o => !o)}
+                  data-testid="mobile-nav-properties-toggle"
+                  aria-expanded={propOpen}
+                  className="w-full flex items-center justify-between text-base font-medium py-3 px-3 rounded-md hover:bg-blue-50 hover:text-blue-600 text-slate-800"
+                >
+                  Properties
+                  <CaretDown size={14} weight="bold" className={`transition-transform duration-200 ${propOpen ? "rotate-180" : ""}`} />
+                </button>
+                {propOpen && (
+                  <div className="flex flex-col gap-0.5 pb-1">
+                    {PROPERTY_MENU.map(i => (
+                      <Link key={i.to} to={i.to} onClick={() => setOpen(false)} data-testid={`mobile-${i.tid}`} className="text-sm py-2.5 px-6 rounded-md hover:bg-blue-50 hover:text-blue-600 text-slate-700">{i.label}</Link>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               <Link to="/home-loan" onClick={() => setOpen(false)} data-testid="mobile-nav-home-loan" className="text-base font-medium py-3 px-3 rounded-md hover:bg-blue-50 hover:text-blue-600 text-slate-800">Home Loan</Link>
               <Link to="/projects" onClick={() => setOpen(false)} data-testid="mobile-nav-new-launch" className="text-base font-medium py-3 px-3 rounded-md hover:bg-blue-50 hover:text-blue-600 text-slate-800">New Launch</Link>
               <Link to="/blog" onClick={() => setOpen(false)} data-testid="mobile-nav-blog" className="text-base font-medium py-3 px-3 rounded-md hover:bg-blue-50 hover:text-blue-600 text-slate-800">Blog</Link>

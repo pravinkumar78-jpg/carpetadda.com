@@ -9,8 +9,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ArrowLeft, FloppyDisk, Upload, Eye, Info, House, MapPin, Sparkle, Image as ImageIcon, MagnifyingGlass, Flag, Camera, Crosshair } from "@phosphor-icons/react";
+import { ArrowLeft, FloppyDisk, Upload, Eye, Info, House, MapPin, Sparkle, Image as ImageIcon, MagnifyingGlass, Flag, Camera, Crosshair, X, CircleNotch } from "@phosphor-icons/react";
 import ImageUpload from "@/components/ImageUpload";
+import MultiImageUpload from "@/components/MultiImageUpload";
 import RichTextEditor from "@/components/RichTextEditor";
 import AddAmenity from "@/components/AddAmenity";
 
@@ -50,6 +51,7 @@ export default function PropertyForm() {
   });
   const [tab, setTab] = useState("basic");
   const [saving, setSaving] = useState(false);
+  const [fetchingNearby, setFetchingNearby] = useState(false);
   const [loaded, setLoaded] = useState(!id);
   const [amenityOptions, setAmenityOptions] = useState(AMENITIES_DEFAULT);
   const [newAmenity, setNewAmenity] = useState("");
@@ -99,6 +101,31 @@ export default function PropertyForm() {
 
   const set = (k, v) => setF(prev => ({ ...prev, [k]: v }));
   const setSeo = (k, v) => setF(prev => ({ ...prev, seo: { ...prev.seo, [k]: v } }));
+
+  // Fetch real nearby landmarks (OpenStreetMap). Merges with existing entries —
+  // never overwrites anything the user typed manually.
+  const fetchNearby = async () => {
+    if (fetchingNearby) return;
+    setFetchingNearby(true);
+    try {
+      const { data } = await api.post("/nearby/fetch", { lat: f.lat, lng: f.lng, address: f.address, location: f.location, city: f.city });
+      const places = data.places || [];
+      const merged = [...(f.nearby_locations || [])];
+      let added = 0;
+      for (const p of places) {
+        if (!merged.some(x => (x.name || "").toLowerCase() === (p.name || "").toLowerCase())) { merged.push(p); added++; }
+      }
+      if (added === 0) {
+        toast.info("No new places found — your existing entries were kept");
+      } else {
+        set("nearby_locations", merged);
+        if (!f.lat && data.center) { set("lat", data.center.lat); set("lng", data.center.lng); }
+        toast.success(`Found ${added} nearby place${added === 1 ? "" : "s"} — review and edit below before saving`);
+      }
+    } catch (err) {
+      toast.error(err?.response?.data?.detail || "Could not fetch nearby locations — you can enter them manually");
+    } finally { setFetchingNearby(false); }
+  };
 
   const toggleFlag = (flag) => {
     const current = f.flags || [];
@@ -252,12 +279,17 @@ export default function PropertyForm() {
               </div>
               <F label="Google Maps Link"><Input value={f.google_map_link} onChange={e => set("google_map_link", e.target.value)} placeholder="https://maps.google.com/…" /></F>
               <F label="Nearby Locations (one per line: Name | Distance | Category)">
-                <Textarea rows={4} value={(f.nearby_locations || []).map(n => `${n.name} | ${n.distance || ""} | ${n.category || ""}`).join("\n")}
+                <Textarea rows={4} data-testid="property-nearby" value={(f.nearby_locations || []).map(n => `${n.name} | ${n.distance || ""} | ${n.category || ""}`).join("\n")}
                   onChange={e => set("nearby_locations", e.target.value.split("\n").filter(Boolean).map(l => {
                     const [name, distance, category] = l.split("|").map(s => s.trim());
                     return { name, distance, category };
                   }))} placeholder="DMart | 500m | Shopping&#10;Metro Station | 1.2km | Transit" />
               </F>
+              <button type="button" onClick={fetchNearby} disabled={fetchingNearby} data-testid="fetch-nearby-btn"
+                className="inline-flex items-center gap-2 px-4 py-2.5 border border-blue-300 bg-blue-50 text-blue-700 rounded-lg text-sm font-semibold hover:bg-blue-100 disabled:opacity-60 transition-colors -mt-1">
+                {fetchingNearby ? <CircleNotch size={14} className="animate-spin" /> : <MapPin size={14} weight="bold" />}
+                {fetchingNearby ? "Fetching nearby places…" : "Fetch Nearby Locations"}
+              </button>
 
               {/* Optional on-site verification: camera capture + current location */}
               <div className="border border-blue-200 bg-blue-50/50 rounded-xl p-5">
@@ -339,12 +371,23 @@ export default function PropertyForm() {
               <h2 className="text-xl font-semibold text-slate-900 mb-1">Media</h2>
               <F label="Main Image *"><ImageUpload value={f.main_image || ""} onChange={v => set("main_image", v)} kind="properties" dataTestid="property-main-image-upload" allowUrl={false} /></F>
               <F label="Property Gallery Images">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {(f.images || []).map((url, i) => <ImageUpload key={`${url}-${i}`} value={url} onChange={v => set("images", (f.images || []).map((x,j) => j===i ? v : x).filter(Boolean))} kind="properties" dataTestid={`property-image-upload-${i}`} allowUrl={false} />)}
-                  <ImageUpload value="" onChange={v => v && set("images", [...(f.images || []), v])} kind="properties" dataTestid="property-add-image-upload" allowUrl={false} />
-                </div>
+                {(f.images || []).length > 0 && (
+                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 mb-3">
+                    {(f.images || []).map((url, i) => (
+                      <div key={`${url}-${i}`} className="relative aspect-[4/3] rounded-lg overflow-hidden border border-slate-200 bg-slate-50">
+                        <img src={url} alt={`Gallery ${i + 1}`} className="w-full h-full object-cover" />
+                        <button type="button" onClick={() => set("images", (f.images || []).filter((_, j) => j !== i))} data-testid={`gallery-remove-${i}`} aria-label={`Remove gallery image ${i + 1}`}
+                          className="absolute top-1 right-1 w-6 h-6 rounded-full bg-slate-900/70 text-white flex items-center justify-center hover:bg-rose-600 transition-colors">
+                          <X size={12} weight="bold" />
+                        </button>
+                        <span className="absolute bottom-1 left-1 text-[10px] bg-slate-900/60 text-white px-1.5 py-0.5 rounded">{i + 1}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <MultiImageUpload kind="properties" dataTestid="property-gallery-multi" onAdd={urls => set("images", [...(f.images || []), ...urls])} />
               </F>
-              <F label="Unit Plan URL"><Input value={f.unit_plan || ""} onChange={e => set("unit_plan", e.target.value)} /></F>
+              <F label="Upload Unit Plan"><ImageUpload value={f.unit_plan || ""} onChange={v => set("unit_plan", v)} kind="properties" dataTestid="property-unit-plan-upload" allowUrl={false} /></F>
               <F label="Video URL"><Input value={f.video_url || ""} onChange={e => set("video_url", e.target.value)} placeholder="YouTube / Vimeo" /></F>
               <F label="Brochure URL"><Input value={f.brochure_url || ""} onChange={e => set("brochure_url", e.target.value)} /></F>
             </div>

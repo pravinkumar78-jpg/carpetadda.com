@@ -1,7 +1,24 @@
 import { useEffect, useRef, useState } from "react";
-import { TextB, TextItalic, TextUnderline, ListBullets, ListNumbers, TextAlignLeft, TextAlignCenter, TextAlignRight } from "@phosphor-icons/react";
+import { TextB, TextItalic, TextUnderline, ListBullets, ListNumbers, TextAlignLeft, TextAlignCenter, TextAlignRight, Palette } from "@phosphor-icons/react";
 
 const SIZES = [["2", "Small"], ["3", "Normal"], ["4", "Large"], ["5", "X-Large"]];
+// Controlled, brand-safe text colour palette (public page typography stays standardized)
+const COLORS = [["#0F172A", "Default"], ["#708DE6", "Brand Blue"], ["#5C76D4", "Deep Blue"], ["#059669", "Green"], ["#D97706", "Amber"], ["#DC2626", "Red"], ["#64748B", "Gray"]];
+
+// Strip pasted scripts/styles — keep only inline colour from our palette actions
+const sanitizeHtml = (html) => {
+  try {
+    const doc = new DOMParser().parseFromString(html || "", "text/html");
+    doc.querySelectorAll("script,iframe,object,embed,link,style").forEach(el => el.remove());
+    doc.querySelectorAll("[style]").forEach(el => {
+      const color = el.style.color;
+      el.removeAttribute("style");
+      if (color) el.style.color = color;
+    });
+    doc.querySelectorAll("[class]").forEach(el => el.removeAttribute("class"));
+    return doc.body.innerHTML;
+  } catch { return html; }
+};
 
 export default function RichTextEditor({ value, onChange, dataTestid = "rich-editor", placeholder = "Write a description…" }) {
   const ref = useRef(null);
@@ -16,7 +33,13 @@ export default function RichTextEditor({ value, onChange, dataTestid = "rich-edi
   const exec = (cmd, arg = null) => {
     ref.current?.focus();
     document.execCommand(cmd, false, arg);
-    onChange(ref.current?.innerHTML || "");
+    onChange(sanitizeHtml(ref.current?.innerHTML || ""));
+  };
+
+  const handleBlur = () => {
+    setFocused(false);
+    const clean = sanitizeHtml(ref.current?.innerHTML || "");
+    if (clean !== value) onChange(clean);
   };
 
   const Btn = ({ cmd, arg, title, children, tid }) => (
@@ -49,6 +72,20 @@ export default function RichTextEditor({ value, onChange, dataTestid = "rich-edi
           {SIZES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
         </select>
         <span className="w-px h-5 bg-slate-200 mx-1" />
+        <span className="inline-flex items-center gap-1">
+          <Palette size={15} className="text-slate-500" />
+          <select
+            data-testid={`${dataTestid}-color`}
+            defaultValue=""
+            onChange={e => { if (e.target.value) { exec("foreColor", e.target.value); e.target.value = ""; } }}
+            onMouseDown={e => e.stopPropagation()}
+            className="h-8 text-xs border border-slate-200 rounded-md px-1.5 text-slate-600 bg-white"
+          >
+            <option value="" disabled>Colour</option>
+            {COLORS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+          </select>
+        </span>
+        <span className="w-px h-5 bg-slate-200 mx-1" />
         <Btn cmd="insertUnorderedList" title="Bullet list" tid="ul"><ListBullets size={15} /></Btn>
         <Btn cmd="insertOrderedList" title="Numbered list" tid="ol"><ListNumbers size={15} /></Btn>
         <span className="w-px h-5 bg-slate-200 mx-1" />
@@ -63,7 +100,7 @@ export default function RichTextEditor({ value, onChange, dataTestid = "rich-edi
         data-testid={`${dataTestid}-input`}
         data-placeholder={placeholder}
         onFocus={() => setFocused(true)}
-        onBlur={() => setFocused(false)}
+        onBlur={handleBlur}
         onInput={() => onChange(ref.current?.innerHTML || "")}
         className="min-h-[140px] px-4 py-3 text-sm text-slate-800 leading-relaxed outline-none empty:before:content-[attr(data-placeholder)] empty:before:text-slate-400"
       />

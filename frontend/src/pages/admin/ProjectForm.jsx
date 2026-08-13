@@ -48,6 +48,7 @@ export default function ProjectForm() {
   const [devModal, setDevModal] = useState(false);
   const [fetchUrl, setFetchUrl] = useState("");
   const [fetching, setFetching] = useState(false);
+  const [fetchingNearby, setFetchingNearby] = useState(false);
   const inAdmin = window.location.pathname.startsWith("/admin");
   const backTo = inAdmin ? "/admin" : "/developer";
 
@@ -127,6 +128,8 @@ export default function ProjectForm() {
       fill("rera_number", F_.rera_number);
       fill("rera_link", data.source_url);
       fill("brochure_url", F_.brochure_url);
+      fill("possession_date", F_.possession_date);
+      fill("construction_status", F_.construction_status);
       fill("images", F_.images);
       fill("main_image", F_.main_image);
       fill("amenities", F_.amenities);
@@ -139,6 +142,30 @@ export default function ProjectForm() {
       const d = err?.response?.data?.detail;
       toast.error(typeof d === "string" ? d : "Could not fetch project details");
     } finally { setFetching(false); }
+  };
+
+  // Fetch real nearby landmarks (OpenStreetMap). Merges — never overwrites manual entries.
+  const fetchNearby = async () => {
+    if (fetchingNearby) return;
+    setFetchingNearby(true);
+    try {
+      const { data } = await api.post("/nearby/fetch", { lat: f.lat, lng: f.lng, address: f.address, location: f.location, city: f.city });
+      const places = data.places || [];
+      const merged = [...(f.nearby_locations || [])];
+      let added = 0;
+      for (const p of places) {
+        if (!merged.some(x => (x.name || "").toLowerCase() === (p.name || "").toLowerCase())) { merged.push(p); added++; }
+      }
+      if (added === 0) {
+        toast.info("No new places found — your existing entries were kept");
+      } else {
+        set("nearby_locations", merged);
+        if (!f.lat && data.center) { set("lat", data.center.lat); set("lng", data.center.lng); }
+        toast.success(`Found ${added} nearby place${added === 1 ? "" : "s"} — review and edit below before saving`);
+      }
+    } catch (err) {
+      toast.error(err?.response?.data?.detail || "Could not fetch nearby locations — you can enter them manually");
+    } finally { setFetchingNearby(false); }
   };
 
   const toggleFlag = (fl) => {
@@ -289,6 +316,11 @@ export default function ProjectForm() {
                     return { name, distance, category };
                   }))} placeholder="Metro Station | 1.2km | Transit&#10;DMart | 500m | Shopping" />
               </F>
+              <button type="button" onClick={fetchNearby} disabled={fetchingNearby} data-testid="fetch-nearby-btn"
+                className="inline-flex items-center gap-2 px-4 py-2.5 border border-blue-300 bg-blue-50 text-blue-700 rounded-lg text-sm font-semibold hover:bg-blue-100 disabled:opacity-60 transition-colors">
+                {fetchingNearby ? <CircleNotch size={14} className="animate-spin" /> : <MapPin size={14} weight="bold" />}
+                {fetchingNearby ? "Fetching nearby places…" : "Fetch Nearby Locations"}
+              </button>
             </div>
           )}
 

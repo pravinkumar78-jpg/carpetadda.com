@@ -4,7 +4,7 @@ import api from "@/lib/api";
 import PropertyMap from "@/components/PropertyMap";
 import ProjectCard from "@/components/ProjectCard";
 import { formatINR, formatArea } from "@/lib/format";
-import { MapPin, Download, PhoneCall, WhatsappLogo, CalendarBlank, Check, Compass, Car, Bed } from "@phosphor-icons/react";
+import { MapPin, Download, PhoneCall, WhatsappLogo, CalendarBlank, Check, Compass, Car, Bed, Bank } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -328,6 +328,10 @@ export default function ProjectDetail() {
               <button data-testid="schedule-visit-btn" onClick={() => setVisitOpen(true)} className="w-full mt-3 inline-flex items-center justify-center gap-2 py-2.5 border border-blue-200 bg-white text-blue-700 rounded-lg font-medium text-sm hover:bg-blue-50 hover:border-blue-300 transition-colors">
                 <CalendarBlank size={16} weight="bold" /> Schedule Site Visit
               </button>
+              <Link to={`/home-loan?project_id=${p.id}&property_name=${encodeURIComponent(p.name)}&property_cost=${p.price_from || ""}`} data-testid="apply-loan-btn"
+                className="w-full mt-2.5 inline-flex items-center justify-center gap-2 py-2.5 bg-blue-600 text-white rounded-lg font-semibold text-sm hover:bg-blue-700 transition-colors shadow-sm">
+                <Bank size={16} weight="bold" /> Apply Loan
+              </Link>
             </div>
             {p.brochure_url && p.brochure_url !== "#" && (
               <a href={p.brochure_url} target="_blank" rel="noopener" className="flex items-center justify-center gap-2 bg-slate-900 text-white py-3 rounded-lg font-semibold hover:bg-slate-800 transition-colors">

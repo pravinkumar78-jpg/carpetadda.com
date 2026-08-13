@@ -4,7 +4,7 @@ import api from "@/lib/api";
 import PropertyMap from "@/components/PropertyMap";
 import PropertyCard from "@/components/PropertyCard";
 import { formatINR, formatArea } from "@/lib/format";
-import { MapPin, Bed, Bathtub, ArrowsOutSimple, Car, Buildings, Calendar, ShieldCheck, PhoneCall, WhatsappLogo, Heart, ShareNetwork, Download, CaretRight, CalendarBlank, Compass, FileText, Sparkle, SwimmingPool, Barbell, WifiHigh, Tree, Lightning, Elevator, Drop, GameController, Flower, SoccerBall, ShoppingBag } from "@phosphor-icons/react";
+import { MapPin, Bed, Bathtub, ArrowsOutSimple, Car, Buildings, Calendar, ShieldCheck, PhoneCall, WhatsappLogo, Heart, ShareNetwork, Download, CaretRight, CalendarBlank, Compass, FileText, Sparkle, SwimmingPool, Barbell, WifiHigh, Tree, Lightning, Elevator, Drop, GameController, Flower, SoccerBall, ShoppingBag, Bank } from "@phosphor-icons/react";
 import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext } from "@/components/ui/carousel";
 
 const AMENITY_ICONS = [
@@ -170,8 +170,8 @@ export default function PropertyDetail() {
             <CarouselContent>
               {Array.from(new Set([p.main_image, ...(p.images || [])].filter(Boolean))).map((src, i) => (
                 <CarouselItem key={i}>
-                  <div className="relative aspect-[16/9] max-h-[540px] bg-slate-100">
-                    <img src={src} alt={`${p.title} — image ${i + 1}`} className="absolute inset-0 w-full h-full object-cover" loading={i === 0 ? "eager" : "lazy"} />
+                  <div className="relative aspect-[16/9] max-h-[540px] w-full bg-slate-100 overflow-hidden">
+                    <img src={src} alt={`${p.title} — image ${i + 1}`} className="absolute inset-0 w-full h-full object-cover object-center" loading={i === 0 ? "eager" : "lazy"} />
                   </div>
                 </CarouselItem>
               ))}
@@ -327,6 +327,10 @@ export default function PropertyDetail() {
               <button data-testid="schedule-visit-btn" onClick={() => setVisitOpen(true)} className="w-full mt-3 inline-flex items-center justify-center gap-2 py-2.5 border border-blue-200 bg-white text-blue-700 rounded-lg font-medium text-sm hover:bg-blue-50 hover:border-blue-300 transition-colors">
                 <CalendarBlank size={16} weight="bold" /> Schedule Site Visit
               </button>
+              <Link to={`/home-loan?property_id=${p.id}&property_name=${encodeURIComponent(p.title)}&property_cost=${p.listing_type === "rent" ? (p.rent || p.price || "") : (p.price || "")}`} data-testid="apply-loan-btn"
+                className="w-full mt-2.5 inline-flex items-center justify-center gap-2 py-2.5 bg-blue-600 text-white rounded-lg font-semibold text-sm hover:bg-blue-700 transition-colors shadow-sm">
+                <Bank size={16} weight="bold" /> Apply Loan
+              </Link>
             </div>
 
             {p.brochure_url && p.brochure_url !== "#" && (

@@ -776,6 +776,37 @@ def _parse_project_page(html: str, url: str) -> dict:
     bm = re.search(r'href=["\']([^"\']*(?:brochure[^"\']*|[^"\']+\.pdf))["\']', html, re.I)
     if bm:
         brochure = urljoin(url, bm.group(1))
+    # Possession — "Possession: Dec 2027" / "Possession by 2028" / "Ready Possession"
+    possession = None
+    pm = re.search(r"possession[^A-Za-z]{0,12}(?:by|in|from)?\s*((?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s*['\x27]?\d{2,4})", html, re.I)
+    if pm:
+        possession = pm.group(1).strip()
+    elif re.search(r"ready\s+(?:to\s+move|possession)", html, re.I):
+        possession = "Ready to Move"
+    # Construction status
+    construction = None
+    low_full = html.lower()
+    if "under construction" in low_full:
+        construction = "under_construction"
+    elif "ready to move" in low_full or "ready possession" in low_full:
+        construction = "ready_to_move"
+    elif "new launch" in low_full or "newly launched" in low_full:
+        construction = "new_launch"
+    # Parking hints
+    parking = None
+    if "covered parking" in low_full:
+        parking = "Covered"
+    elif "parking" in low_full:
+        parking = "Available"
+    # Extra content images (skip icons/logos/sprites)
+    for m in re.findall(r'<img[^>]+src=["\']([^"\']+\.(?:jpg|jpeg|png|webp))(?:\?[^"\']*)?["\']', html, re.I):
+        if any(bad in m.lower() for bad in ("logo", "icon", "sprite", "favicon", "loader", "spinner")):
+            continue
+        u = urljoin(url, m)
+        if u not in images:
+            images.append(u)
+        if len(images) >= 8:
+            break
     # Developer / site identity hints
     dev_guess = _meta(html, "og:site_name") or ""
     if not dev_guess:
@@ -811,6 +842,9 @@ def _parse_project_page(html: str, url: str) -> dict:
         "area_to": area_to,
         "rera_number": rera_m.group(0) if rera_m else None,
         "brochure_url": brochure,
+        "possession_date": possession,
+        "construction_status": construction,
+        "parking": parking,
         "developer_guess": dev_guess[:120] or None,
         "address": addr or None,
         "location": re.sub(r"[^a-z0-9]+", "-", loc.lower()).strip("-") if loc else city,
@@ -849,6 +883,8 @@ async def import_project(body: ProjectImportInput, u: dict = Depends(current_use
         images=parsed["images"],
         main_image=parsed["image"],
         brochure_url=parsed["brochure_url"],
+        possession_date=parsed["possession_date"],
+        construction_status=parsed["construction_status"] or "under_construction",
         status="pending_review",
         verified=False,
         featured=False,
@@ -927,6 +963,9 @@ async def fetch_project_details(body: ProjectImportInput):
             "area_to": parsed["area_to"],
             "rera_number": parsed["rera_number"],
             "brochure_url": parsed["brochure_url"],
+            "possession_date": parsed["possession_date"],
+            "construction_status": parsed["construction_status"],
+            "parking": parsed["parking"],
             "images": parsed["images"],
             "main_image": parsed["image"],
             "amenities": amenities_matched,
@@ -1451,6 +1490,111 @@ async def serve_file(path: str):
     try: data,ct=get_object(path)
     except Exception: raise HTTPException(404,"File not found")
     return Response(content=data,media_type=rec.get("content_type") or ct,headers={"Cache-Control":"public, max-age=86400"})
+
+
+# ---------------- Nearby Places (OpenStreetMap — Nominatim + Overpass) ----------------
+_OVERPASS_CATS = [
+    ("Schools",        'node["amenity"~"school|college|university"]', 3000),
+    ("Hospitals",      'node["amenity"~"hospital|clinic|doctors"]',   3000),
+    ("Metro",          'node["station"="subway"]',                    4000),
+    ("Railway",        'node["railway"="station"]["station"!="subway"]', 5000),
+    ("Buses",          'node["highway"="bus_stop"]',                  2000),
+    ("Market & Mall",  'node["shop"~"mall|supermarket|marketplace"]', 3000),
+]
+
+
+def _haversine_m(lat1, lng1, lat2, lng2) -> float:
+    from math import radians, sin, cos, asin, sqrt
+    r = 6371000.0
+    dlat, dlng = radians(lat2 - lat1), radians(lng2 - lng1)
+    a = sin(dlat / 2) ** 2 + cos(radians(lat1)) * cos(radians(lat2)) * sin(dlng / 2) ** 2
+    return 2 * r * asin(sqrt(a))
+
+
+def _fmt_dist(m: float) -> str:
+    return f"{int(round(m, -1))} m" if m < 1000 else f"{m / 1000:.1f} km"
+
+
+@api.post("/nearby/fetch")
+async def fetch_nearby(body: dict = Body(...), u: dict = Depends(current_user)):
+    """Fetch real nearby landmarks from OpenStreetMap. Accepts lat/lng or an
+    address/location/city to geocode first. Returns editable name|distance|category rows."""
+    lat, lng = body.get("lat"), body.get("lng")
+    if not (lat and lng):
+        q = ", ".join(str(x).replace("-", " ") for x in [body.get("address"), body.get("location"), body.get("city")] if x)
+        if not q:
+            raise HTTPException(400, "Enter the address/location or latitude & longitude first")
+        try:
+            async with httpx.AsyncClient(timeout=15, headers={"User-Agent": "CarpetAdda/1.0 (contact@carpetadda.com)"}) as client:
+                r = await client.get("https://nominatim.openstreetmap.org/search",
+                                     params={"q": q + ", India", "format": "json", "limit": 1})
+            results = r.json()
+        except Exception:
+            raise HTTPException(400, "Location service unreachable — please try again or enter places manually")
+        if not results:
+            raise HTTPException(400, "Could not locate this address — add latitude/longitude in the Location tab and retry")
+        lat, lng = float(results[0]["lat"]), float(results[0]["lon"])
+    lat, lng = float(lat), float(lng)
+
+    parts = "".join(f'{sel}(around:{radius},{lat},{lng});' for _, sel, radius in _OVERPASS_CATS)
+    query = f"[out:json][timeout:25];({parts});out body 40;"
+    elements = []
+    last_err = None
+    for endpoint in ("https://overpass-api.de/api/interpreter", "https://overpass.kumi.systems/api/interpreter"):
+        try:
+            async with httpx.AsyncClient(timeout=30, headers={"User-Agent": "CarpetAdda/1.0 (contact@carpetadda.com)"}) as client:
+                resp = await client.post(endpoint, content=f"data={query}",
+                                         headers={"Content-Type": "application/x-www-form-urlencoded"})
+            if resp.status_code >= 400:
+                last_err = f"HTTP {resp.status_code}"
+                continue
+            elements = resp.json().get("elements", [])
+            break
+        except Exception as e:
+            last_err = str(e)
+            continue
+    if last_err and not elements:
+        raise HTTPException(502, "Map data service is busy — please retry in a few seconds")
+
+    places: list[dict] = []
+    seen: set[str] = set()
+    for el in elements:
+        name = (el.get("tags") or {}).get("name")
+        if not name or name.lower() in seen:
+            continue
+        seen.add(name.lower())
+        elat, elng = el.get("lat"), el.get("lon")
+        if elat is None:
+            continue
+        dist = _haversine_m(lat, lng, elat, elng)
+        tags = el.get("tags") or {}
+        amenity = tags.get("amenity", "")
+        if amenity in ("school", "college", "university"):
+            category = "Schools"
+        elif amenity in ("hospital", "clinic", "doctors"):
+            category = "Hospitals"
+        elif tags.get("station") == "subway":
+            category = "Metro"
+        elif tags.get("railway") == "station":
+            category = "Railway"
+        elif tags.get("highway") == "bus_stop":
+            category = "Buses"
+        elif tags.get("shop") in ("mall", "supermarket", "marketplace"):
+            category = "Market & Mall"
+        else:
+            category = "Other"
+        places.append({"name": name, "distance": _fmt_dist(dist), "category": category, "_d": dist})
+
+    # nearest 5 per category
+    grouped: dict[str, list] = {}
+    for p in sorted(places, key=lambda x: x["_d"]):
+        grouped.setdefault(p["category"], [])
+        if len(grouped[p["category"]]) < 5:
+            grouped[p["category"]].append({"name": p["name"], "distance": p["distance"], "category": p["category"]})
+    out = [p for cat, _, _ in _OVERPASS_CATS for p in grouped.get(cat, [])] + grouped.get("Other", [])
+    if not out:
+        raise HTTPException(404, "No nearby landmarks found for this location — you can enter them manually")
+    return {"center": {"lat": lat, "lng": lng}, "places": out}
 
 # ---------------- Leads / Enquiries ----------------
 @api.post("/leads")

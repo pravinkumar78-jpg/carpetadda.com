@@ -6,7 +6,7 @@ import "@/index.css";
 
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import ChatWidget from "@/components/ChatWidget";
+import { WhatsappLogo } from "@phosphor-icons/react";
 import SeoManager from "@/components/SeoManager";
 import { AuthProvider } from "@/lib/auth";
 
@@ -96,7 +96,16 @@ export default function App() {
             </Routes>
           </main>
           <Footer />
-          <ChatWidget />
+          <a
+            href="https://wa.me/918828830707"
+            target="_blank"
+            rel="noopener"
+            data-testid="floating-whatsapp"
+            aria-label="Chat with CarpetAdda on WhatsApp"
+            className="fixed bottom-5 right-5 z-[60] w-14 h-14 rounded-full bg-[#25D366] text-white flex items-center justify-center shadow-lg shadow-emerald-500/30 hover:bg-[#1eb85a] hover:scale-105 transition-all"
+          >
+            <WhatsappLogo size={28} weight="fill" />
+          </a>
           <Toaster position="top-center" richColors />
         </div>
       </BrowserRouter>

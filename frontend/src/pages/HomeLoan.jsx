@@ -1,15 +1,28 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useMemo, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { CheckCircle, Bank, ArrowRight } from "@phosphor-icons/react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import api from "@/lib/api";
+import { formatINR } from "@/lib/format";
 
 const EMPTY = { name: "", phone: "", email: "", profession: "", designation: "", company_name: "", property_finalised: "", property_cost: "", loan_amount: "" };
 
 export default function HomeLoan() {
-  const [form, setForm] = useState(EMPTY);
+  const [sp] = useSearchParams();
+  const refInfo = useMemo(() => {
+    const propertyId = sp.get("property_id") || "";
+    const projectId = sp.get("project_id") || "";
+    const propertyName = sp.get("property_name") || "";
+    const cost = Number(sp.get("property_cost")) || "";
+    return { propertyId, projectId, propertyName, cost };
+  }, [sp]);
+  const [form, setForm] = useState(() => ({
+    ...EMPTY,
+    property_finalised: (refInfo.propertyId || refInfo.projectId) ? "yes" : "",
+    property_cost: refInfo.cost || "",
+  }));
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
 
@@ -28,7 +41,12 @@ export default function HomeLoan() {
         profession: form.profession.trim() || undefined,
         designation: form.designation.trim() || undefined,
         company_name: form.company_name.trim() || undefined,
-        message: `Home loan application — Profession: ${form.profession || "—"}, Designation: ${form.designation || "—"}, Company: ${form.company_name || "—"}`,
+        property_finalised: form.property_finalised === "yes" ? true : form.property_finalised === "no" ? false : undefined,
+        property_cost: Number(form.property_cost) || undefined,
+        loan_amount: Number(form.loan_amount) || undefined,
+        property_id: refInfo.propertyId || undefined,
+        project_id: refInfo.projectId || undefined,
+        message: `Home loan application${refInfo.propertyName ? ` for ${refInfo.propertyName}` : ""} — Profession: ${form.profession || "—"}, Designation: ${form.designation || "—"}, Company: ${form.company_name || "—"}`,
         source: "home_loan",
         landing_page: "/home-loan",
         source_url: window.location.href,
@@ -67,6 +85,15 @@ export default function HomeLoan() {
           </div>
         ) : (
           <form onSubmit={submit} data-testid="home-loan-form" className="card-premium p-8 space-y-4">
+            {refInfo.propertyName && (
+              <div className="flex items-center justify-between gap-3 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3" data-testid="hl-linked-listing">
+                <div>
+                  <div className="text-[10px] uppercase tracking-widest text-blue-600 font-semibold">{refInfo.projectId ? "Linked Project" : "Linked Property"}</div>
+                  <div className="text-sm font-semibold text-slate-900">{refInfo.propertyName}</div>
+                </div>
+                {refInfo.cost ? <div className="text-sm font-bold text-blue-700">{formatINR(refInfo.cost)}</div> : null}
+              </div>
+            )}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Fl label="Full Name *"><Input required data-testid="hl-name" value={form.name} onChange={e => set("name", e.target.value)} placeholder="Rajesh Kumar" className="h-11 rounded-lg border-slate-200" /></Fl>
               <Fl label="Mobile *"><Input required data-testid="hl-mobile" type="tel" value={form.phone} onChange={e => set("phone", e.target.value)} placeholder="88288 30707" className="h-11 rounded-lg border-slate-200" /></Fl>
