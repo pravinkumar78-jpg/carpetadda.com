@@ -188,3 +188,13 @@
 - WhatsApp context: new src/lib/whatsapp.js (WA_NUMBER 918828830707, waLink/waPropertyMsg/waProjectMsg/waAgentMsg with name/ID/location/config/price, URL-encoded); applied to property cards, project cards (new button, both layouts), property/project detail buttons, agents list/detail, home directory
 - Header: List Property hidden for logged-in users (desktop + mobile menu); visible logged-out (register flow); dashboard List Property retained
 - Verified in browser: logged-out shows button, logged-in hides it; encoded contextual WA hrefs on cards; lead POST 200 with clean email-skip log
+
+## Implemented (2026-08-13, iteration 13 — REAL email delivery)
+- ROOT CAUSE of "emails not arriving": no email provider configured (SMTP empty, no Emergent key). Fixed by wiring Emergent managed email proxy (EMERGENT_EMAIL_KEY set in backend/.env) as default; business SMTP (SMTP_HOST/USER/PASSWORD/FROM/SECURE) takes priority when filled for Hostinger
+- email_service.py rewritten as ONE service: _deliver (SMTP→proxy priority), mandatory safety gate (G2/G3) with _absolutize (app-relative→https FRONTEND_URL) so templates pass; Reply-To = client email; professional enquiry subjects per type; full email content (name/mobile/email/type/listing name+ID/location/price/agent-dev/budget/visit/profession/cost/loan/lead ID/timestamp/source)
+- Agent/Developer copies now sent as SEPARATE send after primary — a bad/unverifiable CC address can NEVER block the primary business email (was the latent "property enquiry failed" bug: fake demo agent emails made the proxy 422 the whole payload)
+- email_log collection records every attempt (kind, to, status, real error, provider, at); leads/site_visits get email_status sent/failed + email_error write-back via _notify_lead background wrapper; SMTP failure never deletes/affects the saved enquiry
+- Admin → Settings → "Email Delivery Status": CONNECTED/MANAGED/NOT CONFIGURED badge, provider detail, missing-var guidance, last email (status/type/time/error), admin-only Send Test Email (POST /admin/email/test) with real result; GET /admin/email/status; GET /admin/email/test never exposed to public
+- FRONTEND_URL/SITE_URL set in .env (verification/reset links https — were http://localhost which the safety gate correctly rejected); .env.example updated with SMTP_SECURE
+- Verified REAL delivery: test email, contact, requirement, property enquiry, home loan, site visit, verification = SENT (proxy accepted); password-reset to demo user@estatehub.in = FAILED with real reason (undeliverable fake demo domain — expected; real user emails deliver, proven by verification send); CC to fake demo agent/developer emails fail separately without touching primary
+- 31/31 pytest, build clean

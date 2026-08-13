@@ -32,7 +32,8 @@ from auth import (  # noqa: E402
     require_roles,
     verify_password,
 )
-from email_service import send_lead_notification, send_account_email  # noqa: E402
+import email_service  # noqa: E402
+from email_service import send_lead_notification, send_lead_notification_report, send_account_email, record_email_log, smtp_self_test  # noqa: E402
 from storage import ROOT as UPLOAD_ROOT, build_upload_path, get_object, guess_content_type, init_storage, put_object  # noqa: E402
 from models import (  # noqa: E402
     Agent,
@@ -62,6 +63,7 @@ from models import (  # noqa: E402
 mongo_url = os.environ["MONGO_URL"]
 client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ["DB_NAME"]]
+email_service.bind_db(db)
 
 app = FastAPI(title="EstateHub API", version="1.0.0")
 UPLOAD_ROOT.mkdir(parents=True, exist_ok=True)
@@ -118,7 +120,7 @@ async def _send_verification_email(u: User):
     link = f"{frontend_url}/verify-email?token={raw}"
     await send_account_email(u.email, "Verify your CarpetAdda email",
         f"<p>Hello {u.name},</p><p>Welcome to CarpetAdda. Please verify your email address to unlock listing and enquiry features:</p>"
-        f"<p><a href=\"{link}\">Verify Email</a></p><p>The link expires in 24 hours.</p>")
+        f"<p><a href=\"{link}\">Verify Email</a></p><p>The link expires in 24 hours.</p>", kind="verification")
 
 
 @api.post("/auth/verify-email")
@@ -212,7 +214,7 @@ async def forgot_password(body: dict = Body(...), background_tasks: BackgroundTa
     await db.password_resets.insert_one({"user_id":doc["id"],"token_hash":_token_hash(raw),"expires_at":expires,"used":False,"created_at":now})
     frontend_url=os.environ.get("FRONTEND_URL", os.environ.get("SITE_URL", "http://localhost:3000")).rstrip("/")
     link=f"{frontend_url}/reset-password?token={raw}"
-    await send_account_email(email, "Reset your CarpetAdda password", f"<p>Hello {doc.get('name','User')},</p><p>Use the link below to reset your CarpetAdda password. It expires in 30 minutes and can be used once.</p><p><a href=\"{link}\">Reset Password</a></p><p>If you did not request this, you can ignore this email.</p>")
+    await send_account_email(email, "Reset your CarpetAdda password", f"<p>Hello {doc.get('name','User')},</p><p>Use the link below to reset your CarpetAdda password. It expires in 30 minutes and can be used once.</p><p><a href=\"{link}\">Reset Password</a></p><p>If you did not request this, you can ignore this email.</p>", kind="password_reset")
     return generic
 
 @api.post("/auth/reset-password")
@@ -1366,6 +1368,29 @@ async def admin_update_settings(body: dict = Body(...)):
     return await db.settings.find_one({"key": "default"}, PROJ)
 
 
+# ---------------- Admin email diagnostics ----------------
+@api.get("/admin/email/status", dependencies=[Depends(require_roles("admin"))])
+async def admin_email_status():
+    diag = await smtp_self_test()
+    last = await db.email_log.find_one({}, PROJ, sort=[("at", -1)])
+    return {**diag, "last_email": last,
+            "recipient": os.environ.get("LEAD_RECIPIENT_EMAIL", "contact@carpetadda.com")}
+
+
+@api.post("/admin/email/test", dependencies=[Depends(require_roles("admin"))])
+async def admin_email_test():
+    """Admin-only: send a real test email to the business inbox. Returns the true result."""
+    to = os.environ.get("LEAD_RECIPIENT_EMAIL", "contact@carpetadda.com")
+    ok, err = await send_lead_notification_report(
+        {"id": f"test-{secrets.token_hex(3)}", "name": "Admin Diagnostics", "phone": "—",
+         "email": "contact@carpetadda.com", "message": "This is a test email from Admin → Settings.",
+         "created_at": _now_iso_str()},
+        "Test", {"extra_recipients": []})
+    if not ok:
+        raise HTTPException(502, f"Test email failed: {err}")
+    return {"ok": True, "message": f"Test email sent successfully to {to}"}
+
+
 # ---------------- Admin: Users ----------------
 @api.get("/admin/users", dependencies=[Depends(require_roles("admin"))])
 async def admin_list_users(role: Optional[str] = None, q: Optional[str] = None):
@@ -1419,7 +1444,7 @@ async def admin_reset_password(uid: str):
     await db.password_resets.insert_one({"user_id":uid,"token_hash":_token_hash(raw),"expires_at":now+timedelta(minutes=30),"used":False,"created_at":now})
     frontend_url=os.environ.get("FRONTEND_URL", os.environ.get("SITE_URL", "http://localhost:3000")).rstrip("/")
     link=f"{frontend_url}/reset-password?token={raw}"
-    sent=await send_account_email(doc["email"],"CarpetAdda password reset",f"<p>Hello {doc.get('name','User')},</p><p>An administrator requested a password reset for your account.</p><p><a href=\"{link}\">Reset Password</a></p><p>This link expires in 30 minutes and can be used once.</p>")
+    sent=await send_account_email(doc["email"],"CarpetAdda password reset",f"<p>Hello {doc.get('name','User')},</p><p>An administrator requested a password reset for your account.</p><p><a href=\"{link}\">Reset Password</a></p><p>This link expires in 30 minutes and can be used once.</p>", kind="password_reset")
     if not sent: raise HTTPException(502,"Password reset email could not be sent. Configure email settings first.")
     return {"ok":True,"message":"Password reset link sent to the user's registered email."}
 
@@ -1655,9 +1680,22 @@ async def create_lead(body: Lead, background: BackgroundTasks):
     kind = kind_map.get(body.source, "Website")
 
     # non-blocking email dispatch — never blocks or fails the API response
-    background.add_task(send_lead_notification, lead_dict, kind, ctx)
+    background.add_task(_notify_lead, body.id, "leads", lead_dict, kind, ctx)
 
     return {"ok": True, "id": body.id, "message": "Enquiry submitted. Our team will contact you shortly."}
+
+
+async def _notify_lead(doc_id: str, collection: str, lead: dict, kind: str, ctx: dict):
+    """Background: send enquiry email, then record real delivery status on the doc."""
+    ok, err = await send_lead_notification_report(lead, kind, ctx)
+    try:
+        await db[collection].update_one({"id": doc_id}, {"$set": {
+            "email_status": "sent" if ok else "failed",
+            "email_error": None if ok else (err or "unknown error"),
+            "email_at": _now_iso_str(),
+        }})
+    except Exception:
+        pass
 
 
 @api.get("/leads", dependencies=[Depends(require_roles("admin", "agent"))])
@@ -1711,7 +1749,7 @@ async def create_site_visit(body: SiteVisit, background: BackgroundTasks):
         "preferred_visit_time": visit_dict.get("visit_time"),
         "source": "site_visit_form",
     }
-    background.add_task(send_lead_notification, lead_shaped, "Site Visit", ctx)
+    background.add_task(_notify_lead, body.id, "site_visits", {"id": body.id, **lead_shaped}, "Site Visit", ctx)
     return {"ok": True, "id": body.id, "message": "Site visit requested. We'll confirm shortly."}
 
 
