@@ -1,12 +1,11 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import api from "@/lib/api";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
-import { LockKey } from "@phosphor-icons/react";
 
 export default function PostProperty() {
   const { user, ready } = useAuth();
@@ -16,6 +15,10 @@ export default function PostProperty() {
     property_type: "apartment", bhk: 2, price: 5000000, carpet_area: 800,
     city: "dombivli", location: "dombivli-east", address: "",
   });
+
+  // List Property flow: not logged in → Register page (registration lands on the
+  // user dashboard, which links to List Property). Logged in → the form directly.
+  if (ready && !user) return <Navigate to="/register" replace />;
 
   const submit = async (e) => {
     e.preventDefault();
@@ -38,17 +41,7 @@ export default function PostProperty() {
         </div>
       </div>
       <div className="max-w-3xl mx-auto px-6 py-10">
-        {ready && !user ? (
-          <div className="card-premium p-10 text-center" data-testid="post-property-auth-gate">
-            <div className="w-14 h-14 rounded-2xl bg-blue-100 text-blue-600 flex items-center justify-center mx-auto mb-5"><LockKey size={26} weight="bold" /></div>
-            <h2 className="text-2xl font-bold text-slate-900 mb-2">Login to list your property</h2>
-            <p className="text-sm text-slate-600 max-w-md mx-auto mb-8">Create a free account or sign in — you'll land straight back on this listing form.</p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-              <Link to="/login?next=/post-property" data-testid="gate-login" className="w-full sm:w-auto px-8 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors shadow-md shadow-blue-500/20">Login</Link>
-              <Link to="/register?next=/post-property" data-testid="gate-register" className="w-full sm:w-auto px-8 py-3 border border-blue-200 text-blue-600 rounded-lg font-semibold hover:bg-blue-50 transition-colors">Create Account</Link>
-            </div>
-          </div>
-        ) : !ready ? null : (
+        {!ready ? null : (
         <form onSubmit={submit} className="card-premium p-8 space-y-4" data-testid="post-property-form">
           <Input data-testid="post-title" required placeholder="Property title" value={f.title} onChange={e => setF({...f, title: e.target.value})} className="rounded-lg border-slate-200 h-11" />
           <Textarea data-testid="post-desc" required rows={4} placeholder="Detailed description" value={f.description} onChange={e => setF({...f, description: e.target.value})} className="rounded-lg border-slate-200" />

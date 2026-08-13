@@ -121,7 +121,7 @@ export function Contact() {
           <div className="card-premium p-6">
             <div className="w-11 h-11 rounded-lg bg-blue-100 flex items-center justify-center mb-3"><PhoneCall size={20} weight="bold" className="text-blue-600" /></div>
             <div className="text-xs uppercase tracking-widest text-slate-500 font-semibold mb-1">WhatsApp</div>
-            <a href={`https://wa.me/${waDigits}`} className="text-lg font-bold text-slate-900 hover:text-blue-600 transition-colors">{waDisplay}</a>
+            <a href={`https://wa.me/${waDigits}`} data-testid="contact-whatsapp" className="text-lg font-bold text-slate-900 hover:text-blue-600 transition-colors">{waDisplay}</a>
           </div>
           <div className="card-premium p-6">
             <div className="w-11 h-11 rounded-lg bg-blue-100 flex items-center justify-center mb-3"><EnvelopeSimple size={20} weight="bold" className="text-blue-600" /></div>

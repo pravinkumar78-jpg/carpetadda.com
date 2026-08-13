@@ -19,15 +19,21 @@ export function Agents() {
       <div className="max-w-7xl mx-auto px-6 lg:px-10 py-12">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {items.map(a => (
-            <Link key={a.id} to={`/agent/${a.slug}`} data-testid={`agent-${a.slug}`} className="card-premium p-6 flex gap-4 group">
-              <img src={a.photo} alt={a.name} className="w-24 h-24 rounded-full object-cover border-2 border-blue-100" />
-              <div className="flex-1">
-                <h3 className="text-lg font-semibold text-slate-900 mb-1 group-hover:text-blue-600 transition-colors">{a.name}</h3>
-                <div className="text-xs text-slate-500 mb-1">{a.experience_years}+ years • {a.total_listings} listings</div>
-                <div className="flex items-center gap-1 text-amber-500 text-sm font-medium mb-2"><Star size={14} weight="fill" /> {a.rating.toFixed(1)}</div>
-                <p className="text-sm text-slate-600 line-clamp-2">{a.bio}</p>
-              </div>
-            </Link>
+            <div key={a.id} data-testid={`agent-${a.slug}`} className="card-premium p-6 flex gap-4 group relative">
+              <Link to={`/agent/${a.slug}`} className="flex gap-4 flex-1 min-w-0">
+                <img src={a.photo} alt={a.name} className="w-24 h-24 rounded-full object-cover border-2 border-blue-100" />
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold text-slate-900 mb-1 group-hover:text-blue-600 transition-colors">{a.name}</h3>
+                  <div className="text-xs text-slate-500 mb-1">{a.experience_years}+ years • {a.total_listings} listings</div>
+                  <div className="flex items-center gap-1 text-amber-500 text-sm font-medium mb-2"><Star size={14} weight="fill" /> {a.rating.toFixed(1)}</div>
+                  <p className="text-sm text-slate-600 line-clamp-2">{a.bio}</p>
+                </div>
+              </Link>
+              <a href="https://wa.me/918828830707" target="_blank" rel="noopener" data-testid={`agent-wa-${a.slug}`} aria-label={`WhatsApp CarpetAdda about ${a.name}`}
+                className="absolute bottom-4 right-4 p-2.5 bg-emerald-500 text-white rounded-full hover:bg-emerald-600 transition-colors shadow-sm">
+                <WhatsappLogo size={16} weight="fill" />
+              </a>
+            </div>
           ))}
         </div>
       </div>
@@ -57,7 +63,7 @@ export function AgentDetail() {
             <p className="text-slate-700 mt-4 leading-relaxed">{a.bio}</p>
             <div className="flex flex-wrap gap-3 mt-6">
               <a href={`tel:${a.phone}`} className="flex items-center gap-2 px-5 py-3 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"><PhoneCall size={14}/> {a.phone}</a>
-              <a href={`https://wa.me/${(a.whatsapp || a.phone).replace(/\D/g,"")}`} target="_blank" rel="noopener" className="flex items-center gap-2 px-5 py-3 bg-emerald-500 text-white rounded-lg text-sm font-medium hover:bg-emerald-600 transition-colors"><WhatsappLogo size={14}/> WhatsApp</a>
+              <a href="https://wa.me/918828830707" target="_blank" rel="noopener" data-testid="agent-detail-whatsapp" className="flex items-center gap-2 px-5 py-3 bg-emerald-500 text-white rounded-lg text-sm font-medium hover:bg-emerald-600 transition-colors"><WhatsappLogo size={14}/> WhatsApp</a>
               {a.email && <a href={`mailto:${a.email}`} className="flex items-center gap-2 px-5 py-3 border border-slate-200 rounded-lg text-sm font-medium text-slate-700 hover:bg-blue-50 hover:border-blue-300 hover:text-blue-600 transition-colors"><EnvelopeSimple size={14}/> Email</a>}
             </div>
           </div>

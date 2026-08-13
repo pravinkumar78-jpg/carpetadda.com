@@ -59,6 +59,15 @@ export function UserDashboard() {
         <div className="min-w-0">
           {tab === "overview" && (
             <div className="space-y-12">
+              <div className="card-premium p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-blue-200 bg-gradient-to-r from-blue-50 to-white" data-testid="dash-list-property-cta">
+                <div>
+                  <div className="font-bold text-slate-900 text-lg">Have a property to sell or rent?</div>
+                  <p className="text-sm text-slate-600 mt-1">List it free — reach thousands of verified buyers on CarpetAdda.</p>
+                </div>
+                <Link to="/dashboard/list-property" data-testid="dash-list-property" className="inline-flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2.5 rounded-lg shadow-md shadow-blue-500/20 whitespace-nowrap">
+                  <Plus size={15} weight="bold" /> List Property
+                </Link>
+              </div>
               <div>
                 <h2 className="text-2xl font-bold text-slate-900 mb-6">Your Favorites</h2>
                 {favs.length === 0 ? <div className="card-premium p-8 text-center text-slate-500">No favorites yet. Browse and tap the heart to save.</div> : (

@@ -11,7 +11,7 @@ body {
     font-family: Poppins, ui-sans-serif, system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    background: #E0E7FA;
+    background: #E0F6FA;
     color: #0f172a;
 }
 
@@ -62,9 +62,9 @@ body {
 /* ─── Utilities ─────────────────────────────────────────────── */
 
 .section-blue {
-    background: linear-gradient(180deg, #E9EEFC 0%, #E0E7FA 100%);
+    background: linear-gradient(180deg, #EAFBFD 0%, #E0F6FA 100%);
 }
-.bg-soft-blue { background: #E0E7FA; }
+.bg-soft-blue { background: #E0F6FA; }
 
 .card-premium {
     background-color: #fff;
@@ -253,6 +253,8 @@ body {
 .lux-btn-ghost:hover { background: rgba(212, 175, 55, 0.08); border-color: rgba(212, 175, 55, 0.6); }
 
 @keyframes lux-marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+@keyframes slideUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 .animate-lux-marquee { animation: lux-marquee 48s linear infinite; }
 .animate-lux-marquee:hover { animation-play-state: paused; }
 
@@ -384,3 +386,8 @@ html.dark {
 
 /* Tabs: #708DE6 active with a slightly darker outer edge */
 [role="tab"][data-state="active"] { box-shadow: 0 0 0 1px #5C76D4; }
+
+/* Leaflet: trap map-pane z-indexes inside the map container so maps never
+   paint above dialogs/popups (root fix for Schedule-Visit-behind-map). */
+.leaflet-container { position: relative; z-index: 0; isolation: isolate; }
+.leaflet-pane, .leaflet-control, .leaflet-top, .leaflet-bottom { z-index: 1; }

@@ -1479,8 +1479,12 @@ async def create_lead(body: Lead, background: BackgroundTasks):
                         continue
                     agent = await db.agents.find_one({"id": ref}, {"_id": 0, "email": 1}) or \
                             await db.users.find_one({"id": ref}, {"_id": 0, "email": 1, "active": 1, "role": 1})
-                    if agent and agent.get("email") and agent.get("active", True) is not False:
-                        if agent["email"] not in extra_recipients:
+                    if agent and agent.get("email"):
+                        # never send leads to blocked/rejected accounts
+                        linked = await db.users.find_one({"email": agent["email"]}, {"_id": 0, "active": 1, "status": 1})
+                        if linked is not None and (linked.get("active") is False or linked.get("status") in ("blocked", "rejected")):
+                            continue
+                        if agent.get("active", True) is not False and agent["email"] not in extra_recipients:
                             extra_recipients.append(agent["email"])
     if body.project_id:
         proj = await db.projects.find_one({"id": body.project_id}, {"_id": 0, "name": 1, "owner_id": 1, "status": 1})

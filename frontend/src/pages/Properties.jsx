@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { SquaresFour, List, MapTrifold, FunnelSimple } from "@phosphor-icons/react";
+import { SquaresFour, List, FunnelSimple } from "@phosphor-icons/react";
 import PropertyCard from "@/components/PropertyCard";
-import PropertyMap from "@/components/PropertyMap";
 import api from "@/lib/api";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
@@ -40,7 +39,7 @@ export default function Properties() {
     const qp = new URLSearchParams(sp);
     qp.set("page", String(page));
     qp.set("sort", sort);
-    qp.set("page_size", layout === "half_map" ? "10" : "12");
+    qp.set("page_size", "12");
     api.get(`/properties?${qp.toString()}`).then(r => {
       setItems(r.data.items || []);
       setTotal(r.data.total || 0);
@@ -137,10 +136,10 @@ export default function Properties() {
                   <SelectItem value="featured">Featured</SelectItem>
                 </SelectContent>
               </Select>
-              <div className="flex bg-white border border-slate-200 rounded-lg overflow-hidden">
-                {[["grid", SquaresFour], ["list", List], ["half_map", MapTrifold]].map(([k, Icon]) => (
+              <div className="flex bg-white border border-slate-200 rounded-lg overflow-hidden" data-testid="layout-toggle">
+                {[["grid", SquaresFour, ""], ["list", List, "hidden md:inline-flex"]].map(([k, Icon, extra]) => (
                   <button key={k} data-testid={`layout-${k}`} onClick={() => setLayout(k)}
-                    className={`p-2.5 ${layout === k ? "bg-blue-600 text-white" : "text-slate-600 hover:bg-blue-50 hover:text-blue-600"} transition-colors`} aria-label={k}>
+                    className={`p-2.5 ${extra} ${layout === k ? "bg-blue-600 text-white" : "text-slate-600 hover:bg-blue-50 hover:text-blue-600"} transition-colors`} aria-label={k}>
                     <Icon size={18} />
                   </button>
                 ))}
@@ -155,16 +154,7 @@ export default function Properties() {
           <aside className="hidden lg:block card-premium p-6 h-fit sticky top-24">{filters}</aside>
 
           <div>
-            {layout === "half_map" ? (
-              <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                <div className="space-y-4 max-h-[80vh] overflow-y-auto pr-2">
-                  {items.map(p => <PropertyCard key={p.id} p={p} layout="list" />)}
-                </div>
-                <div className="sticky top-24 h-fit rounded-xl overflow-hidden">
-                  <PropertyMap items={items} height={"80vh"} />
-                </div>
-              </div>
-            ) : layout === "list" ? (
+            {layout === "list" ? (
               <div className="space-y-4">{items.map(p => <PropertyCard key={p.id} p={p} layout="list" />)}</div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">

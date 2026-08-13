@@ -59,9 +59,9 @@ export default function Projects() {
             <p className="text-slate-600 max-w-2xl">Handpicked new-launch developments from India's most trusted builders — RERA verified, on-time delivery.</p>
           </div>
           <div className="flex bg-white border border-slate-300 rounded-lg overflow-hidden" data-testid="project-layout-toggle">
-            {[["grid", SquaresFour], ["list", List]].map(([k, Icon]) => (
+            {[["grid", SquaresFour, ""], ["list", List, "hidden md:inline-flex"]].map(([k, Icon, extra]) => (
               <button key={k} data-testid={`project-layout-${k}`} onClick={() => setLayout(k)}
-                className={`p-2.5 ${layout === k ? "bg-blue-600 text-white" : "text-slate-600 hover:bg-blue-50 hover:text-blue-600"} transition-colors`} aria-label={`${k} view`}>
+                className={`p-2.5 ${extra} ${layout === k ? "bg-blue-600 text-white" : "text-slate-600 hover:bg-blue-50 hover:text-blue-600"} transition-colors`} aria-label={`${k} view`}>
                 <Icon size={18} />
               </button>
             ))}

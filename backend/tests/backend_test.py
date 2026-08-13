@@ -247,3 +247,117 @@ class TestIncrementalFeatureAPIs:
             assert isinstance(row.get("page"), str) and row["page"].startswith("/")
             if row.get("robots") is not None:
                 assert row["robots"] in {"index,follow", "noindex,follow", "index,nofollow", "noindex,nofollow"}
+
+
+
+# Latest batch coverage: lead creation/persistence, site-visit creation, and admin visibility.
+class TestLeadAndSiteVisitCreation:
+    """Validate public submissions persist complete records and remain visible to admins."""
+
+    @pytest.fixture(scope="class")
+    @classmethod
+    def active_property(cls):
+        response = requests.get(
+            f"{BASE_URL}/api/properties", params={"page_size": 1}, timeout=20
+        )
+        assert response.status_code == 200, response.text
+        body = response.json()
+        assert body["items"], "At least one active property is required"
+        prop = body["items"][0]
+        assert prop["status"] == "active"
+        return prop
+
+    def test_contact_and_property_leads_persist_with_admin_visibility(self, admin_client, active_property):
+        import uuid
+
+        marker = uuid.uuid4().hex[:10]
+        contact_name = f"TEST_Contact_{marker}"
+        property_name = f"TEST_Property_{marker}"
+        contact_payload = {
+            "name": contact_name,
+            "phone": "9888800001",
+            "email": f"contact-{marker}@example.com",
+            "configuration": "2 BHK",
+            "budget_max": 7500000,
+            "message": "TEST contact-page enquiry email wiring",
+            "source": "contact_page",
+            "source_url": f"{BASE_URL}/contact",
+        }
+        property_payload = {
+            "name": property_name,
+            "phone": "9888800002",
+            "email": f"property-{marker}@example.com",
+            "message": "TEST property-detail enquiry email wiring",
+            "property_id": active_property["id"],
+            "configuration": f"{active_property.get('bhk')} BHK" if active_property.get("bhk") else "Residential",
+            "budget_max": active_property.get("price") or active_property.get("rent"),
+            "source": "property_page",
+            "source_url": f"{BASE_URL}/property/{active_property['slug']}",
+        }
+
+        created_ids = []
+        for payload in (contact_payload, property_payload):
+            response = requests.post(f"{BASE_URL}/api/leads", json=payload, timeout=20)
+            assert response.status_code == 200, response.text
+            body = response.json()
+            assert body["ok"] is True
+            assert isinstance(body["id"], str) and body["id"]
+            assert "contact you" in body["message"].lower()
+            created_ids.append(body["id"])
+
+        listed = admin_client.get(f"{BASE_URL}/api/leads", params={"limit": 200}, timeout=20)
+        assert listed.status_code == 200, listed.text
+        by_id = {row["id"]: row for row in listed.json()}
+        for lead_id, payload in zip(created_ids, (contact_payload, property_payload)):
+            assert lead_id in by_id
+            row = by_id[lead_id]
+            for key in ("name", "phone", "email", "message", "source", "source_url"):
+                assert row[key] == payload[key]
+            assert row["status"] == "new"
+        assert by_id[created_ids[1]]["property_id"] == active_property["id"]
+
+    def test_site_visit_persists_and_is_admin_visible(self, admin_client, active_property):
+        import uuid
+        from datetime import date, timedelta
+
+        marker = uuid.uuid4().hex[:10]
+        payload = {
+            "name": f"TEST_Visit_{marker}",
+            "phone": "9888800003",
+            "email": f"visit-{marker}@example.com",
+            "property_id": active_property["id"],
+            "visit_date": (date.today() + timedelta(days=7)).isoformat(),
+            "visit_time": "10:30 AM",
+            "visitors": 2,
+            "notes": "TEST site visit from schedule dialog",
+        }
+        response = requests.post(f"{BASE_URL}/api/site-visits", json=payload, timeout=20)
+        assert response.status_code == 200, response.text
+        body = response.json()
+        assert body["ok"] is True
+        assert isinstance(body["id"], str) and body["id"]
+        assert "confirm" in body["message"].lower()
+
+        listed = admin_client.get(f"{BASE_URL}/api/site-visits", params={"limit": 200}, timeout=20)
+        assert listed.status_code == 200, listed.text
+        persisted = next((row for row in listed.json() if row.get("id") == body["id"]), None)
+        assert persisted is not None
+        for key in ("name", "phone", "email", "property_id", "visit_date", "visit_time", "visitors", "notes"):
+            assert persisted[key] == payload[key]
+        assert persisted["status"] == "requested"
+        assert persisted["property_title"] == active_property["title"]
+
+    @pytest.mark.parametrize("endpoint,payload,error", [
+        ("leads", {"name": "TEST_Invalid", "phone": "123", "source": "contact_page"}, "Valid 10-digit mobile number required"),
+        ("site-visits", {"name": "TEST_Invalid", "phone": "123", "visit_date": "2026-12-01", "visit_time": "10:30 AM"}, "Valid 10-digit mobile number required"),
+    ])
+    def test_invalid_public_submission_is_rejected_cleanly(self, endpoint, payload, error):
+        response = requests.post(f"{BASE_URL}/api/{endpoint}", json=payload, timeout=20)
+        assert response.status_code == 400, response.text
+        assert response.json() == {"detail": error}
+
+    @pytest.mark.parametrize("endpoint", ["leads", "site-visits"])
+    def test_admin_lists_require_authentication(self, endpoint):
+        response = requests.get(f"{BASE_URL}/api/{endpoint}", timeout=20)
+        assert response.status_code in {401, 403}
+        assert "detail" in response.json()
