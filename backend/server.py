@@ -741,6 +741,16 @@ def _parse_project_page(html: str, url: str) -> dict:
     image = _meta(html, "og:image") or ""
     if image:
         image = urljoin(url, image)
+    # Gallery: og:image + JSON-LD image entries
+    images: list[str] = []
+    if image:
+        images.append(image)
+    for m in re.findall(r'"image"\s*:\s*"([^"]+\.(?:jpg|jpeg|png|webp)[^"]*)"', html, re.I):
+        u = urljoin(url, m)
+        if u not in images:
+            images.append(u)
+        if len(images) >= 6:
+            break
     # Prices like ₹1.2 Cr / ₹ 85 L / ₹85,00,000
     amounts: list[float] = []
     for val, unit in re.findall(r"₹\s*([\d,]+(?:\.\d+)?)\s*(Cr\.?|Crore|Lakh|Lac|L\b)?", html, re.I):
@@ -753,13 +763,36 @@ def _parse_project_page(html: str, url: str) -> dict:
         if num >= 100_000:
             amounts.append(num)
     amounts = sorted(set(amounts))
-    configs = sorted({f"{n} BHK" for n in re.findall(r"(\d)\s*(?:BHK|B\.H\.K)", html, re.I)})
+    configs = sorted({f"{n} BHK" for n in re.findall(r"(\d)\s*(?:BHK|B\.H\.K)", html, re.I) +
+                      re.findall(r"(\d)\s*(?:,|&|and|or|\s)+\d\s*(?:BHK|B\.H\.K)", html, re.I)})
     rera_m = re.search(r"\b[AP]\d{11}\b", html)
+    # Carpet area range like 450 - 1450 sq.ft
+    area_from = area_to = None
+    am = re.search(r"([\d,]{3,})\s*(?:-|–|to)\s*([\d,]{3,})\s*(?:sq\.?\s*ft|sqft)", html, re.I)
+    if am:
+        area_from, area_to = float(am.group(1).replace(",", "")), float(am.group(2).replace(",", ""))
+    # Brochure link (pdf or 'brochure' in href)
+    brochure = None
+    bm = re.search(r'href=["\']([^"\']*(?:brochure[^"\']*|[^"\']+\.pdf))["\']', html, re.I)
+    if bm:
+        brochure = urljoin(url, bm.group(1))
+    # Developer / site identity hints
+    dev_guess = _meta(html, "og:site_name") or ""
+    if not dev_guess:
+        dd = re.search(r'"(?:developer|brand|author)"\s*:\s*(?:\{[^}]*"name"\s*:\s*)?"([^"]+)"', html, re.I)
+        if dd:
+            dev_guess = dd.group(1).strip()
     # JSON-LD address hints
     loc = ""
+    addr = ""
     al = re.search(r'"addressLocality"\s*:\s*"([^"]+)"', html)
     if al:
         loc = al.group(1).strip()
+    sa = re.search(r'"streetAddress"\s*:\s*"([^"]+)"', html)
+    if sa:
+        addr = sa.group(1).strip()
+        if loc and loc not in addr:
+            addr = f"{addr}, {loc}"
     city = "mumbai"
     low = html.lower()
     for c in ("dombivli", "kalyan", "navi mumbai", "thane", "mumbai"):
@@ -770,10 +803,16 @@ def _parse_project_page(html: str, url: str) -> dict:
         "name": title[:120] or urlparse(url).netloc,
         "description": desc[:2000] or None,
         "image": image or None,
+        "images": images,
         "price_from": amounts[0] if amounts else 0,
         "price_to": amounts[-1] if amounts else 0,
         "configurations": configs,
+        "area_from": area_from,
+        "area_to": area_to,
         "rera_number": rera_m.group(0) if rera_m else None,
+        "brochure_url": brochure,
+        "developer_guess": dev_guess[:120] or None,
+        "address": addr or None,
         "location": re.sub(r"[^a-z0-9]+", "-", loc.lower()).strip("-") if loc else city,
         "city": city,
     }
@@ -785,23 +824,8 @@ async def import_project(body: ProjectImportInput, u: dict = Depends(current_use
     project (pending_review). Never goes live until an admin approves it."""
     if u["role"] not in ("admin", "super_admin", "developer"):
         raise HTTPException(403, "Only developers and admins can import projects")
-    url = body.url.strip()
-    if not url:
-        raise HTTPException(400, "URL required")
-    if not url.startswith(("http://", "https://")):
-        url = "https://" + url
-    try:
-        async with httpx.AsyncClient(timeout=20, follow_redirects=True,
-                                     headers={"User-Agent": "Mozilla/5.0 (compatible; CarpetAddaBot/1.0)"}) as client:
-            resp = await client.get(url)
-        if resp.status_code >= 400:
-            raise HTTPException(400, f"Website returned HTTP {resp.status_code}")
-        html = resp.text[:2_000_000]
-    except HTTPException:
-        raise
-    except Exception:
-        raise HTTPException(400, "Could not fetch the provided URL. Check the link and try again.")
-
+    url = _normalise_url(body.url)
+    html = await _fetch_page(url)
     parsed = _parse_project_page(html, url)
     user_doc = await db.users.find_one({"id": u["sub"]}, PROJ)
     dev_doc = None
@@ -822,8 +846,9 @@ async def import_project(body: ProjectImportInput, u: dict = Depends(current_use
         price_to=parsed["price_to"],
         configurations=parsed["configurations"],
         rera_number=parsed["rera_number"],
-        images=[parsed["image"]] if parsed["image"] else [],
+        images=parsed["images"],
         main_image=parsed["image"],
+        brochure_url=parsed["brochure_url"],
         status="pending_review",
         verified=False,
         featured=False,
@@ -832,6 +857,81 @@ async def import_project(body: ProjectImportInput, u: dict = Depends(current_use
     proj.owner_id = u["sub"]
     await db.projects.insert_one(proj.model_dump())
     return _clean(proj.model_dump())
+
+
+def _normalise_url(raw: str) -> str:
+    url = (raw or "").strip()
+    if not url:
+        raise HTTPException(400, "Please enter a developer landing page URL")
+    if not url.startswith(("http://", "https://")):
+        url = "https://" + url
+    host = urlparse(url).netloc.split(":")[0]
+    is_local = host == "localhost" or re.match(r"^\d{1,3}(\.\d{1,3}){3}$", host or "")
+    if not host or ("." not in host and not is_local):
+        raise HTTPException(400, "Invalid URL — enter a full website address like https://developer.com/project")
+    return url
+
+
+async def _fetch_page(url: str) -> str:
+    try:
+        async with httpx.AsyncClient(timeout=20, follow_redirects=True,
+                                     headers={"User-Agent": "Mozilla/5.0 (compatible; CarpetAddaBot/1.0)"}) as client:
+            resp = await client.get(url)
+        if resp.status_code >= 400:
+            raise HTTPException(400, f"Website returned HTTP {resp.status_code} — the page could not be accessed")
+        return resp.text[:2_000_000]
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(400, "Website cannot be accessed — check the link and your internet connection, then try again")
+
+
+@api.post("/projects/fetch-details", dependencies=[Depends(require_roles("admin"))])
+async def fetch_project_details(body: ProjectImportInput):
+    """Admin fetch-and-prefill: scrape a developer landing page and return the
+    extracted fields WITHOUT saving anything. The admin reviews/edits in the form."""
+    url = _normalise_url(body.url)
+    html = await _fetch_page(url)
+    parsed = _parse_project_page(html, url)
+
+    if not (parsed["description"] or parsed["images"] or parsed["price_from"] or parsed["configurations"]):
+        raise HTTPException(422, "Could not extract project details from this page — please fill the form manually")
+
+    # Match developer by name against registered developers
+    dev_match = None
+    guess = parsed.get("developer_guess")
+    if guess:
+        dev_match = await db.developers.find_one({"name": {"$regex": f"^{re.escape(guess)}", "$options": "i"}}, PROJ)
+        if not dev_match:
+            dev_match = await db.developers.find_one({"name": {"$regex": re.escape(guess), "$options": "i"}}, PROJ)
+
+    # Match amenities mentioned on the page against the amenities collection
+    amenity_docs = await db.amenities.find({"active": True}, PROJ).to_list(300)
+    low = html.lower()
+    amenities_matched = [a["name"] for a in amenity_docs if a.get("name") and a["name"].lower() in low]
+
+    return {
+        "source_url": url,
+        "developer_match": dev_match,
+        "developer_guess": guess,
+        "fields": {
+            "name": parsed["name"],
+            "description": parsed["description"],
+            "city": parsed["city"],
+            "location": parsed["location"],
+            "address": parsed["address"],
+            "price_from": parsed["price_from"],
+            "price_to": parsed["price_to"],
+            "configurations": parsed["configurations"],
+            "area_from": parsed["area_from"],
+            "area_to": parsed["area_to"],
+            "rera_number": parsed["rera_number"],
+            "brochure_url": parsed["brochure_url"],
+            "images": parsed["images"],
+            "main_image": parsed["image"],
+            "amenities": amenities_matched,
+        },
+    }
 
 
 @api.put("/projects/{pid}")

@@ -11,7 +11,7 @@ body {
     font-family: Poppins, ui-sans-serif, system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    background: #ffffff;
+    background: #E0E7FA;
     color: #0f172a;
 }
 
@@ -41,8 +41,8 @@ body {
         --accent-foreground: 229 56% 40%;     /* deep periwinkle for accent text */
         --destructive: 0 72% 51%;
         --destructive-foreground: 0 0% 100%;
-        --border: 213 27% 84%;                /* #CBD5E1 slate-300 — subtle but defined */
-        --input: 213 27% 84%;
+        --border: 219 27% 79%;                /* #B9C4DA — defined against #E0E7FA */
+        --input: 219 27% 79%;
         --ring: 226 68% 67%;
         --chart-1: 226 68% 67%;
         --chart-2: 229 56% 59%;
@@ -62,21 +62,21 @@ body {
 /* ─── Utilities ─────────────────────────────────────────────── */
 
 .section-blue {
-    background: linear-gradient(180deg, #f7f9fe 0%, #edf2fd 100%);
+    background: linear-gradient(180deg, #E9EEFC 0%, #E0E7FA 100%);
 }
-.bg-soft-blue { background: #edf2fd; }
+.bg-soft-blue { background: #E0E7FA; }
 
 .card-premium {
     background-color: #fff;
-    border: 1px solid #cbd5e1;
+    border: 1px solid #AEBBD2;
     border-radius: 14px;
-    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
     transition: transform 250ms ease, box-shadow 250ms ease, border-color 250ms ease;
 }
 .card-premium:hover {
     transform: translateY(-4px);
     box-shadow: 0 20px 45px -20px rgba(112, 141, 230, 0.30);
-    border-color: #c6d3f6;
+    border-color: #8CA5EA;
 }
 
 .blue-badge {
@@ -365,3 +365,22 @@ html.dark {
 .dark [role="menuitem"][data-highlighted] {
     background-color: rgba(112, 141, 230, 0.28); color: #ffffff;
 }
+
+/* ─── Light mode: #E0E7FA page bg theme ────────────────────── */
+/* Darker, defined borders on all standard UI surfaces (layered so hover:/dark: still win) */
+@layer utilities {
+    .border-slate-100 { border-color: #CCD6E5; }
+    .border-slate-200 { border-color: #B9C4DA; }
+    .border-slate-300 { border-color: #A3B1CB; }
+    /* Crisp, readable text — kill washed-out grays */
+    .text-slate-400 { color: #64748B; }
+    .text-slate-500 { color: #52617A; }
+    .placeholder\:text-slate-400::placeholder,
+    .placeholder\:text-slate-500::placeholder { color: #6B7A90; opacity: 1; }
+}
+
+::placeholder { color: #6B7A90; opacity: 1; }
+[data-placeholder] { color: #52617A; }
+
+/* Tabs: #708DE6 active with a slightly darker outer edge */
+[role="tab"][data-state="active"] { box-shadow: 0 0 0 1px #5C76D4; }

@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { ArrowLeft, FloppyDisk, Upload, Eye, Info, House, MapPin, Sparkle, Image as ImageIcon, MagnifyingGlass, Flag } from "@phosphor-icons/react";
+import { ArrowLeft, FloppyDisk, Upload, Eye, Info, House, MapPin, Sparkle, Image as ImageIcon, MagnifyingGlass, Flag, Globe, CircleNotch } from "@phosphor-icons/react";
 import ImageUpload from "@/components/ImageUpload";
 import RichTextEditor from "@/components/RichTextEditor";
 import AddAmenity from "@/components/AddAmenity";
@@ -30,6 +30,7 @@ const empty = () => ({
   payment_plan: "20:80 with bank finance", floor_plans: [],
   featured: false, verified: true, status: "draft",
   show_featured_residential: false, show_commercial_homepage: false, flags: [],
+  import_source_url: "",
   seo: { title: "", description: "", slug: "", focus_keyword: "", canonical: "", og_title: "", og_description: "", og_image: "" },
 });
 
@@ -45,6 +46,8 @@ export default function ProjectForm() {
   const [amenityOptions, setAmenityOptions] = useState(AMENITIES);
   const [newAmenity, setNewAmenity] = useState("");
   const [devModal, setDevModal] = useState(false);
+  const [fetchUrl, setFetchUrl] = useState("");
+  const [fetching, setFetching] = useState(false);
   const inAdmin = window.location.pathname.startsWith("/admin");
   const backTo = inAdmin ? "/admin" : "/developer";
 
@@ -93,6 +96,50 @@ export default function ProjectForm() {
 
   const set = (k, v) => setF(p => ({ ...p, [k]: v }));
   const setSeo = (k, v) => setF(p => ({ ...p, seo: { ...p.seo, [k]: v } }));
+
+  const fetchDetails = async () => {
+    if (fetching) return; // prevent duplicate requests
+    const url = fetchUrl.trim();
+    if (!url) { toast.error("Please enter the developer landing page URL"); return; }
+    setFetching(true);
+    try {
+      const { data } = await api.post("/projects/fetch-details", { url });
+      const F_ = data.fields || {};
+      const isNew = !id;
+      const mapped = [];
+      const fill = (key, val, fillDefault = false) => {
+        if (val === undefined || val === null || val === "" || (Array.isArray(val) && !val.length)) return;
+        const cur = f[key];
+        const empty = Array.isArray(cur) ? cur.length === 0 : (cur === "" || cur === null || cur === undefined || cur === 0);
+        // Never overwrite admin-entered data; on a NEW form, factory defaults aren't user data
+        if (empty || (isNew && fillDefault)) { set(key, val); mapped.push(key); }
+      };
+      fill("name", F_.name);
+      fill("description", F_.description);
+      fill("city", F_.city, true);
+      fill("location", F_.location, true);
+      fill("address", F_.address);
+      fill("price_from", F_.price_from, true);
+      fill("price_to", F_.price_to, true);
+      fill("configurations", F_.configurations, true);
+      fill("area_from", F_.area_from, true);
+      fill("area_to", F_.area_to, true);
+      fill("rera_number", F_.rera_number);
+      fill("rera_link", data.source_url);
+      fill("brochure_url", F_.brochure_url);
+      fill("images", F_.images);
+      fill("main_image", F_.main_image);
+      fill("amenities", F_.amenities);
+      fill("import_source_url", data.source_url);
+      if (!f.developer_id && data.developer_match) { set("developer_id", data.developer_match.id); mapped.push("developer"); }
+      if (mapped.length) toast.success(`Fetched: ${mapped.join(", ")} — review every field, then Save Draft or Publish`);
+      else toast.info("Page fetched, but everything found is already filled in the form");
+      if (!data.developer_match && data.developer_guess) toast.info(`Developer "${data.developer_guess}" isn't registered — use "Register New Developer" below`);
+    } catch (err) {
+      const d = err?.response?.data?.detail;
+      toast.error(typeof d === "string" ? d : "Could not fetch project details");
+    } finally { setFetching(false); }
+  };
 
   const toggleFlag = (fl) => {
     const cur = f.flags || [];
@@ -170,6 +217,23 @@ export default function ProjectForm() {
           {tab === "basic" && (
             <div className="space-y-4">
               <h2 className="text-xl font-semibold text-slate-900 mb-4">Basic Information</h2>
+
+              {/* Fetch Project Details — admin time-saver */}
+              <div className="rounded-xl border border-blue-200 bg-blue-50/60 p-4" data-testid="fetch-details-panel">
+                <div className="flex items-center gap-2 font-semibold text-slate-900 text-sm mb-1"><Globe size={16} className="text-blue-600" weight="bold" /> Fetch Project Details</div>
+                <p className="text-xs text-slate-500 mb-3">Paste the developer landing page URL to auto-fill this form. Nothing is saved until you review and publish.</p>
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <Input value={fetchUrl} onChange={e => setFetchUrl(e.target.value)} data-testid="fetch-url-input"
+                    placeholder="Developer Landing Page URL — https://developer.com/project"
+                    onKeyDown={e => e.key === "Enter" && (e.preventDefault(), fetchDetails())}
+                    className="h-11 rounded-lg border-slate-300 bg-white flex-1" />
+                  <button type="button" onClick={fetchDetails} disabled={fetching} data-testid="fetch-details-btn"
+                    className="h-11 px-5 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 disabled:opacity-60 inline-flex items-center justify-center gap-2 whitespace-nowrap">
+                    {fetching && <CircleNotch size={15} className="animate-spin" />} {fetching ? "Fetching…" : "Fetch Project Details"}
+                  </button>
+                </div>
+                {f.import_source_url && <div className="text-xs text-slate-500 mt-2">Imported from: <span className="font-medium text-slate-700">{f.import_source_url}</span></div>}
+              </div>
               <F label="Project Title *"><Input value={f.name} onChange={e => set("name", e.target.value)} /></F>
               <F label="Description"><RichTextEditor value={f.description || ""} onChange={v => set("description", v)} dataTestid="project-description-editor" /></F>
               <div className="grid grid-cols-2 gap-4">

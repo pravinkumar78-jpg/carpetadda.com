@@ -149,3 +149,10 @@
 
 ## Visual edit (2026-08-13, agentic edit — SearchBar)
 - Hero search card: WHITE background + thin BLACK outer border (was #C3CFF5); Buy/Rent/Projects tabs now #708DE6 with WHITE text (active = same colour + shadow/bold); no layout/functionality change; verified via computed styles
+
+## Implemented (2026-08-13, iteration 9 — admin Fetch Project Details)
+- POST /api/projects/fetch-details (admin-only): scrape-only endpoint — fetches developer landing page (httpx), parses OG/meta/JSON-LD, prices (₹ L/Cr), BHK configs (incl. "2 & 3 BHK" pattern), carpet area range, RERA no, brochure link, gallery images, address/locality; matches developer by og:site_name against db.developers; matches page text against amenities collection; returns fields WITHOUT saving (nothing auto-created/published)
+- Shared helpers _normalise_url (clear 400 for invalid URL; allows localhost/IP) + _fetch_page (clear 400 when site unreachable); 422 when nothing extractable; import_project refactored to use them
+- ProjectForm Basic tab: prominent "Fetch Project Details" panel (URL input + button, spinner, duplicate-click guard, Enter key); prefill = fill-empty-only (edit mode) / factory defaults replaced on NEW form; developer auto-selected when matched, else prompts Register New Developer; source URL stored on project (import_source_url) and shown in panel
+- Verified: curl 400 invalid/400 unreachable/422 empty/403 non-admin + full browser flow (title, description, developer, prices, configs, areas, RERA, brochure, images, amenities all prefilled; toast lists mapped fields)
+- Light mode global theme (earlier same day): body bg #E0E7FA (unlayered body rule so components keep own bg), --border/--input #B9C4DA, layered border remaps (slate-100/200/300 darker), text-slate-400→#64748B / slate-500→#52617A, placeholders #6B7A90, tab active ring #5C76D4, card border #AEBBD2; dark mode unaffected (verified rgb(22,46,42))
