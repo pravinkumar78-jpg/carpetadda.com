@@ -26,7 +26,8 @@ export default function Header() {
     <header data-testid="site-header" className="sticky top-0 z-40 bg-white border-b border-slate-200 shadow-[0_1px_3px_rgba(15,23,42,0.05)]">
       <div className="max-w-7xl mx-auto px-6 lg:px-10 flex items-center justify-between gap-6 py-3">
         <Link to="/" data-testid="logo-link" aria-label="CarpetAdda.com — Home" className="flex items-center shrink-0">
-          <img src={DARK_LOGO} alt="CarpetAdda.com" width="457" height="140" className="h-9 sm:h-10 md:h-11 w-auto select-none" draggable="false" />
+          <img src={DARK_LOGO} alt="CarpetAdda.com" width="457" height="140" className="logo-light h-9 sm:h-10 md:h-11 w-auto select-none" draggable="false" />
+          <img src="/logo-dark.png" alt="CarpetAdda.com" width="457" height="140" className="logo-dark h-9 sm:h-10 md:h-11 w-auto select-none" draggable="false" />
         </Link>
 
         <nav className="hidden lg:flex items-center gap-1">

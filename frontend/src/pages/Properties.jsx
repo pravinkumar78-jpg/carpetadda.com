@@ -10,6 +10,11 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Checkbox } from "@/components/ui/checkbox";
 
 const CITIES = ["mumbai", "thane", "navi-mumbai", "dombivli", "kalyan"];
+const COMMERCIAL_TYPES = [
+  ["office", "Office"], ["shop", "Shop"], ["showroom", "Showroom"],
+  ["warehouse", "Warehouse"], ["industrial", "Industrial"],
+  ["commercial_land", "Commercial Land"], ["other", "Other"],
+];
 
 export default function Properties() {
   const [sp, setSp] = useSearchParams();
@@ -51,7 +56,12 @@ export default function Properties() {
         </Select>
       </FilterGroup>
       <FilterGroup label="Category">
-        <Select value={params.category || ""} onValueChange={v => update("category", v)}>
+        <Select value={params.category || ""} onValueChange={v => {
+          const next = new URLSearchParams(sp);
+          if (v) next.set("category", v); else next.delete("category");
+          if (v === "commercial") next.delete("bhk"); else next.delete("property_type");
+          setSp(next); setPage(1);
+        }}>
           <SelectTrigger data-testid="filter-category" className="rounded-lg border-slate-200"><SelectValue placeholder="Any" /></SelectTrigger>
           <SelectContent><SelectItem value="residential">Residential</SelectItem><SelectItem value="commercial">Commercial</SelectItem></SelectContent>
         </Select>
@@ -62,12 +72,21 @@ export default function Properties() {
           <SelectContent>{CITIES.map(c => <SelectItem key={c} value={c} className="capitalize">{c.replace("-", " ")}</SelectItem>)}</SelectContent>
         </Select>
       </FilterGroup>
-      <FilterGroup label="BHK">
-        <Select value={params.bhk || ""} onValueChange={v => update("bhk", v)}>
-          <SelectTrigger data-testid="filter-bhk" className="rounded-lg border-slate-200"><SelectValue placeholder="Any" /></SelectTrigger>
-          <SelectContent>{[1, 2, 3, 4, 5].map(n => <SelectItem key={n} value={String(n)}>{n} BHK</SelectItem>)}</SelectContent>
-        </Select>
-      </FilterGroup>
+      {params.category === "commercial" ? (
+        <FilterGroup label="Commercial Sub-Category">
+          <Select value={params.property_type || ""} onValueChange={v => update("property_type", v)}>
+            <SelectTrigger data-testid="filter-commercial-type" className="rounded-lg border-slate-200"><SelectValue placeholder="Any" /></SelectTrigger>
+            <SelectContent>{COMMERCIAL_TYPES.map(([v, l]) => <SelectItem key={v} value={v}>{l}</SelectItem>)}</SelectContent>
+          </Select>
+        </FilterGroup>
+      ) : (
+        <FilterGroup label="BHK">
+          <Select value={params.bhk || ""} onValueChange={v => update("bhk", v)}>
+            <SelectTrigger data-testid="filter-bhk" className="rounded-lg border-slate-200"><SelectValue placeholder="Any" /></SelectTrigger>
+            <SelectContent>{[1, 2, 3, 4, 5].map(n => <SelectItem key={n} value={String(n)}>{n} BHK</SelectItem>)}</SelectContent>
+          </Select>
+        </FilterGroup>
+      )}
       <FilterGroup label="Price Range (₹)">
         <div className="grid grid-cols-2 gap-2">
           <Input data-testid="filter-price-min" type="number" placeholder="Min" value={params.price_min || ""} onChange={e => update("price_min", e.target.value)} className="rounded-lg border-slate-200" />

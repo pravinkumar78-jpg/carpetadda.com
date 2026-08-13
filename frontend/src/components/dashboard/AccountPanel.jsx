@@ -4,18 +4,39 @@ import { toast } from "sonner";
 import api from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { Input } from "@/components/ui/input";
-import { Archive, ArrowCounterClockwise, PencilSimple } from "@phosphor-icons/react";
+import { Textarea } from "@/components/ui/textarea";
+import ImageUpload from "@/components/ImageUpload";
+import { Archive, ArrowCounterClockwise, PencilSimple, CheckCircle, WarningCircle } from "@phosphor-icons/react";
 import { formatINR } from "@/lib/format";
 
 export function AccountPanel({ user }) {
-  const [profile, setProfile] = useState({ name: user.name, phone: user.phone || "" });
+  const [profile, setProfile] = useState({
+    name: user.name || "",
+    phone: user.phone || "",
+    office_address: user.office_address || "",
+    dob: user.dob || "",
+    avatar: user.avatar || "",
+    rera_number: user.rera_number || "",
+  });
   const [pw, setPw] = useState({ current_password: "", new_password: "", confirm_password: "" });
   const [busyP, setBusyP] = useState(false);
   const [busyPw, setBusyPw] = useState(false);
   const { logout, refresh } = useAuth();
 
+  useEffect(() => {
+    setProfile({
+      name: user.name || "",
+      phone: user.phone || "",
+      office_address: user.office_address || "",
+      dob: user.dob || "",
+      avatar: user.avatar || "",
+      rera_number: user.rera_number || "",
+    });
+  }, [user]);
+
   const saveProfile = async (e) => {
     e.preventDefault();
+    if (!profile.name.trim()) { toast.error("Full name is required"); return; }
     setBusyP(true);
     try {
       await api.put("/auth/profile", profile);
@@ -46,6 +67,8 @@ export function AccountPanel({ user }) {
     } catch { toast.error("Could not send verification email"); }
   };
 
+  const FL = ({ children }) => <label className="text-xs font-semibold text-slate-600 mb-1 block">{children}</label>;
+
   return (
     <div className="space-y-6" data-testid="account-panel">
       <div className="card-premium p-6">
@@ -62,17 +85,54 @@ export function AccountPanel({ user }) {
 
       <div className="card-premium p-6">
         <h3 className="text-lg font-bold text-slate-900 mb-5">Manage Profile</h3>
-        <form onSubmit={saveProfile} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <form onSubmit={saveProfile} className="space-y-4" data-testid="manage-profile-form">
+          {/* 1. Full Name */}
           <div>
-            <label className="text-xs font-semibold text-slate-600 mb-1 block">Full Name</label>
-            <Input data-testid="profile-name" value={profile.name} onChange={e => setProfile({ ...profile, name: e.target.value })} className="h-11 rounded-lg border-slate-200" />
+            <FL>Full Name</FL>
+            <Input data-testid="profile-name" value={profile.name} onChange={e => setProfile({ ...profile, name: e.target.value })} className="h-11 rounded-lg border-slate-300" />
           </div>
+          {/* 2. Mobile Number */}
           <div>
-            <label className="text-xs font-semibold text-slate-600 mb-1 block">Mobile</label>
-            <Input data-testid="profile-phone" value={profile.phone} onChange={e => setProfile({ ...profile, phone: e.target.value })} className="h-11 rounded-lg border-slate-200" />
+            <FL>Mobile Number</FL>
+            <Input data-testid="profile-phone" type="tel" value={profile.phone} onChange={e => setProfile({ ...profile, phone: e.target.value })} className="h-11 rounded-lg border-slate-300" />
           </div>
-          <div className="sm:col-span-2">
-            <button type="submit" disabled={busyP} data-testid="profile-save" className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold disabled:opacity-60 transition-colors">{busyP ? "Saving…" : "Save Profile"}</button>
+          {/* 3. Email + 4. Verify status */}
+          <div>
+            <FL>Email</FL>
+            <div className="flex items-center gap-3 flex-wrap">
+              <Input data-testid="profile-email" value={user.email} readOnly disabled className="h-11 rounded-lg border-slate-300 bg-slate-50 flex-1 min-w-52" />
+              {user.verified ? (
+                <span data-testid="profile-verify-status" className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-full bg-emerald-50 text-emerald-700 whitespace-nowrap"><CheckCircle size={14} weight="fill" /> Verified</span>
+              ) : (
+                <button type="button" onClick={resendVerification} data-testid="profile-verify-btn" className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-full bg-amber-50 text-amber-700 hover:bg-amber-100 transition-colors whitespace-nowrap"><WarningCircle size={14} weight="fill" /> Verify Email</button>
+              )}
+            </div>
+          </div>
+          {/* 5. RERA Number (agents only) */}
+          {user.role === "agent" && (
+            <div>
+              <FL>RERA Number</FL>
+              <Input data-testid="profile-rera" value={profile.rera_number} onChange={e => setProfile({ ...profile, rera_number: e.target.value })} placeholder="e.g. A51700012345" className="h-11 rounded-lg border-slate-300" />
+            </div>
+          )}
+          {/* 6. Office Address */}
+          <div>
+            <FL>Office Address</FL>
+            <Textarea data-testid="profile-office-address" rows={2} value={profile.office_address} onChange={e => setProfile({ ...profile, office_address: e.target.value })} placeholder="Office / business address" className="rounded-lg border-slate-300" />
+          </div>
+          {/* 7. DOB */}
+          <div>
+            <FL>Date of Birth</FL>
+            <Input data-testid="profile-dob" type="date" value={profile.dob} onChange={e => setProfile({ ...profile, dob: e.target.value })} className="h-11 rounded-lg border-slate-300" />
+          </div>
+          {/* 8. Logo Upload */}
+          <div>
+            <FL>Logo / Photo</FL>
+            <ImageUpload value={profile.avatar} onChange={v => setProfile({ ...profile, avatar: v })} kind="avatars" dataTestid="profile-logo-upload" />
+          </div>
+          {/* 9. Save */}
+          <div>
+            <button type="submit" disabled={busyP} data-testid="profile-save" className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold disabled:opacity-60 transition-colors">{busyP ? "Saving…" : "Save / Update Profile"}</button>
           </div>
         </form>
       </div>
@@ -93,7 +153,7 @@ export function AccountPanel({ user }) {
             <Input required type="password" data-testid="pw-confirm" value={pw.confirm_password} onChange={e => setPw({ ...pw, confirm_password: e.target.value })} className="h-11 rounded-lg border-slate-200" />
           </div>
           <div className="sm:col-span-3">
-            <button type="submit" disabled={busyPw} data-testid="pw-change-save" className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-sm font-semibold disabled:opacity-60 transition-colors">{busyPw ? "Updating…" : "Update Password"}</button>
+            <button type="submit" disabled={busyPw} data-testid="pw-change-save" className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold disabled:opacity-60 transition-colors">{busyPw ? "Updating…" : "Update Password"}</button>
           </div>
         </form>
       </div>

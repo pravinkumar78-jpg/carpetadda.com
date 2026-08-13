@@ -39,12 +39,13 @@ export default function AdminLeads() {
     setLoading(true);
     const url = filter ? `/leads?status=${filter}&limit=200` : "/leads?limit=200";
     try { const { data } = await api.get(url); setRows(data); }
+    catch { toast.error("Failed to load leads"); }
     finally { setLoading(false); }
   };
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [filter]);
 
   const updateField = async (id, patch) => {
-    try { await api.put(`/leads/${id}`, patch); load(); if (editing?.id === id) setEditing({...editing, ...patch}); }
+    try { await api.put(`/leads/${id}`, patch); toast.success("Updated"); load(); if (editing?.id === id) setEditing({...editing, ...patch}); }
     catch { toast.error("Update failed"); }
   };
 
@@ -57,10 +58,12 @@ export default function AdminLeads() {
   const addNote = async () => {
     if (!note.trim() || !editing) return;
     const notes = [...(editing.notes || []), { text: note, at: new Date().toISOString() }];
-    await api.put(`/leads/${editing.id}`, { notes });
-    setEditing({ ...editing, notes });
-    setNote("");
-    toast.success("Note added");
+    try {
+      await api.put(`/leads/${editing.id}`, { notes });
+      setEditing({ ...editing, notes });
+      setNote("");
+      toast.success("Note added");
+    } catch { toast.error("Failed to add note"); }
   };
 
   const counts = STATUSES.reduce((acc, s) => ({ ...acc, [s]: rows.filter(r => r.status === s).length }), {});
@@ -68,7 +71,7 @@ export default function AdminLeads() {
   return (
     <div>
       <div className="flex flex-wrap gap-2 mb-6">
-        <button onClick={() => setFilter("")} className={`text-xs px-3 py-1.5 rounded-full border font-medium ${filter === "" ? "bg-blue-600 text-white border-blue-600" : "bg-white text-slate-600 border-slate-200 hover:border-blue-300"}`}>
+        <button data-testid="filter-all" onClick={() => setFilter("")} className={`text-xs px-3 py-1.5 rounded-full border font-medium ${filter === "" ? "bg-blue-600 text-white border-blue-600" : "bg-white text-slate-600 border-slate-200 hover:border-blue-300"}`}>
           All <span className="ml-1 opacity-70">({rows.length})</span>
         </button>
         {STATUSES.map(s => (
@@ -110,7 +113,7 @@ export default function AdminLeads() {
                   </td>
                   <td className="px-4 py-3">
                     <Select value={r.status} onValueChange={v => updateField(r.id, { status: v })}>
-                      <SelectTrigger className={`h-8 text-xs w-36 border ${statusColor(r.status)} font-semibold capitalize`}><SelectValue /></SelectTrigger>
+                      <SelectTrigger data-testid={`lead-status-${r.id}`} className={`h-8 text-xs w-36 border ${statusColor(r.status)} font-semibold capitalize`}><SelectValue /></SelectTrigger>
                       <SelectContent>{STATUSES.map(s => <SelectItem key={s} value={s} className="capitalize">{s.replace("_", " ")}</SelectItem>)}</SelectContent>
                     </Select>
                   </td>
@@ -158,9 +161,9 @@ export default function AdminLeads() {
                   {(editing.notes || []).length === 0 && <div className="text-xs text-slate-400 italic">No notes yet.</div>}
                 </div>
                 <div className="flex gap-2">
-                  <Textarea value={note} onChange={e => setNote(e.target.value)} placeholder="Add a follow-up note…" rows={2} className="rounded-lg border-slate-200" />
+                  <Textarea data-testid="lead-note-input" value={note} onChange={e => setNote(e.target.value)} placeholder="Add a follow-up note…" rows={2} className="rounded-lg border-slate-200" />
                 </div>
-                <button onClick={addNote} disabled={!note.trim()} className="mt-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50">Add Note</button>
+                <button data-testid="add-lead-note" onClick={addNote} disabled={!note.trim()} className="mt-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50">Add Note</button>
               </div>
             </div>
             <DialogFooter>

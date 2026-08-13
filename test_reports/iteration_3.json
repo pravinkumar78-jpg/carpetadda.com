@@ -1,0 +1,40 @@
+{
+  "summary": "Frontend-only QA completed against the public deployment. Production build exits 0 and the app loads without a compile overlay, module-resolution errors, console errors, page errors, or HTTP >=400 responses in the clean E2E runs. Quick actions, #708DE6 dashboard/form buttons, pending-review wrapping at desktop and 375px, hero color, dark logo swap, Poppins/white typed text, RERA removal, ProjectForm registration modal, amenity modal, Leads, and Site Visits passed. One dark-mode Select defect remains: the dropdown panel stays white while unhighlighted options are near-white, making most options unreadable.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "Shared Radix Select dropdowns in dark mode",
+        "issue": "The dropdown panel remains white (rgb(255,255,255)) while unhighlighted option text is #EAF3F0, so most options are effectively white-on-white and unreadable. The highlighted option is dark blue on light periwinkle. Reproduced in home hero City and admin Properties City selects and affects other shared Select menus.",
+        "selector": ".dark [role='listbox'], .dark [role='option']",
+        "priority": "HIGH"
+      }
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [],
+  "action_items": [
+    "Fix the shared Select dark theme so the portalled dropdown content has a dark background and all option states have readable light text; then verify home, Properties, Projects, and admin selects."
+  ],
+  "critical_code_review_comments": [
+    "index.css targets [data-slot='select-content']/[data-slot='select-item'], but components/ui/select.jsx does not set those data-slot attributes. SelectContent therefore keeps the light bg-popover value in dark mode, while the role=option rule makes inactive text light. Add the expected data-slot attributes or target the actual Radix elements/roles with sufficient specificity and a dark background.",
+    "yarn build succeeds but reports React Hook dependency warnings in Compare, DashboardPages, RoleDashboards, AdminLeads, AdminProjects, AdminProperties, AdminUnits, AdminUsers, ProjectForm, and PropertyForm; stabilize callback dependencies to avoid stale closures and remove build warnings.",
+    "ProjectForm still lacks data-testid on key fields, section tabs, developer Select, Save Draft, and Publish/Submit controls, forcing role/order-based automation for critical flows."
+  ],
+  "updated_files": [
+    "/app/test_reports/iteration_3.json"
+  ],
+  "success_rate": {
+    "backend": "N/A (frontend-only request)",
+    "frontend": "96%"
+  },
+  "seed_data_creation": "Created and retained TEST_QA Pending Review Layout 2026-08-13 through the user Post Property UI and TEST_QA Pending Project Layout 2026-08-13 through the developer ProjectForm so pending-review button and mobile-wrap states could be tested, as requested.",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Public URL used throughout. Admin, user, and developer credentials from /app/memory/test_credentials.md worked. Pending property/project records now exist and remain pending because Reject dialogs were cancelled and Approve was not clicked. Desktop and 375px computed rectangles confirmed no overlap/clipping. Dark inputs on home, /properties, /projects, /blog, and admin are white Poppins with #9DB4AC placeholders; only Select dropdown panel/option contrast fails.",
+  "rca_of_the_issue": "Shared SelectContent uses bg-popover and is rendered through a Radix portal. Dark-mode CSS expects data-slot attributes that select.jsx never emits, and dark CSS does not override the popover HSL variables. The resulting panel stays white. Meanwhile .dark [role='option'] sets inactive option text to #EAF3F0, producing white-on-white content; the focused Tailwind state overrides the highlighted item to dark blue on light periwinkle. Reproduction: enable Dark Mode on Home, open hero City, and inspect the non-highlighted options."
+}

@@ -36,9 +36,9 @@ export default function SearchBar({ compact = false }) {
   const isProject = tab === "new_projects";
 
   return (
-    <div data-testid="hero-search" className={`bg-white rounded-2xl border border-slate-200 shadow-xl shadow-blue-500/10 ${compact ? "p-4" : "p-5 lg:p-7"}`}>
+    <div data-testid="hero-search" className={`bg-[#C3CFF5] rounded-2xl border border-blue-200 shadow-xl shadow-blue-500/10 ${compact ? "p-4" : "p-5 lg:p-7"}`}>
       <Tabs value={tab} onValueChange={setTab}>
-        <TabsList className="bg-blue-50 rounded-xl p-1 h-auto mb-5 inline-flex">
+        <TabsList className="bg-white/70 rounded-xl p-1 h-auto mb-5 inline-flex">
           {[["sale", "Buy"], ["rent", "Rent"], ["new_projects", "Projects"]].map(([v, l]) => (
             <TabsTrigger key={v} value={v} data-testid={`tab-${v}`} className="rounded-lg px-4 py-2 text-sm font-medium data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm text-slate-600">
               {l}

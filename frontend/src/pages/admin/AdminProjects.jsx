@@ -61,11 +61,11 @@ export default function AdminProjects() {
           <MagnifyingGlass size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <Input value={q} onChange={e => setQ(e.target.value)} placeholder="Search project name…" className="pl-9 h-10 border-slate-200 rounded-lg" data-testid="admin-proj-search" />
         </form>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <button
             data-testid="filter-pending-review"
             onClick={() => { setStatus(status === "pending_review" ? "" : "pending_review"); setPage(1); }}
-            className={`h-10 px-4 rounded-lg text-xs font-semibold transition-colors border ${status === "pending_review" ? "bg-amber-500 text-white border-amber-500" : "bg-white text-amber-700 border-amber-300 hover:bg-amber-50"}`}
+            className={`h-10 px-4 inline-flex items-center whitespace-nowrap rounded-lg text-xs font-semibold transition-colors border ${status === "pending_review" ? "bg-amber-500 text-white border-amber-500" : "bg-white text-amber-700 border-amber-300 hover:bg-amber-50"}`}
           >
             Pending Review
           </button>
@@ -76,7 +76,7 @@ export default function AdminProjects() {
               {CITIES.map(c => <SelectItem key={c} value={c} className="capitalize">{c.replace("-"," ")}</SelectItem>)}
             </SelectContent>
           </Select>
-          <button data-testid="admin-proj-new" onClick={() => nav("/admin/projects/new")} className="bg-blue-600 text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-blue-700 flex items-center gap-1.5 shadow-sm">
+          <button data-testid="admin-proj-new" onClick={() => nav("/admin/projects/new")} className="h-10 bg-blue-600 text-white px-4 rounded-lg text-sm font-medium hover:bg-blue-700 inline-flex items-center gap-1.5 shadow-sm whitespace-nowrap">
             <Plus size={14} weight="bold" /> New Project
           </button>
         </div>
@@ -125,11 +125,11 @@ export default function AdminProjects() {
                     </button>
                   </td>
                   <td className="px-4 py-3">
-                    <div className="flex items-center justify-end gap-1">
+                    <div className="flex items-center justify-end gap-1.5 flex-wrap">
                       {r.status === "pending_review" && (
                         <>
-                          <button onClick={() => review(r, "approve")} data-testid={`approve-proj-${r.id}`} className="px-2.5 py-1.5 text-xs font-semibold bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors">Approve</button>
-                          <button onClick={() => review(r, "reject")} data-testid={`reject-proj-${r.id}`} className="px-2.5 py-1.5 text-xs font-semibold bg-rose-50 text-rose-600 border border-rose-200 rounded-lg hover:bg-rose-100 transition-colors">Reject</button>
+                          <button onClick={() => review(r, "approve")} data-testid={`approve-proj-${r.id}`} className="h-8 px-3 inline-flex items-center whitespace-nowrap text-xs font-semibold bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">Approve</button>
+                          <button onClick={() => review(r, "reject")} data-testid={`reject-proj-${r.id}`} className="h-8 px-3 inline-flex items-center whitespace-nowrap text-xs font-semibold bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">Reject</button>
                         </>
                       )}
                       <Link to={`/project/${r.slug}`} target="_blank" title="View listing" className="p-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"><Eye size={14} /></Link>

@@ -13,7 +13,8 @@ import AdminFAQs from "@/pages/admin/AdminFAQs";
 import AdminTestimonials from "@/pages/admin/AdminTestimonials";
 import AdminBlogs from "@/pages/admin/AdminBlogs";
 import AdminSettings from "@/pages/admin/AdminSettings";
-import AdminSeo from "@/pages/admin/AdminSeo";
+import AdminSeo, { MAJOR_PAGES } from "@/pages/admin/AdminSeo";
+import LeadsChart from "@/components/LeadsChart";
 import AdminArchive from "@/pages/admin/AdminArchive";
 import AdminPages from "@/pages/admin/AdminPages";
 
@@ -38,6 +39,9 @@ export default function AdminPanel() {
   const [stats, setStats] = useState(null);
   const [tab, setTab] = useState("overview");
   const [seoOpen, setSeoOpen] = useState(false);
+  const [seoPage, setSeoPage] = useState(null);
+
+  const openSeoPage = (p) => { setSeoPage(p); setTab("seo"); setSeoOpen(true); };
 
   useEffect(() => {
     if (user?.role === "admin" || user?.role === "super_admin") api.get("/admin/stats").then(r => setStats(r.data));
@@ -82,9 +86,15 @@ export default function AdminPanel() {
             </button>
             {seoOpen && (
               <div className="lg:pl-8 flex flex-row lg:flex-col gap-1 w-full">
-                <TabsTrigger value="seo" data-testid="admin-tab-seo-pages" className="justify-start rounded-lg px-4 py-2 text-sm font-medium data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-sm text-slate-500 flex items-center gap-2.5 w-auto lg:w-full">
+                <TabsTrigger value="seo" data-testid="admin-tab-seo-pages" onClick={() => setSeoPage(null)} className="justify-start rounded-lg px-4 py-2 text-sm font-medium data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-sm text-slate-500 flex items-center gap-2.5 w-auto lg:w-full">
                   <Article size={14} /> Pages
                 </TabsTrigger>
+                {tab === "seo" && MAJOR_PAGES.map(([v, l]) => (
+                  <button key={v} type="button" onClick={() => openSeoPage(v)} data-testid={`seo-nav-${v.replace(/\//g, "_") || "_home"}`}
+                    className={`justify-start rounded-lg px-4 py-1.5 lg:ml-4 text-xs font-medium flex items-center gap-2 w-auto lg:w-full transition-colors ${seoPage === v ? "bg-blue-50 text-blue-700" : "text-slate-400 hover:text-blue-600 hover:bg-blue-50/60"}`}>
+                    <span className={`w-1.5 h-1.5 rounded-full ${seoPage === v ? "bg-blue-600" : "bg-slate-300"}`} /> {l}
+                  </button>
+                ))}
               </div>
             )}
           </TabsList>
@@ -99,7 +109,7 @@ export default function AdminPanel() {
             <TabsContent value="testimonials"><AdminTestimonials /></TabsContent>
             <TabsContent value="faqs"><AdminFAQs /></TabsContent>
             <TabsContent value="pages"><AdminPages /></TabsContent>
-            <TabsContent value="seo"><AdminSeo /></TabsContent>
+            <TabsContent value="seo"><AdminSeo page={seoPage} onSelectPage={setSeoPage} /></TabsContent>
             <TabsContent value="archive"><AdminArchive /></TabsContent>
             <TabsContent value="users"><AdminUsers /></TabsContent>
             <TabsContent value="settings"><AdminSettings /></TabsContent>
@@ -154,12 +164,20 @@ function Overview({ stats, go, nav }) {
           </button>
         ))}
       </div>
+      <div className="mb-8">
+        <LeadsChart stats={{
+          total: stats.leads_total || 0,
+          contacted: stats.leads_contacted || 0,
+          converted: stats.leads_converted || 0,
+          conversion: stats.leads_total ? Math.round(((stats.leads_converted || 0) / stats.leads_total) * 1000) / 10 : 0,
+        }} title="Overall Lead Performance" />
+      </div>
       <div className="card-premium p-8 bg-gradient-to-r from-blue-600 to-blue-500 text-white border-blue-500">
         <div className="text-2xl font-bold mb-3">Quick actions</div>
         <p className="text-blue-50 text-sm mb-6 max-w-2xl">Manage every listing, project and lead in one place — no code required.</p>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm font-medium">
           {actions.map(a => (
-            <button key={a.tid} data-testid={a.tid} onClick={a.onClick} className="text-center py-3 bg-white/10 backdrop-blur border border-white/20 rounded-lg hover:bg-white/20 transition-colors flex items-center justify-center gap-1.5">
+            <button key={a.tid} data-testid={a.tid} onClick={a.onClick} className="text-center py-3 bg-white border border-slate-200 rounded-lg hover:bg-blue-50 transition-colors flex items-center justify-center gap-1.5 text-slate-900 font-semibold shadow-sm">
               {a.label}
             </button>
           ))}

@@ -58,8 +58,11 @@ export default function Home() {
     <div>
       {/* Hero */}
       <section className="relative overflow-hidden bg-slate-50" data-testid="hero-section">
-        <img src={settings?.hero_image || "/hero-carpetadda.png"} alt="CarpetAdda real estate" className="absolute inset-0 w-full h-full object-cover" />
-        <div className="absolute inset-0 bg-white/85" />
+        <img src={settings?.hero_image || "/hero-carpetadda.png"} alt="CarpetAdda real estate" className="hero-img-light absolute inset-0 w-full h-full object-cover" />
+        <img src="/hero-dark.webp" alt="CarpetAdda real estate — night skyline" className="hero-img-dark absolute inset-0 w-full h-full object-cover" />
+        <div className="hero-overlay-light absolute inset-0 bg-gradient-to-r from-white/90 via-white/45 to-transparent" />
+        <div className="hero-overlay-dark absolute inset-0 bg-gradient-to-r from-[#162E2A]/90 via-[#162E2A]/50 to-[#162E2A]/20" />
+        <div className="hero-overlay-light absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-white/70 to-transparent" />
         <div className="relative max-w-7xl mx-auto px-6 lg:px-10 pt-16 pb-20 lg:pt-24 lg:pb-28">
           <div className="max-w-3xl mb-10">
             <h1 data-testid="hero-title" className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.08] text-slate-900 mb-6">

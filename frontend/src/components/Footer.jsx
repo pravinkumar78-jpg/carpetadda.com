@@ -1,8 +1,27 @@
 import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { EnvelopeSimple, WhatsappLogo, InstagramLogo, LinkedinLogo, FacebookLogo, YoutubeLogo, TwitterLogo, MapPin, PhoneCall } from "@phosphor-icons/react";
+import { EnvelopeSimple, WhatsappLogo, InstagramLogo, LinkedinLogo, FacebookLogo, YoutubeLogo, TwitterLogo, MapPin, PhoneCall, Sun, Moon } from "@phosphor-icons/react";
 import { useSettings } from "@/lib/useSettings";
 import api from "@/lib/api";
+
+export function ThemeToggle() {
+  const [dark, setDark] = useState(() => localStorage.getItem("eh_theme") === "dark");
+  useEffect(() => {
+    document.documentElement.classList.toggle("dark", dark);
+    localStorage.setItem("eh_theme", dark ? "dark" : "light");
+  }, [dark]);
+  return (
+    <button
+      onClick={() => setDark(d => !d)}
+      data-testid="theme-toggle"
+      aria-label={dark ? "Switch to light mode" : "Switch to dark mode"}
+      className="inline-flex items-center gap-2 px-3.5 py-2 rounded-full border border-slate-300 bg-white text-slate-600 text-xs font-semibold hover:border-blue-400 hover:text-blue-600 transition-colors"
+    >
+      {dark ? <Sun size={14} weight="bold" /> : <Moon size={14} weight="bold" />}
+      {dark ? "Light Mode" : "Dark Mode"}
+    </button>
+  );
+}
 
 const LIGHT_LOGO = "https://customer-assets-jt897jd0.emergentagent.net/job_dombivli-properties-1/artifacts/doh3cm7v_CarpetAdda%20Dark%20Logo.png";
 
@@ -33,7 +52,8 @@ export default function Footer() {
       <div className="max-w-7xl mx-auto px-6 lg:px-10 py-14 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-10">
         <div>
           <Link to="/" aria-label="CarpetAdda.com — Home" className="inline-block mb-4">
-            <img src={LIGHT_LOGO} alt="CarpetAdda.com" width="457" height="140" className="h-10 w-auto select-none" draggable="false" />
+            <img src={LIGHT_LOGO} alt="CarpetAdda.com" width="457" height="140" className="logo-light h-10 w-auto select-none" draggable="false" />
+            <img src="/logo-dark.png" alt="CarpetAdda.com" width="457" height="140" className="logo-dark h-10 w-auto select-none" draggable="false" />
           </Link>
           <p className="text-sm text-slate-500 leading-relaxed" data-testid="footer-tagline">
             Verified listings, expert agents and market intelligence across Mumbai, Thane, Navi Mumbai, Dombivli &amp; Kalyan.
@@ -87,11 +107,12 @@ export default function Footer() {
 
       <div className="border-t border-slate-200 bg-white">
         <div className="max-w-7xl mx-auto px-6 lg:px-10 py-5 flex flex-col md:flex-row items-center justify-between gap-3 text-xs text-slate-500">
-          <div data-testid="footer-copyright">© {new Date().getFullYear()} CarpetAdda. All rights reserved. · RERA A51700039535</div>
-          <div className="flex gap-5">
+          <div data-testid="footer-copyright">© {new Date().getFullYear()} CarpetAdda. All rights reserved.</div>
+          <div className="flex gap-5 items-center">
             <Link to="/about" className="hover:text-blue-600">About</Link>
             <Link to="/contact" className="hover:text-blue-600">Contact</Link>
             <Link to="/faqs" className="hover:text-blue-600">FAQs</Link>
+            <ThemeToggle />
           </div>
         </div>
       </div>

@@ -10,6 +10,8 @@ import { Switch } from "@/components/ui/switch";
 import { ArrowLeft, FloppyDisk, Upload, Eye, Info, House, MapPin, Sparkle, Image as ImageIcon, MagnifyingGlass, Flag } from "@phosphor-icons/react";
 import ImageUpload from "@/components/ImageUpload";
 import RichTextEditor from "@/components/RichTextEditor";
+import AddAmenity from "@/components/AddAmenity";
+import RegisterDeveloper from "@/components/RegisterDeveloper";
 
 const CITIES = ["mumbai", "thane", "navi-mumbai", "dombivli", "kalyan"];
 const PROJECT_FLAGS = [["featured", "Featured"], ["new_launch", "New Launch"], ["best_payment_plan", "Best Payment Plan"], ["best_performer", "Best Performer"]];
@@ -42,10 +44,12 @@ export default function ProjectForm() {
   const [developers, setDevelopers] = useState([]);
   const [amenityOptions, setAmenityOptions] = useState(AMENITIES);
   const [newAmenity, setNewAmenity] = useState("");
+  const [devModal, setDevModal] = useState(false);
   const inAdmin = window.location.pathname.startsWith("/admin");
   const backTo = inAdmin ? "/admin" : "/developer";
 
-  useEffect(() => { api.get("/developers").then(r => setDevelopers(r.data)); }, []);
+  const loadDevelopers = () => api.get("/developers?limit=200").then(r => setDevelopers(r.data || [])).catch(() => {});
+  useEffect(() => { loadDevelopers(); }, []);
   useEffect(() => {
     api.get("/amenities").then(r => {
       const names = (r.data || []).map(a => a.name);
@@ -53,13 +57,17 @@ export default function ProjectForm() {
     }).catch(() => {});
   }, []);
 
+  const amenityAdded = (name) => {
+    setAmenityOptions(prev => prev.includes(name) ? prev : [...prev, name]);
+    if (!(f.amenities || []).includes(name)) set("amenities", [...(f.amenities || []), name]);
+  };
+
   const addAmenity = async () => {
     const name = newAmenity.trim();
     if (!name) return;
     try {
       await api.post("/admin/amenities", { name });
-      setAmenityOptions(prev => prev.includes(name) ? prev : [...prev, name]);
-      if (!(f.amenities || []).includes(name)) set("amenities", [...(f.amenities || []), name]);
+      amenityAdded(name);
       setNewAmenity("");
       toast.success(`"${name}" added — available on all future projects`);
     } catch { toast.error("Could not add amenity"); }
@@ -165,7 +173,11 @@ export default function ProjectForm() {
               <F label="Project Title *"><Input value={f.name} onChange={e => set("name", e.target.value)} /></F>
               <F label="Description"><RichTextEditor value={f.description || ""} onChange={v => set("description", v)} dataTestid="project-description-editor" /></F>
               <div className="grid grid-cols-2 gap-4">
-                <F label="Developer *"><Sel value={f.developer_id} onChange={v => set("developer_id", v)} options={developers.map(d => [d.id, d.name])} placeholder="Select developer" /></F>
+                <F label="Developer *">
+                  <Sel value={f.developer_id} onChange={v => { if (v === "__register_new__") { setDevModal(true); } else { set("developer_id", v); } }}
+                    options={[...developers.map(d => [d.id, d.name]), ["__register_new__", "+ Register New Developer"]]} placeholder="Select developer" />
+                  <button type="button" onClick={() => setDevModal(true)} data-testid="register-developer-btn" className="mt-1.5 text-xs text-blue-600 hover:text-blue-700 font-semibold">Developer not listed? Register New Developer →</button>
+                </F>
                 <F label="Category"><Sel value={f.property_category} onChange={v => set("property_category", v)} options={[["residential","Residential"],["commercial","Commercial"]]} /></F>
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -229,8 +241,8 @@ export default function ProjectForm() {
             <div className="space-y-4">
               <h2 className="text-xl font-semibold text-slate-900 mb-4">Amenities</h2>
               <div className="flex gap-2 mb-2">
-                <Input data-testid="new-amenity-input" value={newAmenity} onChange={e => setNewAmenity(e.target.value)} onKeyDown={e => e.key === "Enter" && (e.preventDefault(), addAmenity())} placeholder="Add new amenity, e.g. Sky Deck" className="h-11 rounded-lg border-slate-200 max-w-xs" />
-                <button type="button" data-testid="add-amenity-btn" onClick={addAmenity} className="px-4 h-11 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors whitespace-nowrap">+ Add New Amenity</button>
+                <Input data-testid="new-amenity-quick-input" value={newAmenity} onChange={e => setNewAmenity(e.target.value)} onKeyDown={e => e.key === "Enter" && (e.preventDefault(), newAmenity.trim() ? addAmenity() : toast.error("Please enter an amenity name"))} placeholder="Quick add, e.g. Sky Deck" className="h-11 rounded-lg border-slate-300 max-w-xs" />
+                <AddAmenity existing={amenityOptions} onAdded={amenityAdded} />
               </div>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                 {amenityOptions.map(a => {
@@ -305,6 +317,15 @@ export default function ProjectForm() {
           )}
         </div>
       </div>
+
+      <RegisterDeveloper
+        open={devModal}
+        onClose={() => setDevModal(false)}
+        onRegistered={(d) => {
+          setDevelopers(prev => prev.some(x => x.id === d.id) ? prev : [...prev, d]);
+          set("developer_id", d.id);
+        }}
+      />
     </div>
   );
 }

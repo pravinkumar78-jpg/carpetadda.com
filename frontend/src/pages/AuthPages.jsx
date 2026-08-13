@@ -8,11 +8,12 @@ import api from "@/lib/api";
 
 export function Login() {
   const { login } = useAuth(); const nav = useNavigate();
+  const next = new URLSearchParams(window.location.search).get("next") || "";
   const [f, setF] = useState({ email: "", password: "" });
   const [loading, setLoading] = useState(false);
   const submit = async (e) => {
     e.preventDefault(); setLoading(true);
-    try { await login(f.email, f.password); toast.success("Welcome back!"); nav("/dashboard"); }
+    try { await login(f.email, f.password); toast.success("Welcome back!"); nav(next.startsWith("/") ? next : "/dashboard"); }
     catch (err) {
       const msg = err.response?.data?.detail || err.response?.data?.message ||
         (err.response?.status === 503 ? "Backend is not connected. Please configure BACKEND_URL." : "Login failed");
@@ -35,7 +36,7 @@ export function Login() {
           <div className="text-right"><Link data-testid="login-forgot-password-link" to="/forgot-password" className="text-sm text-blue-600 font-medium">Forgot password?</Link></div>
           <button data-testid="login-submit" disabled={loading} className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors shadow-md shadow-blue-500/20 disabled:opacity-60">{loading ? "Signing in…" : "Sign in"}</button>
         </form>
-        <div className="text-sm text-center mt-6 text-slate-500">New here? <Link to="/register" className="text-blue-600 font-medium">Create account</Link></div>
+        <div className="text-sm text-center mt-6 text-slate-500">New here? <Link to={next ? `/register?next=${encodeURIComponent(next)}` : "/register"} className="text-blue-600 font-medium">Create account</Link></div>
         <div className="text-xs text-center mt-4 text-slate-400 bg-blue-50 border border-blue-100 rounded-lg py-2">Demo: admin@estatehub.in / Admin@123</div>
       </div>
     </div>
@@ -44,11 +45,12 @@ export function Login() {
 
 export function Register() {
   const { register } = useAuth(); const nav = useNavigate();
+  const next = new URLSearchParams(window.location.search).get("next") || "";
   const [f, setF] = useState({ name: "", email: "", phone: "", password: "", role: "user" });
   const [loading, setLoading] = useState(false);
   const submit = async (e) => {
     e.preventDefault(); setLoading(true);
-    try { await register(f); toast.success("Account created!"); nav("/dashboard"); }
+    try { await register(f); toast.success("Account created!"); nav(next.startsWith("/") ? next : "/dashboard"); }
     catch (err) { toast.error(err.response?.data?.detail || "Registration failed"); }
     finally { setLoading(false); }
   };
@@ -68,7 +70,7 @@ export function Register() {
           <Input data-testid="reg-password" required type="password" placeholder="Password (min 6 chars)" minLength={6} value={f.password} onChange={e => setF({...f, password: e.target.value})} className="rounded-lg border-slate-200" />
           <button data-testid="reg-submit" disabled={loading} className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors shadow-md shadow-blue-500/20 disabled:opacity-60">{loading ? "Creating…" : "Create account"}</button>
         </form>
-        <div className="text-sm text-center mt-6 text-slate-500">Already have an account? <Link to="/login" className="text-blue-600 font-medium">Sign in</Link></div>
+        <div className="text-sm text-center mt-6 text-slate-500">Already have an account? <Link to={next ? `/login?next=${encodeURIComponent(next)}` : "/login"} className="text-blue-600 font-medium">Sign in</Link></div>
       </div>
     </div>
   );

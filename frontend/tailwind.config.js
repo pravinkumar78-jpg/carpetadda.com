@@ -18,6 +18,19 @@ module.exports = {
         display: ['Poppins', 'ui-sans-serif', 'system-ui', 'sans-serif'],
       },
       colors: {
+        blue: {
+          '50': '#F1F5FD',
+          '100': '#E3EAFB',
+          '200': '#C6D3F6',
+          '300': '#A9BCF0',
+          '400': '#8CA5EA',
+          '500': '#7D99E8',
+          '600': '#708DE6',
+          '700': '#5C76D4',
+          '800': '#4A5FA8',
+          '900': '#3A4B85',
+          '950': '#232E52'
+        },
         background: 'hsl(var(--background))',
         foreground: 'hsl(var(--foreground))',
         card: {

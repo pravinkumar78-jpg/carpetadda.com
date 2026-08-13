@@ -27,9 +27,17 @@ export default function ImageUpload({ value, onChange, kind = "general", label, 
     try {
       const fd = new FormData();
       fd.append("file", file);
-      const { data } = await api.post(`/admin/uploads?kind=${encodeURIComponent(kind)}`, fd, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+      let data;
+      try {
+        ({ data } = await api.post(`/admin/uploads?kind=${encodeURIComponent(kind)}`, fd, {
+          headers: { "Content-Type": "multipart/form-data" },
+        }));
+      } catch (err) {
+        if (err?.response?.status !== 403) throw err;
+        ({ data } = await api.post(`/uploads?kind=${encodeURIComponent(kind)}`, fd, {
+          headers: { "Content-Type": "multipart/form-data" },
+        }));
+      }
       onChange(data.url);
       toast.success("Uploaded");
     } catch (err) {

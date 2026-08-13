@@ -106,3 +106,43 @@
 - P1: hero background could rotate dusk skyline imagery per settings CMS
 - P2: AI Search page restyle to match; lead email SMTP config (currently no SMTP creds set)
 - P2: 3D tilt/tilt-glare on property cards, page transitions between routes
+
+## Implemented (2026-08-13, iteration 6 — admin P0 fixes)
+- Admin Leads status tabs crash fixed: load()/addNote() now catch errors with toasts; success toast on status/priority update
+- Admin Site Visits: added missing PUT /api/site-visits/{id} (whitelisted fields, status validation, 404 JSON for unknown id); verified via testing agent (iteration_1.json: backend 12/12, E2E pass)
+
+## Implemented (2026-08-13, iteration 7 — 13-item incremental batch)
+- Hero de-washed (white/85 overlay → directional gradient); borders darkened to slate-300 (#CBD5E1) incl. --border var
+- Dark mode: footer-only toggle (localStorage eh_theme + pre-paint init script), light default; full .dark CSS override system
+- Post-property auth gate: logged-out → Login/Create Account with ?next=/post-property redirect; logged-in → form directly
+- Commercial filter: category=commercial swaps BHK selector for Commercial Sub-Category (office/shop/showroom/warehouse/industrial/commercial_land/other via property_type param)
+- New Launch /projects: grid/list toggle, keyword + BHK + location + price-slider filters, sort (newest/price low/high); GET /projects extended (bhk regex on configurations, price overlap, sorts); ProjectCard list layout
+- Blog: category chips + keyword search (client-side over real data)
+- Manage Profile (all roles): ordered form — Full Name, Mobile, Email readonly + Verify button/status, Office Address, DOB, Logo upload, Save; agents additionally get RERA Number; backend PUT /auth/profile extended (office_address/dob/avatar/rera_number; User/UserOut models extended)
+- Admin SEO: selection ONLY via left sidebar (SEO ▸ Pages ▸ per-page items), page list with Configured/Not-set badges, dedicated edit screen, no in-dashboard dropdown
+- 3D CSS isometric lead/conversion charts (LeadsChart.jsx) on Admin overview + Agent leads tab + Developer "Leads & Performance" tab; role-scoped GET /stats/leads (agent: own/agent-linked properties; developer: own projects)
+- Developer project import: POST /projects/import (httpx fetch + meta/JSON-LD/price/BHK/RERA regex parsing, no LLM — Hostinger-safe) → pending_review draft, owner-scoped, never live until admin approves; developer dashboard banner + import modal
+- POST /uploads (any authenticated user, images only) + ImageUpload 403 fallback (fixes agent/developer uploads); "avatars" kind added
+- Fixed latent 500: Project model lacked owner_id (create_project crashed); added owner_id + import_source_url fields
+
+## Implemented (2026-08-13, iteration 8 — fixes + theme list)
+- Compilation fixed: RoleDashboards.jsx ClientDashboard restored (was clipped in edit); RegisterDeveloper.jsx confirmed; yarn build exits 0 clean
+- Admin → Project form → Developer select: "+ Register New Developer" option + link → RegisterDeveloper modal (name/mobile/email/RERA/office address/website/experience/logo/about) → POST /admin/developers (dedupe by name/email) → auto-appears + auto-selected, form state preserved
+- Global primary colour → #708DE6 via Tailwind blue palette override (blue-600=#708DE6) + index.css vars; Admin Quick Action buttons = WHITE bg + BLACK text (exception); Approve/Reject/Save/Update/etc. = #708DE6 + white
+- Hero SearchBar bg → #C3CFF5 (tabs white/70, inputs stay readable)
+- Dark mode: bg #162E2A, all primary/heading/label/nav/card/table text WHITE (secondary #C4D6D0/#A9C0B9), Poppins enforced on inputs/selects/modals, placeholders #9DB4AC, popover/listbox/menu surfaces #1C3833 with light options (CSS var override + role selectors — root fix for white-on-white Select panels); dark hero image /hero-dark.webp (only in dark); white logo /logo-dark.png swaps in header+footer in dark mode
+- Site-wide "RERA A51700039535" removed from footer (verified no other occurrences in code/settings/SEO APIs)
+- Pending Review filter + Approve/Reject row buttons: whitespace-nowrap, consistent h-8/h-10, flex-wrap rows — no overlap/clipping at 375px (verified iteration_3.json)
+- Add New Amenity: now opens modal (AddAmenity.jsx) in Property + Project forms; client+server dedupe, auto-select, success/error toasts; inline quick-add retained with empty-input error toast
+
+## Verified
+- iteration_1.json: leads/site-visits fixes 12/12 backend + E2E pass
+- iteration_2.json: 13-item batch E2E
+- iteration_3.json: 96% frontend pass; sole HIGH (dark Select white-on-white) fixed via popover var override — self-verified rgb(28,56,51) panel + white options
+- yarn build: exit 0, no "Compiled with problems"
+
+## Backlog
+- P1: React Hook dependency warnings in build (Compare, DashboardPages, RoleDashboards, AdminLeads, AdminProjects, AdminProperties, AdminUnits, AdminUsers, ProjectForm, PropertyForm) — non-breaking
+- P1: ProjectForm data-testids on key fields/tabs/developer select/publish controls
+- P2: SMTP creds for live email (backend/.env per .env.example)
+- P2: hero image rotation via settings CMS; AI Search restyle

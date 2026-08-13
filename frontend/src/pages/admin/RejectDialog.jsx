@@ -33,7 +33,7 @@ export default function RejectDialog({ row, kind, onClose, onDone }) {
         </div>
         <DialogFooter>
           <button type="button" onClick={onClose} className="px-4 py-2 border border-slate-200 rounded-lg text-sm font-medium hover:bg-slate-50">Cancel</button>
-          <button onClick={submit} disabled={busy} data-testid="reject-confirm" className="px-5 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-sm font-semibold disabled:opacity-60">{busy ? "Rejecting…" : "Reject & Notify Owner"}</button>
+          <button onClick={submit} disabled={busy} data-testid="reject-confirm" className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold disabled:opacity-60">{busy ? "Rejecting…" : "Reject & Notify Owner"}</button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

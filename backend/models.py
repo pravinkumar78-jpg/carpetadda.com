@@ -37,6 +37,9 @@ class User(BaseDoc):
     password_hash: str
     role: str = "user"  # super_admin | admin | agent | developer | owner | user
     avatar: Optional[str] = None
+    office_address: Optional[str] = None
+    dob: Optional[str] = None
+    rera_number: Optional[str] = None
     verified: bool = False
     active: bool = True
 
@@ -48,6 +51,9 @@ class UserOut(BaseModel):
     phone: Optional[str] = None
     role: str
     avatar: Optional[str] = None
+    office_address: Optional[str] = None
+    dob: Optional[str] = None
+    rera_number: Optional[str] = None
     verified: bool = False
 
 
@@ -90,6 +96,8 @@ class Developer(BaseDoc):
     website: Optional[str] = None
     phone: Optional[str] = None
     email: Optional[str] = None
+    rera_number: Optional[str] = None
+    office_address: Optional[str] = None
     locations: List[str] = Field(default_factory=list)
     total_projects: int = 0
     verified: bool = True
@@ -238,6 +246,8 @@ class Project(BaseDoc):
     featured: bool = False
     verified: bool = True
     status: str = "active"
+    owner_id: Optional[str] = None
+    import_source_url: Optional[str] = None
 
     # Homepage placement + marketing flags
     show_featured_residential: bool = False

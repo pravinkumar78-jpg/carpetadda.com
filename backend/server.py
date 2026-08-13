@@ -12,6 +12,8 @@ from pathlib import Path
 from typing import Any, List, Optional
 
 from dotenv import load_dotenv
+import httpx
+from urllib.parse import urljoin, urlparse
 from fastapi import APIRouter, BackgroundTasks, Body, Depends, FastAPI, File, HTTPException, Query, UploadFile
 from fastapi.responses import Response
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -153,7 +155,11 @@ async def update_profile(body: dict = Body(...), user: dict = Depends(current_us
     phone = (body.get("phone") or "").strip()
     if not name:
         raise HTTPException(400, "Name required")
-    await db.users.update_one({"id": user["sub"]}, {"$set": {"name": name, "phone": phone, "updated_at": _now_iso_str()}})
+    patch: dict[str, Any] = {"name": name, "phone": phone, "updated_at": _now_iso_str()}
+    for k in ("office_address", "dob", "avatar", "rera_number"):
+        if k in body:
+            patch[k] = (body.get(k) or "").strip() if isinstance(body.get(k), str) else body.get(k)
+    await db.users.update_one({"id": user["sub"]}, {"$set": patch})
     doc = await db.users.find_one({"id": user["sub"]}, PROJ)
     return UserOut(**doc).model_dump()
 
@@ -250,6 +256,35 @@ async def get_location(slug: str):
 async def list_developers(q: Optional[str] = None, limit: int = 50):
     query = {"name": {"$regex": q, "$options": "i"}} if q else {}
     return await db.developers.find(query, PROJ).to_list(limit)
+
+
+@api.post("/admin/developers", dependencies=[Depends(require_roles("admin"))])
+async def create_developer(body: dict = Body(...)):
+    """Register a new developer (from the project form modal). Idempotent on name/email."""
+    name = (body.get("name") or "").strip()
+    if not name:
+        raise HTTPException(400, "Developer name required")
+    email = (body.get("email") or "").strip().lower() or None
+    existing = await db.developers.find_one(
+        {"$or": [{"name": {"$regex": f"^{re.escape(name)}$", "$options": "i"}}] + ([{"email": email}] if email else [])}, PROJ)
+    if existing:
+        return existing
+    slug = re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")[:60] or "developer"
+    if await db.developers.find_one({"slug": slug}, {"_id": 1}):
+        slug = f"{slug}-{secrets.token_hex(3)}"
+    d = Developer(
+        name=name, slug=slug,
+        phone=(body.get("phone") or "").strip() or None,
+        email=email,
+        rera_number=(body.get("rera_number") or "").strip() or None,
+        office_address=(body.get("office_address") or "").strip() or None,
+        website=(body.get("website") or "").strip() or None,
+        logo=body.get("logo") or None,
+        description=(body.get("description") or "").strip() or None,
+        experience_years=int(body.get("experience_years") or 0),
+    )
+    await db.developers.insert_one(d.model_dump())
+    return _clean(d.model_dump())
 
 
 @api.get("/developers/{slug}")
@@ -618,6 +653,8 @@ async def admin_list_properties(status: Optional[str] = None, q: Optional[str] =
 async def list_projects(city: Optional[str] = None, location: Optional[str] = None,
                         developer_id: Optional[str] = None, featured: Optional[bool] = None,
                         category: Optional[str] = None,
+                        bhk: Optional[int] = None,
+                        price_min: Optional[float] = None, price_max: Optional[float] = None,
                         q: Optional[str] = None, sort: str = "newest",
                         page: int = 1, page_size: int = 12):
     query: dict[str, Any] = {"status": "active"}
@@ -626,11 +663,21 @@ async def list_projects(city: Optional[str] = None, location: Optional[str] = No
     if developer_id: query["developer_id"] = developer_id
     if featured is not None: query["featured"] = featured
     if category: query["property_category"] = category
+    if bhk: query["configurations"] = {"$regex": f"^{bhk}\\s*BHK", "$options": "i"}
+    if price_min is not None: query["price_to"] = {"$gte": price_min}
+    if price_max is not None: query["price_from"] = {"$lte": price_max}
     if q: query["$or"] = [{"name": {"$regex": q, "$options": "i"}},
                           {"description": {"$regex": q, "$options": "i"}}]
     total = await db.projects.count_documents(query)
     skip = max(0, (page - 1) * page_size)
-    sort_by = [("featured", -1), ("created_at", -1)] if sort == "featured" else [("created_at", -1)]
+    if sort == "price_low":
+        sort_by = [("price_from", 1)]
+    elif sort == "price_high":
+        sort_by = [("price_from", -1)]
+    elif sort == "featured":
+        sort_by = [("featured", -1), ("created_at", -1)]
+    else:
+        sort_by = [("created_at", -1)]
     items = await db.projects.find(query, PROJ).sort(sort_by).skip(skip).limit(page_size).to_list(page_size)
     return {"items": items, "total": total, "page": page, "page_size": page_size,
             "total_pages": (total + page_size - 1) // page_size}
@@ -666,6 +713,125 @@ async def create_project(body: Project, u: dict = Depends(current_user)):
         body.featured = False
     await db.projects.insert_one(body.model_dump())
     return _clean(body.model_dump())
+
+
+# ---------------- Project Import (developer URL → draft) ----------------
+class ProjectImportInput(BaseModel):
+    url: str
+
+
+def _meta(html: str, *keys: str) -> Optional[str]:
+    for key in keys:
+        m = re.search(
+            r'<meta[^>]+(?:property|name)=["\']' + re.escape(key) + r'["\'][^>]+content=["\']([^"\']+)["\']',
+            html, re.I) or re.search(
+            r'<meta[^>]+content=["\']([^"\']+)["\'][^>]+(?:property|name)=["\']' + re.escape(key) + r'["\']',
+            html, re.I)
+        if m and m.group(1).strip():
+            return m.group(1).strip()
+    return None
+
+
+def _parse_project_page(html: str, url: str) -> dict:
+    title = _meta(html, "og:title") or ""
+    if not title:
+        m = re.search(r"<title[^>]*>(.*?)</title>", html, re.I | re.S)
+        title = re.sub(r"\s+", " ", m.group(1)).strip() if m else ""
+    desc = _meta(html, "og:description", "description") or ""
+    image = _meta(html, "og:image") or ""
+    if image:
+        image = urljoin(url, image)
+    # Prices like ₹1.2 Cr / ₹ 85 L / ₹85,00,000
+    amounts: list[float] = []
+    for val, unit in re.findall(r"₹\s*([\d,]+(?:\.\d+)?)\s*(Cr\.?|Crore|Lakh|Lac|L\b)?", html, re.I):
+        num = float(val.replace(",", ""))
+        u = (unit or "").lower()
+        if u.startswith("cr"):
+            num *= 10_000_000
+        elif u.startswith("l"):
+            num *= 100_000
+        if num >= 100_000:
+            amounts.append(num)
+    amounts = sorted(set(amounts))
+    configs = sorted({f"{n} BHK" for n in re.findall(r"(\d)\s*(?:BHK|B\.H\.K)", html, re.I)})
+    rera_m = re.search(r"\b[AP]\d{11}\b", html)
+    # JSON-LD address hints
+    loc = ""
+    al = re.search(r'"addressLocality"\s*:\s*"([^"]+)"', html)
+    if al:
+        loc = al.group(1).strip()
+    city = "mumbai"
+    low = html.lower()
+    for c in ("dombivli", "kalyan", "navi mumbai", "thane", "mumbai"):
+        if c in low:
+            city = c.replace(" ", "-")
+            break
+    return {
+        "name": title[:120] or urlparse(url).netloc,
+        "description": desc[:2000] or None,
+        "image": image or None,
+        "price_from": amounts[0] if amounts else 0,
+        "price_to": amounts[-1] if amounts else 0,
+        "configurations": configs,
+        "rera_number": rera_m.group(0) if rera_m else None,
+        "location": re.sub(r"[^a-z0-9]+", "-", loc.lower()).strip("-") if loc else city,
+        "city": city,
+    }
+
+
+@api.post("/projects/import")
+async def import_project(body: ProjectImportInput, u: dict = Depends(current_user)):
+    """Fetch a developer's public project/landing page and import it as a DRAFT
+    project (pending_review). Never goes live until an admin approves it."""
+    if u["role"] not in ("admin", "super_admin", "developer"):
+        raise HTTPException(403, "Only developers and admins can import projects")
+    url = body.url.strip()
+    if not url:
+        raise HTTPException(400, "URL required")
+    if not url.startswith(("http://", "https://")):
+        url = "https://" + url
+    try:
+        async with httpx.AsyncClient(timeout=20, follow_redirects=True,
+                                     headers={"User-Agent": "Mozilla/5.0 (compatible; CarpetAddaBot/1.0)"}) as client:
+            resp = await client.get(url)
+        if resp.status_code >= 400:
+            raise HTTPException(400, f"Website returned HTTP {resp.status_code}")
+        html = resp.text[:2_000_000]
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(400, "Could not fetch the provided URL. Check the link and try again.")
+
+    parsed = _parse_project_page(html, url)
+    user_doc = await db.users.find_one({"id": u["sub"]}, PROJ)
+    dev_doc = None
+    if user_doc:
+        dev_doc = await db.developers.find_one(
+            {"$or": [{"email": user_doc.get("email")}, {"name": user_doc.get("name")}]}, PROJ)
+
+    slug = re.sub(r"[^a-z0-9]+", "-", parsed["name"].lower()).strip("-")[:60] or "imported-project"
+    slug = f"{slug}-{secrets.token_hex(3)}"
+    proj = Project(
+        name=parsed["name"],
+        slug=slug,
+        description=parsed["description"],
+        developer_id=dev_doc["id"] if dev_doc else "",
+        city=parsed["city"],
+        location=parsed["location"],
+        price_from=parsed["price_from"],
+        price_to=parsed["price_to"],
+        configurations=parsed["configurations"],
+        rera_number=parsed["rera_number"],
+        images=[parsed["image"]] if parsed["image"] else [],
+        main_image=parsed["image"],
+        status="pending_review",
+        verified=False,
+        featured=False,
+        import_source_url=url,
+    )
+    proj.owner_id = u["sub"]
+    await db.projects.insert_one(proj.model_dump())
+    return _clean(proj.model_dump())
 
 
 @api.put("/projects/{pid}")
@@ -1147,7 +1313,7 @@ async def create_amenity(body: dict = Body(...)):
 
 
 # ---------------- Media Uploads (persistent local storage) ----------------
-ALLOWED_UPLOAD_KINDS = {"blogs", "testimonials", "og", "properties", "projects", "developers", "agents", "general"}
+ALLOWED_UPLOAD_KINDS = {"blogs", "testimonials", "og", "properties", "projects", "developers", "agents", "general", "avatars"}
 MAX_UPLOAD_BYTES = 8 * 1024 * 1024
 
 @api.post("/admin/uploads", dependencies=[Depends(require_roles("admin"))])
@@ -1162,6 +1328,21 @@ async def admin_upload(kind: str = Query("general"), file: UploadFile = File(...
     file_doc={"id":path.split("/")[-1].rsplit(".",1)[0],"storage_path":path,"original_filename":file.filename,"content_type":ct,"size":len(data),"kind":kind,"is_deleted":False,"created_at":_now_iso_str()}
     await db.files.insert_one(file_doc)
     return {"ok":True,"url":f"/api/files/{path}","path":path,"size":len(data),"content_type":ct}
+
+
+@api.post("/uploads")
+async def user_upload(kind: str = Query("avatars"), file: UploadFile = File(...), u: dict = Depends(current_user)):
+    """Authenticated upload for any logged-in user (profile logos etc.). Images only."""
+    if kind not in ALLOWED_UPLOAD_KINDS: raise HTTPException(400, f"Invalid kind. Allowed: {sorted(ALLOWED_UPLOAD_KINDS)}")
+    data = await file.read()
+    if len(data) > MAX_UPLOAD_BYTES: raise HTTPException(400, "File too large. Max 8 MB")
+    if not (file.content_type or "").startswith("image/"): raise HTTPException(400, "Only image uploads are allowed")
+    path = build_upload_path(kind, file.filename or "upload.bin"); ct = file.content_type or guess_content_type(file.filename or "")
+    try: result = put_object(path, data, ct)
+    except Exception as e: raise HTTPException(500, f"Upload failed: {e}")
+    file_doc = {"id": path.split("/")[-1].rsplit(".",1)[0], "storage_path": path, "original_filename": file.filename, "content_type": ct, "size": len(data), "kind": kind, "is_deleted": False, "created_at": _now_iso_str()}
+    await db.files.insert_one(file_doc)
+    return {"ok": True, "url": f"/api/files/{path}", "path": path, "size": len(data), "content_type": ct}
 
 @api.get("/files/{path:path}")
 async def serve_file(path: str):
@@ -1309,6 +1490,21 @@ async def list_site_visits(limit: int = 100):
     return rows
 
 
+@api.put("/site-visits/{vid}", dependencies=[Depends(require_roles("admin", "agent"))])
+async def update_site_visit(vid: str, body: dict = Body(...)):
+    allowed = {"status", "notes", "visit_date", "visit_time", "name", "phone", "email"}
+    patch = {k: v for k, v in body.items() if k in allowed}
+    if "status" in patch and patch["status"] not in {"requested", "confirmed", "rescheduled", "completed", "cancelled", "no_show"}:
+        raise HTTPException(400, "Invalid status")
+    if not patch:
+        raise HTTPException(400, "No valid fields to update")
+    res = await db.site_visits.update_one({"id": vid}, {"$set": patch})
+    if res.matched_count == 0:
+        raise HTTPException(404, "Site visit not found")
+    return await db.site_visits.find_one({"id": vid}, PROJ)
+
+
+
 # ---------------- Favorites ----------------
 @api.get("/favorites")
 async def my_favorites(u: dict = Depends(current_user)):
@@ -1378,9 +1574,34 @@ async def admin_stats():
         "developers_total": await db.users.count_documents({"role": "developer"}),
         "leads_total": await db.leads.count_documents({}),
         "leads_new": await db.leads.count_documents({"status": "new"}),
+        "leads_contacted": await db.leads.count_documents({"status": "contacted"}),
+        "leads_converted": await db.leads.count_documents({"status": "converted"}),
         "site_visits_total": await db.site_visits.count_documents({}),
         "users_total": await db.users.count_documents({}),
     }
+
+
+@api.get("/stats/leads")
+async def lead_stats(u: dict = Depends(current_user)):
+    """Role-scoped lead/conversion stats. Agents and developers only ever see
+    leads tied to their own listings/projects."""
+    role = u["role"]
+    if role in ("admin", "super_admin"):
+        query: dict[str, Any] = {}
+    elif role == "agent":
+        prop_ids = [p["id"] for p in await db.properties.find(
+            {"$or": [{"owner_id": u["sub"]}, {"agent_id": u["sub"]}]}, {"_id": 0, "id": 1}).to_list(500)]
+        query = {"$or": [{"agent_id": u["sub"]}, {"property_id": {"$in": prop_ids}}]} if prop_ids else {"agent_id": u["sub"]}
+    elif role == "developer":
+        proj_ids = [p["id"] for p in await db.projects.find({"owner_id": u["sub"]}, {"_id": 0, "id": 1}).to_list(500)]
+        query = {"$or": [{"developer_id": u["sub"]}, {"project_id": {"$in": proj_ids}}]} if proj_ids else {"developer_id": u["sub"]}
+    else:
+        raise HTTPException(403, "Lead stats are not available for this role")
+    total = await db.leads.count_documents(query)
+    contacted = await db.leads.count_documents({**query, "status": "contacted"})
+    converted = await db.leads.count_documents({**query, "status": "converted"})
+    return {"total": total, "contacted": contacted, "converted": converted,
+            "conversion": round((converted / total) * 100, 1) if total else 0}
 
 
 # ---------------- AI: Natural language search ----------------

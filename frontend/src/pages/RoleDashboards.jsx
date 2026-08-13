@@ -3,8 +3,11 @@ import { Navigate, Link } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import api from "@/lib/api";
 import { toast } from "sonner";
-import { Plus, House, Buildings, ChatCircle, Heart, MagnifyingGlass, UserGear, Users, Archive, ArrowCounterClockwise, PencilSimple } from "@phosphor-icons/react";
+import { Plus, House, Buildings, ChatCircle, Heart, MagnifyingGlass, UserGear, Users, Archive, ArrowCounterClockwise, PencilSimple, GlobeHemisphereWest, CircleNotch, ChartBar } from "@phosphor-icons/react";
 import { AccountPanel, MyListings } from "@/components/dashboard/AccountPanel";
+import LeadsChart from "@/components/LeadsChart";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { formatINR } from "@/lib/format";
 
 // Role-based dashboards. Admin uses /admin (AdminPanel).
@@ -12,15 +15,18 @@ export function AgentDashboard() {
   const { user, ready } = useAuth();
   const [items, setItems] = useState([]);
   const [leads, setLeads] = useState([]);
+  const [leadStats, setLeadStats] = useState(null);
   const [tab, setTab] = useState("listings");
 
   const loadListings = () => { if (user) api.get(`/properties?owner_id=${user.id}&include_archived=true&page_size=50`).then(r => setItems(r.data.items || [])).catch(() => {}); };
   const loadLeads = () => { api.get("/leads?limit=100").then(r => setLeads(Array.isArray(r.data) ? r.data : [])).catch(() => {}); };
+  const loadLeadStats = () => { api.get("/stats/leads").then(r => setLeadStats(r.data)).catch(() => setLeadStats({ total: 0, contacted: 0, converted: 0, conversion: 0 })); };
 
   useEffect(() => {
     if (!user) return;
     loadListings();
     loadLeads();
+    loadLeadStats();
   }, [user]);
 
   if (!ready) return null;
@@ -46,6 +52,7 @@ export function AgentDashboard() {
 
       {tab === "leads" && (
         <div className="space-y-5">
+          <LeadsChart stats={leadStats} title="My Lead Performance" />
           <StatGrid stats={(() => {
             const total = leads.length;
             const contacted = leads.filter(l => ["contacted", "converted"].includes(l.status)).length;
@@ -113,15 +120,34 @@ export function DeveloperDashboard() {
   const { user, ready } = useAuth();
   const [projects, setProjects] = useState([]);
   const [tab, setTab] = useState("projects");
+  const [leadStats, setLeadStats] = useState(null);
+  const [importOpen, setImportOpen] = useState(false);
+  const [importUrl, setImportUrl] = useState("");
+  const [importing, setImporting] = useState(false);
 
   const loadProjects = () => { if (user) api.get(`/admin/projects?page_size=100`).then(r => {
     const all = r.data.items || [];
     setProjects(all.filter(p => !p.owner_id || p.owner_id === user.id));
   }).catch(() => {}); };
+  const loadLeadStats = () => { api.get("/stats/leads").then(r => setLeadStats(r.data)).catch(() => setLeadStats({ total: 0, contacted: 0, converted: 0, conversion: 0 })); };
 
-  useEffect(() => { if (user) loadProjects(); }, [user]);
+  useEffect(() => { if (user) { loadProjects(); loadLeadStats(); } }, [user]);
   if (!ready) return null;
   if (!user || user.role !== "developer") return <Navigate to="/login" />;
+
+  const runImport = async (e) => {
+    e.preventDefault();
+    if (!importUrl.trim()) { toast.error("Please enter your website or landing page URL"); return; }
+    setImporting(true);
+    try {
+      const { data } = await api.post("/projects/import", { url: importUrl.trim() });
+      toast.success(`"${data.name}" imported as draft — pending admin review`);
+      setImportOpen(false);
+      setImportUrl("");
+      loadProjects();
+    } catch (err) { toast.error(err?.response?.data?.detail || "Import failed"); }
+    finally { setImporting(false); }
+  };
 
   const act = async (p, action) => {
     if (action === "archive" && !confirm("Archive this project? You can restore it anytime.")) return;
@@ -135,13 +161,29 @@ export function DeveloperDashboard() {
   return (
     <DashShell user={user} title="Developer Workspace" tab={tab} setTab={setTab} menu={[
       ["projects", `My Projects (${projects.length})`, Buildings],
+      ["performance", "Leads & Performance", ChartBar],
       ["account", "Profile & Security", UserGear],
     ]} actions={[
       { to: "/developer/projects/new", label: "Add Project", primary: true, tid: "dev-add-project" },
-    ]}>
+    ]} extraActions={
+      <button onClick={() => setImportOpen(true)} data-testid="dev-import-project" className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium border border-blue-200 bg-white text-blue-700 hover:bg-blue-50 transition-colors">
+        <GlobeHemisphereWest size={14} weight="bold" /> Import from Website
+      </button>
+    }>
 
       {tab === "projects" && (
         <div className="space-y-5">
+          {/* Prominent project listing / import banner */}
+          <div className="card-premium p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-blue-200 bg-gradient-to-r from-blue-50 to-white" data-testid="dev-listing-banner">
+            <div>
+              <div className="font-bold text-slate-900 text-lg">List your projects faster</div>
+              <p className="text-sm text-slate-600 mt-1 max-w-xl">Add a project manually, or import it straight from your existing developer website / landing page. Imports are saved as drafts and go live only after admin approval.</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Link to="/developer/projects/new" data-testid="dev-banner-add" className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold bg-blue-600 text-white hover:bg-blue-700 shadow-sm transition-colors"><Plus size={14} weight="bold" /> Project Listing</Link>
+              <button onClick={() => setImportOpen(true)} data-testid="dev-banner-import" className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold border border-blue-300 bg-white text-blue-700 hover:bg-blue-50 transition-colors"><GlobeHemisphereWest size={14} weight="bold" /> Import from Website</button>
+            </div>
+          </div>
           <StatGrid stats={[["Projects", projects.length], ["Active", projects.filter(p => p.status === "active").length], ["Archived", projects.filter(p => p.status === "archived").length]]} />
           <div className="card-premium overflow-hidden" data-testid="dev-projects">
             <div className="overflow-x-auto">
@@ -174,7 +216,27 @@ export function DeveloperDashboard() {
         </div>
       )}
 
+      {tab === "performance" && (
+        <LeadsChart stats={leadStats} title="My Project Leads" />
+      )}
+
       {tab === "account" && <AccountPanel user={user} />}
+
+      <Dialog open={importOpen} onOpenChange={setImportOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>Import Project from Website</DialogTitle></DialogHeader>
+          <form onSubmit={runImport} className="space-y-4 py-2" data-testid="dev-import-form">
+            <p className="text-sm text-slate-600">Paste your existing developer landing page or project website URL. We'll fetch the available details and save the project as a <span className="font-semibold">draft pending admin review</span> — it won't go live until approved.</p>
+            <Input data-testid="dev-import-url" value={importUrl} onChange={e => setImportUrl(e.target.value)} placeholder="https://yourdeveloper site.com/project" className="h-11 rounded-lg border-slate-300" />
+            <div className="flex justify-end gap-2">
+              <button type="button" onClick={() => setImportOpen(false)} className="px-4 py-2 text-sm text-slate-700 hover:bg-slate-100 rounded-lg">Cancel</button>
+              <button type="submit" disabled={importing} data-testid="dev-import-submit" className="px-5 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 disabled:opacity-50 inline-flex items-center gap-2">
+                {importing && <CircleNotch size={14} className="animate-spin" />} {importing ? "Importing…" : "Fetch & Import"}
+              </button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </DashShell>
   );
 }
@@ -183,7 +245,7 @@ export function ClientDashboard() {
   return <Navigate to="/dashboard" />;
 }
 
-function DashShell({ user, title, menu, actions = [], tab, setTab, children }) {
+function DashShell({ user, title, menu, actions = [], extraActions = null, tab, setTab, children }) {
   return (
     <div className="min-h-screen">
       <div className="section-blue py-12">
@@ -198,6 +260,7 @@ function DashShell({ user, title, menu, actions = [], tab, setTab, children }) {
                 <Plus size={14} weight="bold" /> {a.label}
               </Link>
             ))}
+            {extraActions}
           </div>
         </div>
       </div>

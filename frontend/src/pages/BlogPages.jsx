@@ -1,10 +1,21 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import { MagnifyingGlass } from "@phosphor-icons/react";
 import api from "@/lib/api";
+import { Input } from "@/components/ui/input";
 
 export function Blog() {
   const [items, setItems] = useState([]);
-  useEffect(() => { api.get("/blogs").then(r => setItems(r.data)); }, []);
+  const [cat, setCat] = useState("");
+  const [q, setQ] = useState("");
+  useEffect(() => { api.get("/blogs?limit=100").then(r => setItems(r.data || [])).catch(() => {}); }, []);
+
+  const categories = useMemo(() => [...new Set(items.map(b => b.category).filter(Boolean))], [items]);
+  const filtered = items.filter(b =>
+    (!cat || b.category === cat) &&
+    (!q.trim() || (b.title || "").toLowerCase().includes(q.trim().toLowerCase()) || (b.excerpt || "").toLowerCase().includes(q.trim().toLowerCase()))
+  );
+
   return (
     <div>
       <div className="section-blue py-14">
@@ -15,8 +26,28 @@ export function Blog() {
         </div>
       </div>
       <div className="max-w-7xl mx-auto px-6 lg:px-10 py-12">
+        <div className="flex flex-col md:flex-row md:items-center gap-4 mb-8" data-testid="blog-filters">
+          <div className="flex flex-wrap gap-2 flex-1">
+            <button onClick={() => setCat("")} data-testid="blog-cat-all"
+              className={`text-xs px-3.5 py-2 rounded-full border font-semibold transition-colors ${!cat ? "bg-blue-600 text-white border-blue-600" : "bg-white text-slate-600 border-slate-300 hover:border-blue-300 hover:text-blue-600"}`}>
+              All
+            </button>
+            {categories.map(c => (
+              <button key={c} onClick={() => setCat(c)} data-testid={`blog-cat-${c.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`}
+                className={`text-xs px-3.5 py-2 rounded-full border font-semibold capitalize transition-colors ${cat === c ? "bg-blue-600 text-white border-blue-600" : "bg-white text-slate-600 border-slate-300 hover:border-blue-300 hover:text-blue-600"}`}>
+                {c}
+              </button>
+            ))}
+          </div>
+          <div className="relative md:w-72">
+            <MagnifyingGlass size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+            <Input data-testid="blog-search" value={q} onChange={e => setQ(e.target.value)} placeholder="Search articles…"
+              className="h-11 pl-10 rounded-full border-slate-300 bg-white" />
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {items.map(b => (
+          {filtered.map(b => (
             <Link key={b.id} to={`/blog/${b.slug}`} data-testid={`blog-item-${b.slug}`} className="group card-premium overflow-hidden">
               <div className="img-zoom-wrapper aspect-[16/10] bg-slate-100"><img src={b.cover_image} alt={b.title} className="w-full h-full object-cover" /></div>
               <div className="p-6">
@@ -27,6 +58,9 @@ export function Blog() {
             </Link>
           ))}
         </div>
+        {filtered.length === 0 && (
+          <div className="text-center py-20 text-slate-500 bg-blue-50 rounded-xl border border-blue-100" data-testid="blog-empty">No articles match your search.</div>
+        )}
       </div>
     </div>
   );

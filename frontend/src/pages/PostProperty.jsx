@@ -1,14 +1,15 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import api from "@/lib/api";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import { LockKey } from "@phosphor-icons/react";
 
 export default function PostProperty() {
-  const { user } = useAuth();
+  const { user, ready } = useAuth();
   const nav = useNavigate();
   const [f, setF] = useState({
     title: "", description: "", listing_type: "sale", property_category: "residential",
@@ -18,7 +19,7 @@ export default function PostProperty() {
 
   const submit = async (e) => {
     e.preventDefault();
-    if (!user) { toast.error("Please login first"); nav("/login"); return; }
+    if (!user) { nav("/login?next=/post-property"); return; }
     try {
       const payload = { ...f, slug: f.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 60) + "-" + Date.now(),
         images: ["https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=940"] };
@@ -37,8 +38,18 @@ export default function PostProperty() {
         </div>
       </div>
       <div className="max-w-3xl mx-auto px-6 py-10">
-        {!user && <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6 text-sm text-slate-800">Please <a href="/login" className="text-blue-600 font-semibold underline">login</a> to post a property.</div>}
-        <form onSubmit={submit} className="card-premium p-8 space-y-4">
+        {ready && !user ? (
+          <div className="card-premium p-10 text-center" data-testid="post-property-auth-gate">
+            <div className="w-14 h-14 rounded-2xl bg-blue-100 text-blue-600 flex items-center justify-center mx-auto mb-5"><LockKey size={26} weight="bold" /></div>
+            <h2 className="text-2xl font-bold text-slate-900 mb-2">Login to list your property</h2>
+            <p className="text-sm text-slate-600 max-w-md mx-auto mb-8">Create a free account or sign in — you'll land straight back on this listing form.</p>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+              <Link to="/login?next=/post-property" data-testid="gate-login" className="w-full sm:w-auto px-8 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors shadow-md shadow-blue-500/20">Login</Link>
+              <Link to="/register?next=/post-property" data-testid="gate-register" className="w-full sm:w-auto px-8 py-3 border border-blue-200 text-blue-600 rounded-lg font-semibold hover:bg-blue-50 transition-colors">Create Account</Link>
+            </div>
+          </div>
+        ) : !ready ? null : (
+        <form onSubmit={submit} className="card-premium p-8 space-y-4" data-testid="post-property-form">
           <Input data-testid="post-title" required placeholder="Property title" value={f.title} onChange={e => setF({...f, title: e.target.value})} className="rounded-lg border-slate-200 h-11" />
           <Textarea data-testid="post-desc" required rows={4} placeholder="Detailed description" value={f.description} onChange={e => setF({...f, description: e.target.value})} className="rounded-lg border-slate-200" />
           <div className="grid grid-cols-2 gap-3">
@@ -72,8 +83,9 @@ export default function PostProperty() {
             <Input data-testid="post-loc" placeholder="Locality slug" value={f.location} onChange={e => setF({...f, location: e.target.value})} className="rounded-lg border-slate-200 h-11" />
           </div>
           <Input data-testid="post-address" placeholder="Full address" value={f.address} onChange={e => setF({...f, address: e.target.value})} className="rounded-lg border-slate-200 h-11" />
-          <button data-testid="post-submit" disabled={!user} className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors shadow-md shadow-blue-500/20 disabled:opacity-60">Submit for Review</button>
+          <button data-testid="post-submit" className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors shadow-md shadow-blue-500/20">Submit for Review</button>
         </form>
+        )}
       </div>
     </div>
   );
