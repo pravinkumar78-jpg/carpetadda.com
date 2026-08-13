@@ -30,9 +30,12 @@ export function AuthProvider({ children }) {
     localStorage.removeItem("eh_token");
     setUser(null);
   };
+  const refresh = async () => {
+    try { const { data } = await api.get("/auth/me"); setUser(data); } catch { /* keep current */ }
+  };
 
   return (
-    <AuthCtx.Provider value={{ user, ready, login, register, logout }}>
+    <AuthCtx.Provider value={{ user, ready, login, register, logout, refresh }}>
       {children}
     </AuthCtx.Provider>
   );

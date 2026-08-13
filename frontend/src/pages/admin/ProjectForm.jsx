@@ -42,6 +42,8 @@ export default function ProjectForm() {
   const [developers, setDevelopers] = useState([]);
   const [amenityOptions, setAmenityOptions] = useState(AMENITIES);
   const [newAmenity, setNewAmenity] = useState("");
+  const inAdmin = window.location.pathname.startsWith("/admin");
+  const backTo = inAdmin ? "/admin" : "/developer";
 
   useEffect(() => { api.get("/developers").then(r => setDevelopers(r.data)); }, []);
   useEffect(() => {
@@ -68,7 +70,7 @@ export default function ProjectForm() {
       api.get(`/projects/${id}`).then(r => {
         setF({ ...empty(), ...r.data, seo: { ...empty().seo, ...(r.data.seo || {}) } });
         setLoaded(true);
-      }).catch(() => { toast.error("Project not found"); nav("/admin"); });
+      }).catch(() => { toast.error("Project not found"); nav(backTo); });
     }
   }, [id, nav]);
 
@@ -102,7 +104,7 @@ export default function ProjectForm() {
         await api.post("/projects", payload);
       }
       toast.success(publish ? "Project published" : "Saved as draft");
-      nav("/admin");
+      nav(backTo);
     } catch (err) { toast.error(err.response?.data?.detail || "Save failed"); }
     finally { setSaving(false); }
   };
@@ -123,7 +125,7 @@ export default function ProjectForm() {
       <div className="sticky top-0 z-30 bg-white border-b border-slate-200 shadow-sm">
         <div className="max-w-7xl mx-auto px-6 lg:px-10 py-4 flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-4">
-            <Link to="/admin" className="p-2 rounded-lg hover:bg-slate-100 text-slate-600"><ArrowLeft size={18} /></Link>
+            <Link to={backTo} className="p-2 rounded-lg hover:bg-slate-100 text-slate-600"><ArrowLeft size={18} /></Link>
             <div>
               <div className="text-xs uppercase tracking-widest text-blue-600 font-semibold">{id ? "Edit Project" : "New Project"}</div>
               <div className="font-semibold text-slate-900 truncate max-w-md">{f.name || "Untitled Project"}</div>

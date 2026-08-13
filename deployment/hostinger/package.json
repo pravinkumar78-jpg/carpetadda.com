@@ -1,0 +1,15 @@
+{
+  "name": "carpetadda-hostinger",
+  "version": "1.0.0",
+  "private": true,
+  "description": "CarpetAdda single-process Hostinger wrapper: serves the React build and proxies /api to FastAPI",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": { "node": ">=18" },
+  "dependencies": {
+    "express": "^4.19.2",
+    "http-proxy": "^1.18.1"
+  }
+}

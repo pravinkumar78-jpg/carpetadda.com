@@ -14,6 +14,7 @@ import AdminBlogs from "@/pages/admin/AdminBlogs";
 import AdminSettings from "@/pages/admin/AdminSettings";
 import AdminSeo from "@/pages/admin/AdminSeo";
 import AdminArchive from "@/pages/admin/AdminArchive";
+import AdminPages from "@/pages/admin/AdminPages";
 
 const TABS = [
   ["overview", "Overview", ChartBar],
@@ -23,6 +24,7 @@ const TABS = [
   ["blogs", "Blog", Article],
   ["testimonials", "Testimonials", Star],
   ["faqs", "FAQs", Question],
+  ["pages", "Pages", Article],
   ["seo", "SEO", MagnifyingGlass],
   ["archive", "Archive", Archive],
   ["users", "Users", Users],
@@ -76,6 +78,7 @@ export default function AdminPanel() {
             <TabsContent value="blogs"><AdminBlogs /></TabsContent>
             <TabsContent value="testimonials"><AdminTestimonials /></TabsContent>
             <TabsContent value="faqs"><AdminFAQs /></TabsContent>
+            <TabsContent value="pages"><AdminPages /></TabsContent>
             <TabsContent value="seo"><AdminSeo /></TabsContent>
             <TabsContent value="archive"><AdminArchive /></TabsContent>
             <TabsContent value="users"><AdminUsers /></TabsContent>
@@ -90,14 +93,14 @@ export default function AdminPanel() {
 function Overview({ stats, go, nav }) {
   if (!stats) return <div className="text-slate-500">Loading stats…</div>;
   const cards = [
-    { icon: House, label: "Total Properties", val: stats.properties_total, color: "blue" },
-    { icon: Package, label: "Active Listings", val: stats.properties_active, color: "emerald" },
-    { icon: Buildings, label: "Total Projects", val: stats.projects_total, color: "blue" },
-    { icon: ChatCircle, label: "New Leads", val: stats.leads_new, color: "amber" },
-    { icon: ListChecks, label: "Total Leads", val: stats.leads_total, color: "blue" },
-    { icon: ListChecks, label: "Site Visits", val: stats.site_visits_total, color: "blue" },
-    { icon: UserCircle, label: "Users", val: stats.users_total, color: "blue" },
-    { icon: Archive, label: "Archived", val: (stats.properties_archived || 0) + (stats.projects_archived || 0), color: "amber" },
+    { icon: House, label: "Total Properties", val: stats.properties_total, color: "blue", go: "properties" },
+    { icon: Package, label: "Active Listings", val: stats.properties_active, color: "emerald", go: "properties" },
+    { icon: Buildings, label: "Total Projects", val: stats.projects_total, color: "blue", go: "projects" },
+    { icon: ChatCircle, label: "New Leads", val: stats.leads_new, color: "amber", go: "leads" },
+    { icon: ListChecks, label: "Total Leads", val: stats.leads_total, color: "blue", go: "leads" },
+    { icon: ListChecks, label: "Site Visits", val: stats.site_visits_total, color: "blue", go: "leads" },
+    { icon: UserCircle, label: "Users", val: stats.users_total, color: "blue", go: "users" },
+    { icon: Archive, label: "Archived", val: (stats.properties_archived || 0) + (stats.projects_archived || 0), color: "amber", go: "archive" },
   ];
   const styles = {
     blue: { bg: "#dbeafe", fg: "#2563eb" },
@@ -118,13 +121,13 @@ function Overview({ stats, go, nav }) {
     <div>
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-8">
         {cards.map((c, i) => (
-          <div key={i} className="card-premium p-6">
+          <button key={i} onClick={() => go(c.go)} data-testid={`stat-${c.go}-${i}`} className="card-premium p-6 text-left hover:border-blue-300 hover:shadow-md transition-all cursor-pointer">
             <div className="w-10 h-10 rounded-lg flex items-center justify-center mb-4" style={{ backgroundColor: styles[c.color].bg, color: styles[c.color].fg }}>
               <c.icon size={20} weight="bold" />
             </div>
             <div className="text-xs uppercase tracking-widest text-slate-500 font-semibold">{c.label}</div>
             <div className="text-3xl font-bold text-slate-900 mt-1">{c.val ?? "—"}</div>
-          </div>
+          </button>
         ))}
       </div>
       <div className="card-premium p-8 bg-gradient-to-r from-blue-600 to-blue-500 text-white border-blue-500">

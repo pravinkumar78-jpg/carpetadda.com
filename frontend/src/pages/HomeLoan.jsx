@@ -2,10 +2,11 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { CheckCircle, Bank, ArrowRight } from "@phosphor-icons/react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import api from "@/lib/api";
 
-const EMPTY = { name: "", phone: "", email: "", profession: "", designation: "", company_name: "" };
+const EMPTY = { name: "", phone: "", email: "", profession: "", designation: "", company_name: "", property_finalised: "", property_cost: "", loan_amount: "" };
 
 export default function HomeLoan() {
   const [form, setForm] = useState(EMPTY);
@@ -73,6 +74,17 @@ export default function HomeLoan() {
               <Fl label="Profession"><Input data-testid="hl-profession" value={form.profession} onChange={e => set("profession", e.target.value)} placeholder="Salaried / Self-employed" className="h-11 rounded-lg border-slate-200" /></Fl>
               <Fl label="Designation"><Input data-testid="hl-designation" value={form.designation} onChange={e => set("designation", e.target.value)} placeholder="Senior Manager" className="h-11 rounded-lg border-slate-200" /></Fl>
               <Fl label="Company Name"><Input data-testid="hl-company" value={form.company_name} onChange={e => set("company_name", e.target.value)} placeholder="Acme Ltd." className="h-11 rounded-lg border-slate-200" /></Fl>
+              <Fl label="Property Finalised?">
+                <Select value={form.property_finalised} onValueChange={v => set("property_finalised", v)}>
+                  <SelectTrigger data-testid="hl-finalised" className="h-11 rounded-lg border-slate-200"><SelectValue placeholder="Select" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="yes">Yes</SelectItem>
+                    <SelectItem value="no">No</SelectItem>
+                  </SelectContent>
+                </Select>
+              </Fl>
+              <Fl label="Property Cost (₹)"><Input data-testid="hl-property-cost" type="number" min="0" value={form.property_cost} onChange={e => set("property_cost", e.target.value)} placeholder="8500000" className="h-11 rounded-lg border-slate-200" /></Fl>
+              <Fl label="Loan Amount (₹)"><Input data-testid="hl-loan-amount" type="number" min="0" value={form.loan_amount} onChange={e => set("loan_amount", e.target.value)} placeholder="6000000" className="h-11 rounded-lg border-slate-200" /></Fl>
             </div>
             <button type="submit" disabled={busy} data-testid="hl-submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3.5 rounded-lg font-semibold shadow-md shadow-blue-500/20 disabled:opacity-60 transition-colors">
               {busy ? "Submitting…" : "Submit Application"}

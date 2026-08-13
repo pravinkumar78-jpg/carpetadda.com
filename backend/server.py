@@ -41,6 +41,7 @@ from models import (  # noqa: E402
     Favorite,
     Lead,
     Location,
+    Page,
     Project,
     Property,
     RegisterInput,
@@ -95,11 +96,66 @@ async def register(body: RegisterInput):
     if existing:
         raise HTTPException(400, "Email already registered")
     role = body.role if body.role in {"user", "agent", "developer", "owner"} else "user"
+    email_ready = bool(os.environ.get("SMTP_HOST") or os.environ.get("EMERGENT_EMAIL_KEY"))
     u = User(name=body.name, email=body.email, phone=body.phone,
-             password_hash=hash_password(body.password), role=role, verified=True)
+             password_hash=hash_password(body.password), role=role, verified=not email_ready)
     await db.users.insert_one(u.model_dump())
+    if email_ready:
+        await _send_verification_email(u)
     return {"token": create_token(u.id, u.role),
             "user": UserOut(**u.model_dump()).model_dump()}
+
+
+async def _send_verification_email(u: User):
+    raw = secrets.token_urlsafe(48)
+    now = datetime.now(timezone.utc)
+    await db.email_verifications.delete_many({"user_id": u.id})
+    await db.email_verifications.insert_one({"user_id": u.id, "token_hash": _token_hash(raw),
+                                             "expires_at": now + timedelta(hours=24), "used": False, "created_at": now})
+    frontend_url = os.environ.get("FRONTEND_URL", os.environ.get("SITE_URL", "http://localhost:3000")).rstrip("/")
+    link = f"{frontend_url}/verify-email?token={raw}"
+    await send_account_email(u.email, "Verify your CarpetAdda email",
+        f"<p>Hello {u.name},</p><p>Welcome to CarpetAdda. Please verify your email address to unlock listing and enquiry features:</p>"
+        f"<p><a href=\"{link}\">Verify Email</a></p><p>The link expires in 24 hours.</p>")
+
+
+@api.post("/auth/verify-email")
+async def verify_email(body: dict = Body(...)):
+    token = (body.get("token") or "").strip()
+    if not token:
+        raise HTTPException(400, "Token required")
+    rec = await db.email_verifications.find_one({"token_hash": _token_hash(token), "used": False})
+    if not rec or rec.get("expires_at") < datetime.now(timezone.utc):
+        raise HTTPException(400, "Verification link is invalid or expired")
+    await db.users.update_one({"id": rec["user_id"]}, {"$set": {"verified": True, "updated_at": _now_iso_str()}})
+    await db.email_verifications.update_one({"_id": rec["_id"]}, {"$set": {"used": True}})
+    return {"ok": True}
+
+
+@api.post("/auth/resend-verification")
+async def resend_verification(user: dict = Depends(current_user)):
+    doc = await db.users.find_one({"id": user["sub"]}, PROJ)
+    if not doc:
+        raise HTTPException(404, "User not found")
+    if doc.get("verified"):
+        return {"ok": True, "message": "Email already verified"}
+    email_ready = bool(os.environ.get("SMTP_HOST") or os.environ.get("EMERGENT_EMAIL_KEY"))
+    if not email_ready:
+        await db.users.update_one({"id": doc["id"]}, {"$set": {"verified": True}})
+        return {"ok": True, "message": "Email delivery is not configured; account auto-verified"}
+    await _send_verification_email(User(**doc))
+    return {"ok": True, "message": "Verification email sent"}
+
+
+@api.put("/auth/profile")
+async def update_profile(body: dict = Body(...), user: dict = Depends(current_user)):
+    name = (body.get("name") or "").strip()
+    phone = (body.get("phone") or "").strip()
+    if not name:
+        raise HTTPException(400, "Name required")
+    await db.users.update_one({"id": user["sub"]}, {"$set": {"name": name, "phone": phone, "updated_at": _now_iso_str()}})
+    doc = await db.users.find_one({"id": user["sub"]}, PROJ)
+    return UserOut(**doc).model_dump()
 
 
 @api.post("/auth/login")
@@ -309,6 +365,7 @@ async def list_properties(
     furnishing: Optional[str] = None, construction_status: Optional[str] = None,
     verified: Optional[bool] = None, featured: Optional[bool] = None, rera: Optional[bool] = None,
     developer_id: Optional[str] = None, agent_id: Optional[str] = None, project_id: Optional[str] = None,
+    owner_id: Optional[str] = None, include_archived: bool = False,
     q: Optional[str] = None, sort: str = "newest",
     page: int = 1, page_size: int = 12,
 ):
@@ -316,6 +373,10 @@ async def list_properties(
                                  price_min, price_max, area_min, area_max, furnishing,
                                  construction_status, verified, featured, rera,
                                  developer_id, agent_id, project_id, q)
+    if owner_id:
+        query["owner_id"] = owner_id
+        if include_archived:
+            query.pop("status", None)
     sort_by = SORT_MAP.get(sort, SORT_MAP["newest"])
     total = await db.properties.count_documents(query)
     skip = max(0, (page - 1) * page_size)
@@ -355,9 +416,14 @@ async def create_property(body: Property, u: dict = Depends(current_user)):
     return _clean(body.model_dump())
 
 
-@api.put("/properties/{pid}", dependencies=[Depends(require_roles("admin", "agent", "developer", "owner"))])
-async def update_property(pid: str, body: dict = Body(...)):
-    body.pop("_id", None); body.pop("id", None)
+@api.put("/properties/{pid}")
+async def update_property(pid: str, body: dict = Body(...), u: dict = Depends(current_user)):
+    doc = await db.properties.find_one({"id": pid}, PROJ)
+    if not doc:
+        raise HTTPException(404, "Not found")
+    if u["role"] not in ("admin", "super_admin") and doc.get("owner_id") != u["sub"] and doc.get("agent_id") != u["sub"]:
+        raise HTTPException(403, "You can only edit your own listings")
+    body.pop("_id", None); body.pop("id", None); body.pop("owner_id", None)
     res = await db.properties.update_one({"id": pid}, {"$set": body})
     if not res.matched_count:
         raise HTTPException(404, "Not found")
@@ -370,19 +436,28 @@ async def delete_property(pid: str):
     return {"deleted": res.deleted_count}
 
 
-@api.put("/admin/properties/{pid}/archive", dependencies=[Depends(require_roles("admin"))])
-async def archive_property(pid: str):
-    res = await db.properties.update_one({"id": pid}, {"$set": {"status": "archived", "updated_at": _now_iso_str()}})
-    if not res.matched_count:
+async def _can_manage_listing(user: dict, collection: str, rid: str) -> dict:
+    doc = await db[collection].find_one({"id": rid}, PROJ)
+    if not doc:
         raise HTTPException(404, "Not found")
+    if user["role"] in ("admin", "super_admin"):
+        return doc
+    if doc.get("owner_id") == user["sub"] or doc.get("agent_id") == user["sub"]:
+        return doc
+    raise HTTPException(403, "You can only manage your own listings")
+
+
+@api.put("/admin/properties/{pid}/archive")
+async def archive_property(pid: str, u: dict = Depends(current_user)):
+    await _can_manage_listing(u, "properties", pid)
+    await db.properties.update_one({"id": pid}, {"$set": {"status": "archived", "updated_at": _now_iso_str()}})
     return {"ok": True, "status": "archived"}
 
 
-@api.put("/admin/properties/{pid}/restore", dependencies=[Depends(require_roles("admin"))])
-async def restore_property(pid: str):
-    res = await db.properties.update_one({"id": pid}, {"$set": {"status": "active", "updated_at": _now_iso_str()}})
-    if not res.matched_count:
-        raise HTTPException(404, "Not found")
+@api.put("/admin/properties/{pid}/restore")
+async def restore_property(pid: str, u: dict = Depends(current_user)):
+    await _can_manage_listing(u, "properties", pid)
+    await db.properties.update_one({"id": pid}, {"$set": {"status": "active", "updated_at": _now_iso_str()}})
     return {"ok": True, "status": "active"}
 
 
@@ -469,14 +544,22 @@ async def get_project(slug_or_id: str):
 
 
 @api.post("/projects", dependencies=[Depends(require_roles("admin", "developer"))])
-async def create_project(body: Project):
+async def create_project(body: Project, u: dict = Depends(current_user)):
+    body.owner_id = u["sub"]
     await db.projects.insert_one(body.model_dump())
     return _clean(body.model_dump())
 
 
-@api.put("/projects/{pid}", dependencies=[Depends(require_roles("admin", "developer"))])
-async def update_project(pid: str, body: dict = Body(...)):
-    body.pop("_id", None); body.pop("id", None)
+@api.put("/projects/{pid}")
+async def update_project(pid: str, body: dict = Body(...), u: dict = Depends(current_user)):
+    if u["role"] not in ("admin", "super_admin", "developer"):
+        raise HTTPException(403, "Not authorized")
+    doc = await db.projects.find_one({"id": pid}, PROJ)
+    if not doc:
+        raise HTTPException(404, "Not found")
+    if u["role"] == "developer" and doc.get("owner_id") not in (None, u["sub"]):
+        raise HTTPException(403, "You can only edit your own projects")
+    body.pop("_id", None); body.pop("id", None); body.pop("owner_id", None)
     res = await db.projects.update_one({"id": pid}, {"$set": body})
     if not res.matched_count:
         raise HTTPException(404, "Not found")
@@ -489,31 +572,36 @@ async def delete_project(pid: str):
     return {"deleted": res.deleted_count}
 
 
-@api.put("/admin/projects/{pid}/archive", dependencies=[Depends(require_roles("admin"))])
-async def archive_project(pid: str):
-    res = await db.projects.update_one({"id": pid}, {"$set": {"status": "archived", "updated_at": _now_iso_str()}})
-    if not res.matched_count:
-        raise HTTPException(404, "Not found")
+@api.put("/admin/projects/{pid}/archive")
+async def archive_project(pid: str, u: dict = Depends(current_user)):
+    await _can_manage_listing(u, "projects", pid)
+    await db.projects.update_one({"id": pid}, {"$set": {"status": "archived", "updated_at": _now_iso_str()}})
     return {"ok": True, "status": "archived"}
 
 
-@api.put("/admin/projects/{pid}/restore", dependencies=[Depends(require_roles("admin"))])
-async def restore_project(pid: str):
-    res = await db.projects.update_one({"id": pid}, {"$set": {"status": "active", "updated_at": _now_iso_str()}})
-    if not res.matched_count:
-        raise HTTPException(404, "Not found")
+@api.put("/admin/projects/{pid}/restore")
+async def restore_project(pid: str, u: dict = Depends(current_user)):
+    await _can_manage_listing(u, "projects", pid)
+    await db.projects.update_one({"id": pid}, {"$set": {"status": "active", "updated_at": _now_iso_str()}})
     return {"ok": True, "status": "active"}
 
 
-@api.get("/admin/projects", dependencies=[Depends(require_roles("admin"))])
+@api.get("/admin/projects")
 async def admin_list_projects(q: Optional[str] = None, city: Optional[str] = None,
                               status: Optional[str] = None,
-                              page: int = 1, page_size: int = 20):
+                              page: int = 1, page_size: int = 20,
+                              u: dict = Depends(current_user)):
+    if u["role"] not in ("admin", "super_admin", "developer"):
+        raise HTTPException(403, "Not authorized")
     query: dict = {}
     if status:
         query["status"] = status
+    elif u["role"] not in ("admin", "super_admin"):
+        pass  # developers see all their own incl. archived
     else:
         query["status"] = {"$ne": "archived"}
+    if u["role"] == "developer":
+        query["owner_id"] = u["sub"]
     if city: query["city"] = city
     if q: query["$or"] = [{"name": {"$regex": q, "$options": "i"}},
                           {"slug": {"$regex": q, "$options": "i"}}]
@@ -876,6 +964,27 @@ async def admin_update_user(uid: str, body: dict = Body(...)):
     body["updated_at"] = _now_iso_str()
     await db.users.update_one({"id": uid}, {"$set": body})
     return await db.users.find_one({"id": uid}, {"_id": 0, "password_hash": 0})
+
+
+@api.post("/admin/users", dependencies=[Depends(require_roles("admin"))])
+async def admin_create_user(body: dict = Body(...)):
+    name = (body.get("name") or "").strip()
+    email = (body.get("email") or "").strip().lower()
+    password = (body.get("password") or "").strip()
+    role = body.get("role") or "user"
+    if role not in {"user", "agent", "developer", "owner", "admin", "super_admin"}:
+        raise HTTPException(400, "Invalid role")
+    if not name or not email or len(password) < 8:
+        raise HTTPException(400, "Name, valid email and password (min 8 chars) are required")
+    if await db.users.find_one({"email": email}):
+        raise HTTPException(400, "Email already registered")
+    u = User(name=name, email=email, phone=(body.get("phone") or "").strip() or None,
+             password_hash=hash_password(password), role=role,
+             verified=bool(body.get("verified", True)), active=bool(body.get("active", True)))
+    await db.users.insert_one(u.model_dump())
+    if not u.verified and (os.environ.get("SMTP_HOST") or os.environ.get("EMERGENT_EMAIL_KEY")):
+        await _send_verification_email(u)
+    return UserOut(**u.model_dump()).model_dump()
 
 
 @api.post("/admin/users/{uid}/reset-password", dependencies=[Depends(require_roles("admin"))])
@@ -1269,6 +1378,61 @@ async def ai_chat(body: ChatInput):
     else:
         reply = "Tell me your preferred location, BHK or property type and budget, and I can help you search CarpetAdda listings."
     return {"reply": reply}
+
+
+# ---------------- CMS Pages ----------------
+def _slugify(s: str) -> str:
+    return re.sub(r"-+", "-", re.sub(r"[^a-z0-9]+", "-", (s or "").lower())).strip("-")
+
+
+@api.get("/pages")
+async def list_published_pages():
+    return await db.pages.find({"published": True}, {"_id": 0, "id": 1, "title": 1, "slug": 1}).sort([("title", 1)]).to_list(100)
+
+
+@api.get("/pages/{slug}")
+async def get_page(slug: str):
+    doc = await db.pages.find_one({"slug": slug, "published": True}, PROJ)
+    if not doc:
+        raise HTTPException(404, "Page not found")
+    return doc
+
+
+@api.get("/admin/pages", dependencies=[Depends(require_roles("admin"))])
+async def admin_list_pages():
+    return await db.pages.find({}, PROJ).sort([("title", 1)]).to_list(200)
+
+
+@api.post("/admin/pages", dependencies=[Depends(require_roles("admin"))])
+async def admin_create_page(body: dict = Body(...)):
+    title = (body.get("title") or "").strip()
+    if not title:
+        raise HTTPException(400, "Title required")
+    slug = _slugify(body.get("slug") or title)
+    if await db.pages.find_one({"slug": slug}):
+        raise HTTPException(400, "A page with this slug already exists")
+    p = Page(title=title, slug=slug, content=body.get("content") or "",
+             published=bool(body.get("published", False)), seo=body.get("seo") or {})
+    await db.pages.insert_one(p.model_dump())
+    return _clean(p.model_dump())
+
+
+@api.put("/admin/pages/{pid}", dependencies=[Depends(require_roles("admin"))])
+async def admin_update_page(pid: str, body: dict = Body(...)):
+    body.pop("_id", None); body.pop("id", None); body.pop("created_at", None)
+    if body.get("slug"):
+        body["slug"] = _slugify(body["slug"])
+    body["updated_at"] = _now_iso_str()
+    res = await db.pages.update_one({"id": pid}, {"$set": body})
+    if not res.matched_count:
+        raise HTTPException(404, "Not found")
+    return await db.pages.find_one({"id": pid}, PROJ)
+
+
+@api.delete("/admin/pages/{pid}", dependencies=[Depends(require_roles("admin"))])
+async def admin_delete_page(pid: str):
+    res = await db.pages.delete_one({"id": pid})
+    return {"deleted": res.deleted_count}
 
 
 # ---------------- SEO: per-page meta management ----------------

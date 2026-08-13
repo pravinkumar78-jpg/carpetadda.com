@@ -63,7 +63,7 @@ export default function Home() {
         <div className="relative max-w-7xl mx-auto px-6 lg:px-10 pt-16 pb-20 lg:pt-24 lg:pb-28">
           <div className="max-w-3xl mb-10">
             <h1 data-testid="hero-title" className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.08] text-slate-900 mb-6">
-              Curated Architectural <span className="text-blue-600">Masterpieces</span> for Discerning Buyers.
+              Every Dream <span className="text-blue-600">Deserves</span> an Address
             </h1>
             <p className="text-lg text-slate-600 max-w-xl leading-relaxed">
               {settings?.hero_subtitle || "Discover residential and commercial properties, new projects, resale homes and rentals — verified listings from India's most trusted developers."}

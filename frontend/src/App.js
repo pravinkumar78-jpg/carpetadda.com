@@ -1,7 +1,6 @@
 import { useEffect } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Toaster } from "sonner";
-import Lenis from "lenis";
 import "@/App.css";
 import "@/index.css";
 
@@ -33,15 +32,12 @@ import EMICalculator from "@/pages/EMICalculator";
 import Compare from "@/pages/Compare";
 import PostProperty from "@/pages/PostProperty";
 import HomeLoan from "@/pages/HomeLoan";
-import { NotFound, About, Contact, FAQs } from "@/pages/StaticPages";
+import CmsPage from "@/pages/CmsPage";
+import { NotFound, About, Contact, FAQs, VerifyEmail } from "@/pages/StaticPages";
 
 export default function App() {
   useEffect(() => {
-    const lenis = new Lenis({ duration: 1.2, easing: (t) => 1 - Math.pow(1 - t, 4), smoothTouch: false });
-    let rafId;
-    const raf = (time) => { lenis.raf(time); rafId = requestAnimationFrame(raf); };
-    rafId = requestAnimationFrame(raf);
-    return () => { cancelAnimationFrame(rafId); lenis.destroy(); };
+    document.documentElement.style.scrollBehavior = "smooth";
   }, []);
 
   return (
@@ -83,6 +79,15 @@ export default function App() {
               <Route path="/emi-calculator" element={<EMICalculator />} />
               <Route path="/compare" element={<Compare />} />
               <Route path="/post-property" element={<PostProperty />} />
+              <Route path="/dashboard/list-property" element={<PropertyForm />} />
+              <Route path="/dashboard/list-property/:id/edit" element={<PropertyForm />} />
+              <Route path="/agent/list-property" element={<PropertyForm />} />
+              <Route path="/agent/list-property/:id/edit" element={<PropertyForm />} />
+              <Route path="/developer/projects/new" element={<ProjectForm />} />
+              <Route path="/developer/projects/:id/edit" element={<ProjectForm />} />
+              <Route path="/developer/projects/:id/units" element={<AdminUnits />} />
+              <Route path="/page/:slug" element={<CmsPage />} />
+              <Route path="/verify-email" element={<VerifyEmail />} />
               <Route path="/about" element={<About />} />
               <Route path="/contact" element={<Contact />} />
               <Route path="/faqs" element={<FAQs />} />

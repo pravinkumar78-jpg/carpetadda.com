@@ -41,12 +41,19 @@ export default function PropertyForm() {
   const { id } = useParams();
   const nav = useNavigate();
   const { user, ready } = useAuth();
-  const [f, setF] = useState(empty());
+  const [f, setF] = useState(() => {
+    const e = empty();
+    const cat = new URLSearchParams(window.location.search).get("category");
+    if (cat === "commercial") { e.property_category = "commercial"; e.listing_type = "sale"; }
+    return e;
+  });
   const [tab, setTab] = useState("basic");
   const [saving, setSaving] = useState(false);
   const [loaded, setLoaded] = useState(!id);
   const [amenityOptions, setAmenityOptions] = useState(AMENITIES_DEFAULT);
   const [newAmenity, setNewAmenity] = useState("");
+  const inAdmin = window.location.pathname.startsWith("/admin");
+  const backTo = inAdmin ? "/admin" : window.location.pathname.startsWith("/agent") ? "/agent" : "/dashboard";
 
   useEffect(() => {
     api.get("/amenities").then(r => {
@@ -72,7 +79,7 @@ export default function PropertyForm() {
       api.get(`/properties/${id}`).then(r => {
         setF({ ...empty(), ...r.data, seo: { ...empty().seo, ...(r.data.seo || {}) } });
         setLoaded(true);
-      }).catch(() => { toast.error("Property not found"); nav("/admin"); });
+      }).catch(() => { toast.error("Property not found"); nav(backTo); });
     }
   }, [id, nav]);
 
@@ -105,7 +112,7 @@ export default function PropertyForm() {
         await api.post("/properties", payload);
       }
       toast.success(publish ? "Property published" : "Saved as draft");
-      nav("/admin");
+      nav(backTo);
     } catch (err) { toast.error(err.response?.data?.detail || "Save failed"); }
     finally { setSaving(false); }
   };
@@ -128,7 +135,7 @@ export default function PropertyForm() {
       <div className="sticky top-0 z-30 bg-white border-b border-slate-200 shadow-sm">
         <div className="max-w-7xl mx-auto px-6 lg:px-10 py-4 flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-4">
-            <Link to="/admin" className="p-2 rounded-lg hover:bg-slate-100 text-slate-600"><ArrowLeft size={18} /></Link>
+            <Link to={backTo} className="p-2 rounded-lg hover:bg-slate-100 text-slate-600"><ArrowLeft size={18} /></Link>
             <div>
               <div className="text-xs uppercase tracking-widest text-blue-600 font-semibold">{id ? "Edit Property" : "New Property"}</div>
               <div className="font-semibold text-slate-900 truncate max-w-md">{f.title || "Untitled"}</div>

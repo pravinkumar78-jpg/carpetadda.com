@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Plus, Pencil, Trash, Eye, EyeSlash, Article } from "@phosphor-icons/react";
 import ImageUpload from "@/components/ImageUpload";
+import RichTextEditor from "@/components/RichTextEditor";
 
 export default function AdminBlogs() {
   const [rows, setRows] = useState([]);
@@ -125,7 +126,7 @@ function BlogDialog({ row, onClose, onSaved }) {
             <ImageUpload value={form.cover_image || ""} onChange={v => setForm({ ...form, cover_image: v })} kind="blogs" dataTestid="blog-cover-upload" />
           </Field>
           <Field label="Excerpt"><Textarea rows={2} value={form.excerpt || ""} onChange={e => setForm({ ...form, excerpt: e.target.value })} className="rounded-lg border-slate-200" /></Field>
-          <Field label="Content *"><Textarea required rows={8} data-testid="blog-content" value={form.content} onChange={e => setForm({ ...form, content: e.target.value })} placeholder="Write in markdown or HTML…" className="rounded-lg border-slate-200 font-mono text-xs" /></Field>
+          <Field label="Content *"><RichTextEditor value={form.content || ""} onChange={v => setForm({ ...form, content: v })} dataTestid="blog-content-editor" /></Field>
           <div className="border-t border-slate-100 pt-4">
             <div className="text-xs uppercase tracking-widest text-blue-600 font-semibold mb-2">SEO</div>
             <div className="grid grid-cols-1 gap-3">

@@ -26,6 +26,7 @@ export default function AdminUsers() {
   const [role, setRole] = useState("");
   const [editing, setEditing] = useState(null);
   const [pwUser, setPwUser] = useState(null);
+  const [creating, setCreating] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -54,6 +55,9 @@ export default function AdminUsers() {
           <h2 className="text-xl font-bold text-slate-900">Users & Roles</h2>
           <p className="text-sm text-slate-500">Manage admins, agents, developers and customers. Reset passwords securely.</p>
         </div>
+        <button data-testid="user-add" onClick={() => setCreating(true)} className="inline-flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2.5 rounded-lg shadow-md shadow-blue-500/20">
+          <Plus size={15} weight="bold" /> Add User
+        </button>
       </div>
 
       <div className="card-premium p-4 mb-4 flex items-center gap-3 flex-wrap">
@@ -79,13 +83,14 @@ export default function AdminUsers() {
                 <th className="px-4 py-3 text-left font-semibold">Email</th>
                 <th className="px-4 py-3 text-left font-semibold">Role</th>
                 <th className="px-4 py-3 text-left font-semibold">Verified</th>
+                <th className="px-4 py-3 text-left font-semibold">Status</th>
                 <th className="px-4 py-3 text-left font-semibold">Joined</th>
                 <th className="px-4 py-3 text-right font-semibold">Actions</th>
               </tr>
             </thead>
             <tbody>
-              {loading && <tr><td colSpan={6} className="text-center py-12 text-slate-500">Loading…</td></tr>}
-              {!loading && rows.length === 0 && <tr><td colSpan={6} className="text-center py-12 text-slate-500">No users found.</td></tr>}
+              {loading && <tr><td colSpan={7} className="text-center py-12 text-slate-500">Loading…</td></tr>}
+              {!loading && rows.length === 0 && <tr><td colSpan={7} className="text-center py-12 text-slate-500">No users found.</td></tr>}
               {!loading && rows.map(u => (
                 <tr key={u.id} className="border-b border-slate-100 last:border-0 hover:bg-blue-50/40">
                   <td className="px-4 py-3 font-medium text-slate-900">{u.name}</td>
@@ -94,6 +99,7 @@ export default function AdminUsers() {
                     <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold capitalize ${roleBadge(u.role)}`}>{u.role.replace("_", " ")}</span>
                   </td>
                   <td className="px-4 py-3 text-slate-600">{u.verified ? "✓" : "—"}</td>
+                  <td className="px-4 py-3">{u.active === false ? <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-rose-50 text-rose-600">Inactive</span> : <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600">Active</span>}</td>
                   <td className="px-4 py-3 text-slate-500 text-xs">{u.created_at ? new Date(u.created_at).toLocaleDateString() : "—"}</td>
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-end gap-1">
@@ -111,7 +117,62 @@ export default function AdminUsers() {
 
       {editing && <RoleDialog user={editing} onClose={() => setEditing(null)} onSaved={() => { setEditing(null); load(); }} />}
       {pwUser && <PasswordDialog user={pwUser} onClose={() => setPwUser(null)} />}
+      {creating && <CreateUserDialog onClose={() => setCreating(false)} onSaved={() => { setCreating(false); load(); }} />}
     </div>
+  );
+}
+
+function CreateUserDialog({ onClose, onSaved }) {
+  const [form, setForm] = useState({ role: "user", name: "", phone: "", email: "", password: "", active: true, verified: true });
+  const [busy, setBusy] = useState(false);
+  const set = (k, v) => setForm(p => ({ ...p, [k]: v }));
+
+  const submit = async (e) => {
+    e.preventDefault();
+    if (!form.name.trim() || !form.email.trim()) { toast.error("Name and email required"); return; }
+    if (form.password.length < 8) { toast.error("Password must be at least 8 characters"); return; }
+    setBusy(true);
+    try {
+      await api.post("/admin/users", form);
+      toast.success(`User created — ${form.role} account for ${form.email}`);
+      onSaved();
+    } catch (err) { toast.error(err?.response?.data?.detail || "Create failed"); }
+    finally { setBusy(false); }
+  };
+
+  return (
+    <Dialog open onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="max-w-md" data-testid="create-user-dialog">
+        <DialogHeader><DialogTitle className="text-2xl">Add User</DialogTitle></DialogHeader>
+        <form onSubmit={submit} className="space-y-4">
+          <div>
+            <div className="text-xs font-semibold text-slate-600 mb-1">Role *</div>
+            <Select value={form.role} onValueChange={v => set("role", v)}>
+              <SelectTrigger data-testid="create-user-role" className="h-11 rounded-lg border-slate-200"><SelectValue /></SelectTrigger>
+              <SelectContent>{ROLES.map(r => <SelectItem key={r} value={r} className="capitalize">{r.replace("_", " ")}</SelectItem>)}</SelectContent>
+            </Select>
+            <p className="text-xs text-slate-400 mt-1">
+              {form.role === "admin" || form.role === "super_admin" ? "Full admin panel access" :
+               form.role === "agent" ? "Can list & manage own properties and leads" :
+               form.role === "developer" ? "Can list & manage own projects and units" :
+               "Can browse, save favorites and list own property"}
+            </p>
+          </div>
+          <div><div className="text-xs font-semibold text-slate-600 mb-1">Name *</div><Input data-testid="create-user-name" value={form.name} onChange={e => set("name", e.target.value)} className="h-11 rounded-lg border-slate-200" /></div>
+          <div><div className="text-xs font-semibold text-slate-600 mb-1">Mobile</div><Input data-testid="create-user-phone" value={form.phone} onChange={e => set("phone", e.target.value)} className="h-11 rounded-lg border-slate-200" /></div>
+          <div><div className="text-xs font-semibold text-slate-600 mb-1">Email *</div><Input data-testid="create-user-email" type="email" value={form.email} onChange={e => set("email", e.target.value)} className="h-11 rounded-lg border-slate-200" /></div>
+          <div><div className="text-xs font-semibold text-slate-600 mb-1">Password *</div><Input data-testid="create-user-password" type="password" value={form.password} onChange={e => set("password", e.target.value)} placeholder="Min 8 characters" className="h-11 rounded-lg border-slate-200" /></div>
+          <div className="flex gap-6">
+            <label className="flex items-center gap-2 text-sm text-slate-700"><input type="checkbox" data-testid="create-user-active" checked={form.active} onChange={e => set("active", e.target.checked)} /> Active</label>
+            <label className="flex items-center gap-2 text-sm text-slate-700"><input type="checkbox" data-testid="create-user-verified" checked={form.verified} onChange={e => set("verified", e.target.checked)} /> Email verified (skip verification email)</label>
+          </div>
+          <DialogFooter>
+            <button type="button" onClick={onClose} className="px-4 py-2 border border-slate-200 rounded-lg text-sm font-medium hover:bg-slate-50">Cancel</button>
+            <button type="submit" disabled={busy} data-testid="create-user-save" className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium disabled:opacity-60">{busy ? "Creating…" : "Create User"}</button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }
 

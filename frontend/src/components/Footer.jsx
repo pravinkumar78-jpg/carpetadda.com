@@ -1,6 +1,8 @@
 import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
 import { EnvelopeSimple, WhatsappLogo, InstagramLogo, LinkedinLogo, FacebookLogo, YoutubeLogo, TwitterLogo, MapPin, PhoneCall } from "@phosphor-icons/react";
 import { useSettings } from "@/lib/useSettings";
+import api from "@/lib/api";
 
 const LIGHT_LOGO = "https://customer-assets-jt897jd0.emergentagent.net/job_dombivli-properties-1/artifacts/doh3cm7v_CarpetAdda%20Dark%20Logo.png";
 
@@ -13,6 +15,8 @@ function formatWa(num) {
 
 export default function Footer() {
   const s = useSettings();
+  const [pages, setPages] = useState([]);
+  useEffect(() => { api.get("/pages").then(r => setPages(r.data || [])).catch(() => {}); }, []);
   const whatsappDigits = (s?.whatsapp_number || "918828830707").replace(/\D/g, "");
   const email = s?.contact_email || "contact@carpetadda.com";
   const address = s?.office_address || "A-502, BSEL Tech Park, Sector 30A, Opp. Vashi Railway Station, Navi Mumbai, Maharashtra.";
@@ -64,9 +68,9 @@ export default function Footer() {
             <li><Link to="/about" data-testid="footer-link-about" className="hover:text-blue-600">About Us</Link></li>
             <li><Link to="/contact" data-testid="footer-link-contact" className="hover:text-blue-600">Contact</Link></li>
             <li><Link to="/faqs" data-testid="footer-link-faqs" className="hover:text-blue-600">FAQs</Link></li>
-            <li><Link to="/location/mumbai" data-testid="footer-link-mumbai" className="hover:text-blue-600">Mumbai</Link></li>
-            <li><Link to="/location/thane" data-testid="footer-link-thane" className="hover:text-blue-600">Thane</Link></li>
-            <li><Link to="/location/navi-mumbai" className="hover:text-blue-600">Navi Mumbai</Link></li>
+            {pages.map(pg => (
+              <li key={pg.id}><Link to={`/page/${pg.slug}`} data-testid={`footer-page-${pg.slug}`} className="hover:text-blue-600">{pg.title}</Link></li>
+            ))}
           </ul>
         </div>
 

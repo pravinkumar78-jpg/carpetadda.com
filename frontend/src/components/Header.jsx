@@ -14,11 +14,6 @@ const PROPERTY_MENU = [
   { to: "/projects?category=commercial", label: "Commercial Projects", tid: "nav-prop-commercial" },
 ];
 
-const NEWS_MENU = [
-  { to: "/projects", label: "New Launches", tid: "nav-news-launches" },
-  { to: "/blog", label: "Blog", tid: "nav-news-blog" },
-];
-
 const linkCls = ({ isActive }) =>
   `text-sm font-medium px-3 py-2 rounded-md transition-colors duration-200 ${isActive ? "text-blue-600 bg-blue-50" : "text-slate-700 hover:text-blue-600 hover:bg-blue-50"}`;
 
@@ -51,19 +46,8 @@ export default function Header() {
           </DropdownMenu>
 
           <NavLink to="/home-loan" data-testid="nav-home-loan" className={linkCls}>Home Loan</NavLink>
-
-          <DropdownMenu>
-            <DropdownMenuTrigger data-testid="nav-new-blog" className="text-sm font-medium px-3 py-2 rounded-md transition-colors duration-200 text-slate-700 hover:text-blue-600 hover:bg-blue-50 inline-flex items-center gap-1 outline-none">
-              New &amp; Blog <CaretDown size={12} weight="bold" />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-48">
-              {NEWS_MENU.map(i => (
-                <DropdownMenuItem key={i.to} asChild>
-                  <Link to={i.to} data-testid={i.tid} className="cursor-pointer">{i.label}</Link>
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <NavLink to="/projects" data-testid="nav-new-launch" className={linkCls}>New Launch</NavLink>
+          <NavLink to="/blog" data-testid="nav-blog" className={linkCls}>Blog</NavLink>
         </nav>
 
         <div className="hidden lg:flex items-center gap-2">
@@ -91,10 +75,8 @@ export default function Header() {
                 <Link key={i.to} to={i.to} onClick={() => setOpen(false)} data-testid={`mobile-${i.tid}`} className="text-base py-2.5 px-6 rounded-md hover:bg-blue-50 hover:text-blue-600 text-slate-800">{i.label}</Link>
               ))}
               <Link to="/home-loan" onClick={() => setOpen(false)} data-testid="mobile-nav-home-loan" className="text-base font-medium py-3 px-3 rounded-md hover:bg-blue-50 hover:text-blue-600 text-slate-800">Home Loan</Link>
-              <div className="text-xs uppercase tracking-widest text-slate-400 font-semibold px-3 pt-3 pb-1">New &amp; Blog</div>
-              {NEWS_MENU.map(i => (
-                <Link key={i.to} to={i.to} onClick={() => setOpen(false)} data-testid={`mobile-${i.tid}`} className="text-base py-2.5 px-6 rounded-md hover:bg-blue-50 hover:text-blue-600 text-slate-800">{i.label}</Link>
-              ))}
+              <Link to="/projects" onClick={() => setOpen(false)} data-testid="mobile-nav-new-launch" className="text-base font-medium py-3 px-3 rounded-md hover:bg-blue-50 hover:text-blue-600 text-slate-800">New Launch</Link>
+              <Link to="/blog" onClick={() => setOpen(false)} data-testid="mobile-nav-blog" className="text-base font-medium py-3 px-3 rounded-md hover:bg-blue-50 hover:text-blue-600 text-slate-800">Blog</Link>
               <div className="h-px bg-slate-200 my-2" />
               <Link to="/emi-calculator" onClick={() => setOpen(false)} className="text-base py-3 px-3 rounded-md hover:bg-blue-50 hover:text-blue-600 text-slate-800">EMI Calculator</Link>
               <Link to="/faqs" onClick={() => setOpen(false)} className="text-base py-3 px-3 rounded-md hover:bg-blue-50 hover:text-blue-600 text-slate-800">FAQs</Link>

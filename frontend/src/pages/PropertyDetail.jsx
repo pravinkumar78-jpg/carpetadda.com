@@ -4,7 +4,69 @@ import api from "@/lib/api";
 import PropertyMap from "@/components/PropertyMap";
 import PropertyCard from "@/components/PropertyCard";
 import { formatINR, formatArea } from "@/lib/format";
-import { MapPin, Bed, Bathtub, ArrowsOutSimple, Car, Buildings, Calendar, ShieldCheck, PhoneCall, WhatsappLogo, Heart, ShareNetwork, Download, CaretRight, CalendarBlank, Check, Compass, Couch, FileText } from "@phosphor-icons/react";
+import { MapPin, Bed, Bathtub, ArrowsOutSimple, Car, Buildings, Calendar, ShieldCheck, PhoneCall, WhatsappLogo, Heart, ShareNetwork, Download, CaretRight, CalendarBlank, Compass, FileText, Sparkle, SwimmingPool, Barbell, WifiHigh, Tree, Lightning, Elevator, Drop, GameController, Flower, SoccerBall, ShoppingBag } from "@phosphor-icons/react";
+import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext } from "@/components/ui/carousel";
+
+const AMENITY_ICONS = [
+  [/pool/i, SwimmingPool], [/gym|fitness/i, Barbell], [/wifi|internet|intercom/i, WifiHigh],
+  [/park/i, Car], [/garden|green|tree|jog|yoga|landscap/i, Tree], [/power|backup|light/i, Lightning],
+  [/lift|elevator/i, Elevator], [/water|gas|sewage|rainwater/i, Drop], [/game|play|sport|amphi|multipurpose|club/i, GameController],
+  [/senior/i, Flower], [/security|cctv|fire|safety/i, ShieldCheck], [/shop|mart|retail/i, ShoppingBag], [/solar/i, Lightning],
+];
+
+function amenityIcon(name) {
+  for (const [re, icon] of AMENITY_ICONS) if (re.test(name)) return icon;
+  return Sparkle;
+}
+
+const NEARBY_TABS = [
+  ["schools", "Schools", /school|college|education/i],
+  ["hospitals", "Hospitals", /hospital|clinic|health|medical/i],
+  ["metro", "Metro", /metro/i],
+  ["railway", "Railway", /rail|station|train/i],
+  ["buses", "Buses", /bus|depot|stop/i],
+  ["market", "Market & Mall", /market|mall|shop|mart|retail|shopping/i],
+];
+
+function NearbyTabs({ locations }) {
+  const claimed = new Set();
+  const groups = NEARBY_TABS.map(([key, label, re]) => {
+    const items = locations.filter(l => {
+      const idx = locations.indexOf(l);
+      if (claimed.has(idx)) return false;
+      const hit = re.test(`${l.category || ""} ${l.name || ""}`) || (l.category || "").toLowerCase().replace(/[^a-z]/g, "").includes(key);
+      if (hit) claimed.add(idx);
+      return hit;
+    });
+    return [key, label, items];
+  });
+  const available = groups.filter(([, , items]) => items.length > 0);
+  const [active, setActive] = useState(available[0]?.[0] || "all");
+  const shown = active === "all" ? locations : (groups.find(([k]) => k === active)?.[2] || []);
+  return (
+    <div className="mb-5" data-testid="nearby-tabs">
+      <div className="flex flex-wrap gap-2 mb-4">
+        {available.map(([key, label, items]) => (
+          <button key={key} data-testid={`nearby-tab-${key}`} onClick={() => setActive(key)}
+            className={`text-xs font-semibold px-4 py-2 rounded-full transition-colors ${active === key ? "bg-blue-600 text-white" : "bg-blue-50 text-blue-700 hover:bg-blue-100"}`}>
+            {label} <span className="opacity-70">({items.length})</span>
+          </button>
+        ))}
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {shown.map((n, i) => (
+          <div key={i} className="card-premium p-4 flex items-center gap-3">
+            <span className="w-9 h-9 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center flex-shrink-0"><MapPin size={16} weight="bold" /></span>
+            <div className="min-w-0">
+              <div className="text-sm font-semibold text-slate-900 truncate">{n.name}</div>
+              <div className="text-xs text-slate-500">{[n.category, n.distance].filter(Boolean).join(" · ")}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -101,14 +163,21 @@ export default function PropertyDetail() {
           </div>
         </div>
 
-        {/* 1. Main Image with Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-4 md:grid-rows-2 gap-3 mb-10 rounded-2xl overflow-hidden" data-testid="property-gallery">
-          <div className="md:col-span-3 md:row-span-2 aspect-[16/10] md:aspect-auto overflow-hidden">
-            <img src={p.main_image || p.images?.[0]} alt={p.title} className="w-full h-full object-cover" />
-          </div>
-          {(p.images || []).filter(src => src !== (p.main_image || p.images?.[0])).slice(0, 4).map((src, i) => (
-            <div key={i} className="aspect-[4/3] overflow-hidden hidden md:block"><img src={src} alt="" className="w-full h-full object-cover" /></div>
-          ))}
+        {/* 1. Main Image — slider with arrows */}
+        <div className="rounded-2xl overflow-hidden mb-10" data-testid="property-gallery">
+          <Carousel className="relative" opts={{ loop: true }}>
+            <CarouselContent>
+              {Array.from(new Set([p.main_image, ...(p.images || [])].filter(Boolean))).map((src, i) => (
+                <CarouselItem key={i}>
+                  <div className="relative aspect-[16/9] max-h-[540px] bg-slate-100">
+                    <img src={src} alt={`${p.title} — image ${i + 1}`} className="absolute inset-0 w-full h-full object-cover" loading={i === 0 ? "eager" : "lazy"} />
+                  </div>
+                </CarouselItem>
+              ))}
+            </CarouselContent>
+            <CarouselPrevious data-testid="gallery-prev" className="left-4 bg-white/90 border-0 text-slate-800 hover:bg-white" />
+            <CarouselNext data-testid="gallery-next" className="right-4 bg-white/90 border-0 text-slate-800 hover:bg-white" />
+          </Carousel>
         </div>
       </div>
 
@@ -122,13 +191,14 @@ export default function PropertyDetail() {
               {p.bathrooms && <Fact icon={<Bathtub size={20} />} label="Bathrooms" value={p.bathrooms} />}
               {p.carpet_area && <Fact icon={<ArrowsOutSimple size={20} />} label="Carpet Area" value={formatArea(p.carpet_area)} />}
               {p.parking !== null && p.parking !== undefined && <Fact icon={<Car size={20} />} label="Parking" value={p.parking || "—"} />}
+              {p.balcony !== null && p.balcony !== undefined && p.balcony !== "" && <Fact icon={<Compass size={20} />} label="Balconies" value={p.balcony || "—"} />}
               {p.floor && <Fact icon={<Buildings size={20} />} label="Floor" value={`${p.floor}/${p.total_floors || "—"}`} />}
               {p.possession && <Fact icon={<Calendar size={20} />} label="Possession" value={p.possession} />}
             </div>
             {p.features?.length > 0 && (
               <div className="mt-6">
                 <div className="text-xs uppercase tracking-widest text-blue-600 font-semibold mb-3">Highlights</div>
-                <ul className="grid grid-cols-2 gap-2">{p.features.map(f => <li key={f} className="text-sm text-slate-700 flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-blue-500" /> {f}</li>)}</ul>
+                <ul className="grid grid-cols-2 gap-2">{p.features.map(f => <li key={f} className="text-sm text-slate-700 flex items-center gap-2"><Sparkle size={13} weight="fill" className="text-blue-500 flex-shrink-0" /> {f}</li>)}</ul>
               </div>
             )}
           </section>
@@ -163,12 +233,15 @@ export default function PropertyDetail() {
             <section data-testid="section-amenities">
               <h2 className="text-2xl font-bold text-slate-900 mb-5">Amenities</h2>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                {p.amenities.map(a => (
-                  <div key={a} className="card-premium p-4 flex items-center gap-3">
-                    <span className="w-9 h-9 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center flex-shrink-0"><Check size={16} weight="bold" /></span>
-                    <span className="text-sm font-medium text-slate-800">{a}</span>
-                  </div>
-                ))}
+                {p.amenities.map(a => {
+                  const Icon = amenityIcon(a);
+                  return (
+                    <div key={a} className="card-premium p-4 flex items-center gap-3">
+                      <span className="w-9 h-9 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center flex-shrink-0"><Icon size={17} weight="bold" /></span>
+                      <span className="text-sm font-medium text-slate-800">{a}</span>
+                    </div>
+                  );
+                })}
               </div>
             </section>
           )}
@@ -177,17 +250,7 @@ export default function PropertyDetail() {
           <section data-testid="section-location">
             <h2 className="text-2xl font-bold text-slate-900 mb-5">Location &amp; Nearby</h2>
             {p.nearby_locations?.length > 0 && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
-                {p.nearby_locations.map((n, i) => (
-                  <div key={i} className="card-premium p-4 flex items-center gap-3">
-                    <span className="w-9 h-9 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center flex-shrink-0"><Compass size={16} weight="bold" /></span>
-                    <div className="min-w-0">
-                      <div className="text-sm font-semibold text-slate-900 truncate">{n.name}</div>
-                      <div className="text-xs text-slate-500">{[n.category, n.distance].filter(Boolean).join(" · ")}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
+              <NearbyTabs locations={p.nearby_locations} />
             )}
             {p.lat && p.lng
               ? <div className="rounded-xl overflow-hidden"><PropertyMap items={[p]} center={[p.lat, p.lng]} zoom={14} height={400} /></div>
@@ -265,7 +328,7 @@ export default function PropertyDetail() {
               </button>
             </div>
 
-            {p.brochure_url && (
+            {p.brochure_url && p.brochure_url !== "#" && (
               <a href={p.brochure_url} target="_blank" rel="noopener" data-testid="brochure-btn" className="flex items-center justify-center gap-2 bg-slate-900 text-white py-3 rounded-lg font-semibold hover:bg-slate-800 transition-colors">
                 <Download size={16} /> Download Brochure
               </a>

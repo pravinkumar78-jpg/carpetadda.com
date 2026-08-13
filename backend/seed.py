@@ -240,6 +240,14 @@ async def seed():
             agent_id=list(agent_ids.values())[i % len(agent_ids)],
             rera_number=f"P51700{20000 + i}" if i % 2 else None,
             featured=i < 8, verified=True, status="active", views=100 + i * 17,
+            nearby_locations=[
+                {"name": "DAV Public School", "category": "Schools", "distance": "800 m"},
+                {"name": "Fortis Hospital", "category": "Hospitals", "distance": "2.1 km"},
+                {"name": "Metro Station (Line 4)", "category": "Metro", "distance": "1.1 km"},
+                {"name": "Railway Station", "category": "Railway", "distance": "3.2 km"},
+                {"name": "Bus Depot", "category": "Buses", "distance": "600 m"},
+                {"name": "Viviana Mall", "category": "Market & Mall", "distance": "2.8 km"},
+            ],
             seo={"title": f"{title} | ₹{int(price/100000)}L | CarpetAdda"},
         )
         prop_docs.append(p.model_dump())

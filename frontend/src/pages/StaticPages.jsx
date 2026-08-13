@@ -171,4 +171,22 @@ export function FAQs() {
   );
 }
 
+export function VerifyEmail() {
+  const [state, setState] = useState("verifying");
+  useEffect(() => {
+    const token = new URLSearchParams(window.location.search).get("token");
+    if (!token) { setState("invalid"); return; }
+    api.post("/auth/verify-email", { token })
+      .then(() => setState("ok"))
+      .catch(err => { setState("invalid"); toast.error(err?.response?.data?.detail || "Verification failed"); });
+  }, []);
+  return (
+    <div className="max-w-md mx-auto px-6 py-24 text-center" data-testid="verify-email-page">
+      {state === "verifying" && <><h1 className="text-3xl font-bold text-slate-900">Verifying…</h1><p className="text-slate-500 mt-3">Please wait while we verify your email.</p></>}
+      {state === "ok" && <><h1 className="text-3xl font-bold text-slate-900">Email verified!</h1><p className="text-slate-600 mt-3">Your account is now fully active.</p><Link to="/dashboard" className="btn-primary inline-flex mt-6 text-sm">Go to Dashboard</Link></>}
+      {state === "invalid" && <><h1 className="text-3xl font-bold text-slate-900">Link expired</h1><p className="text-slate-600 mt-3">This verification link is invalid or has expired. You can request a new one from your dashboard.</p><Link to="/dashboard" className="btn-primary inline-flex mt-6 text-sm">Go to Dashboard</Link></>}
+    </div>
+  );
+}
+
 export function Favorites() { return null; } // handled in dashboard

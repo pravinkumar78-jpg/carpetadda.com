@@ -328,7 +328,7 @@ export default function ProjectDetail() {
                 <CalendarBlank size={16} weight="bold" /> Schedule Site Visit
               </button>
             </div>
-            {p.brochure_url && (
+            {p.brochure_url && p.brochure_url !== "#" && (
               <a href={p.brochure_url} target="_blank" rel="noopener" className="flex items-center justify-center gap-2 bg-slate-900 text-white py-3 rounded-lg font-semibold hover:bg-slate-800 transition-colors">
                 <Download size={16} /> Download Brochure
               </a>

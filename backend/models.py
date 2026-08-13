@@ -250,6 +250,15 @@ class Project(BaseDoc):
     seo: dict = Field(default_factory=dict)
 
 
+# ---------- CMS Page ----------
+class Page(BaseDoc):
+    title: str
+    slug: str
+    content: str = ""  # rich-text HTML
+    published: bool = False
+    seo: dict = Field(default_factory=dict)
+
+
 # ---------- SEO Page (per-route meta, editable in admin) ----------
 class SeoPage(BaseDoc):
     page: str  # route path, e.g. "/", "/properties", "/home-loan"
@@ -271,6 +280,9 @@ class Lead(BaseDoc):
     designation: Optional[str] = None
     company_name: Optional[str] = None
     message: Optional[str] = None
+    property_finalised: Optional[bool] = None
+    property_cost: Optional[float] = None
+    loan_amount: Optional[float] = None
     property_id: Optional[str] = None
     project_id: Optional[str] = None
     agent_id: Optional[str] = None

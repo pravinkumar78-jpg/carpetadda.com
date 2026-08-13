@@ -43,6 +43,33 @@
 - UI: header dropdowns, hero, project-status search → /projects?category=residential, home-loan form → Thank You → lead in DB with profession/company, admin login, quick actions, archive→Archive tab→Restore (toast confirmed), SEO save → live title on home, project slider arrows, property detail section order, amenity add persisted, EMI apply → /home-loan, FAQs page, mobile menu; console clean
 - API: amenities POST, archive/restore, seo-pages PUT/GET, units POST with new fields, project detail includes units
 
+## Implemented (2026-08-13, iteration 3 — roles/CMS/email/security list)
+- Property detail: arrow slider gallery, Balconies in Overview, contextual amenity icons (pool/gym/security/…), nearby-location category tabs (Schools|Hospitals|Metro|Railway|Buses|Market & Mall) with per-tab filtering
+- Project detail: Download Brochure only when a real brochure URL exists
+- Header: separate New Launch + Blog items
+- Home loan form: + Property Finalised (Y/N), Property Cost, Loan Amount (Lead model extended)
+- Admin users: Add User dialog (role/name/mobile/email/password/active/verified); POST /admin/users
+- Security: register now creates email-verification flow (auto-verifies when no SMTP/EMERGENT_EMAIL_KEY configured), /auth/verify-email, /auth/resend-verification, PUT /auth/profile; change-password existed and is now in dashboards
+- User dashboard: Overview (favorites/saved searches), My Listings with Archive/Restore, List Property (full form at /dashboard/list-property), Profile, Change Password, verification status, Logout
+- Agent dashboard: List Residential/Commercial (full PropertyForm at /agent/list-property), Manage Leads, Clients, My Listings w/ archive, Profile, Password, Favorites/Saved/Browse/Compare links
+- Developer dashboard: Add Project (full ProjectForm at /developer/projects/new), My Projects w/ units/edit/archive/restore (owner-scoped backend)
+- Ownership-aware archive/restore + update endpoints (owner_id/agent_id or admin)
+- FAQs seeded with 10 real Q&As; CMS pages module (admin CRUD + /page/:slug + auto footer links); Privacy Policy + Disclaimer seeded
+- Blog content now rich-text editor; blog pages render HTML
+- SEO defaults seeded for 12 major pages
+- Hero text: "Every Dream Deserves an Address"
+- Performance: removed Lenis scroll-hijack (instant native scroll); images lazy/eager tuned
+- Admin overview stat cards clickable → jump to tabs
+- Hostinger deployment package at /app/deployment/hostinger (server.js proxy wrapper + package.json + README) + backend/.env.example + frontend/.env.example
+- Email alerts: pipeline live (background task → lead notification to LEAD_RECIPIENT_EMAIL); requires SMTP_* or EMERGENT_EMAIL_KEY in backend/.env to actually send
+
+## Verified (iteration 3)
+- API: register auto-verify, change password + re-login, forgot-password generic response, 403 on non-owner archive, FAQ list, seo pages, admin user create, CMS page CRUD + public fetch
+- UI: hero text, header items, property slider + balconies + nearby tabs (Metro filter verified), FAQs live, user/agent/developer dashboards, full property form in agent dashboard, project form in developer dashboard, CMS page publish → footer link → public page with SEO title, home loan 9 fields, mobile instant scroll, zero console errors
+
+## Pending manual step
+- Add SMTP credentials (or EMERGENT_EMAIL_KEY) to backend/.env per backend/.env.example to activate live email delivery (lead alerts, verification, password reset). Until then emails are skipped and accounts auto-verify.
+
 ## Backlog
 - P0: none blocking
 - P1: extend dark editorial theme to inner pages (Properties, Property Detail, Projects) — currently light theme with dark chrome
