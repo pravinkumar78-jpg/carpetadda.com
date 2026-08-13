@@ -134,7 +134,7 @@ async def seed():
         d = Developer(name=name, slug=slug, description=desc, experience_years=yrs,
                       logo=IMG[i % len(IMG)], cover=IMG[(i + 1) % len(IMG)],
                       locations=["mumbai", "thane", "dombivli"], total_projects=8 + i,
-                      phone="+919820000000", email=f"contact@{slug}.in",
+                      phone="+918828830707", email=f"contact@{slug}.in",
                       seo={"title": f"{name} | Projects & Developer Profile"})
         dev_ids[slug] = d.id
         dev_docs.append(d.model_dump())

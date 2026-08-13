@@ -34,6 +34,7 @@ from email_service import send_lead_notification, send_account_email  # noqa: E4
 from storage import ROOT as UPLOAD_ROOT, build_upload_path, get_object, guess_content_type, init_storage, put_object  # noqa: E402
 from models import (  # noqa: E402
     Agent,
+    Amenity,
     Blog,
     Developer,
     FAQ,
@@ -45,6 +46,7 @@ from models import (  # noqa: E402
     RegisterInput,
     LoginInput,
     SavedSearch,
+    SeoPage,
     SiteSettings,
     SiteVisit,
     Testimonial,
@@ -331,14 +333,14 @@ async def featured_properties(limit: int = 8):
 @api.get("/properties/{slug_or_id}")
 async def get_property(slug_or_id: str):
     doc = await db.properties.find_one({"$or": [{"slug": slug_or_id}, {"id": slug_or_id}]}, PROJ)
-    if not doc:
+    if not doc or doc.get("status") == "archived":
         raise HTTPException(404, "Property not found")
     await db.properties.update_one({"id": doc["id"]}, {"$inc": {"views": 1}})
     developer = await db.developers.find_one({"id": doc.get("developer_id")}, PROJ) if doc.get("developer_id") else None
     agent = await db.agents.find_one({"id": doc.get("agent_id")}, PROJ) if doc.get("agent_id") else None
     project = await db.projects.find_one({"id": doc.get("project_id")}, PROJ) if doc.get("project_id") else None
     similar = await db.properties.find(
-        {"id": {"$ne": doc["id"]}, "city": doc.get("city"), "property_category": doc.get("property_category")},
+        {"id": {"$ne": doc["id"]}, "city": doc.get("city"), "property_category": doc.get("property_category"), "status": "active"},
         PROJ,
     ).limit(6).to_list(6)
     return {**doc, "developer": developer, "agent": agent, "project": project, "similar": similar}
@@ -368,6 +370,22 @@ async def delete_property(pid: str):
     return {"deleted": res.deleted_count}
 
 
+@api.put("/admin/properties/{pid}/archive", dependencies=[Depends(require_roles("admin"))])
+async def archive_property(pid: str):
+    res = await db.properties.update_one({"id": pid}, {"$set": {"status": "archived", "updated_at": _now_iso_str()}})
+    if not res.matched_count:
+        raise HTTPException(404, "Not found")
+    return {"ok": True, "status": "archived"}
+
+
+@api.put("/admin/properties/{pid}/restore", dependencies=[Depends(require_roles("admin"))])
+async def restore_property(pid: str):
+    res = await db.properties.update_one({"id": pid}, {"$set": {"status": "active", "updated_at": _now_iso_str()}})
+    if not res.matched_count:
+        raise HTTPException(404, "Not found")
+    return {"ok": True, "status": "active"}
+
+
 @api.post("/properties/{pid}/duplicate", dependencies=[Depends(require_roles("admin"))])
 async def duplicate_property(pid: str):
     doc = await db.properties.find_one({"id": pid}, PROJ)
@@ -393,7 +411,10 @@ async def admin_list_properties(status: Optional[str] = None, q: Optional[str] =
                                 city: Optional[str] = None, listing_type: Optional[str] = None,
                                 page: int = 1, page_size: int = 20):
     query: dict = {}
-    if status: query["status"] = status
+    if status:
+        query["status"] = status
+    else:
+        query["status"] = {"$ne": "archived"}
     if city: query["city"] = city
     if listing_type: query["listing_type"] = listing_type
     if q: query["$or"] = [{"title": {"$regex": q, "$options": "i"}},
@@ -410,6 +431,7 @@ async def admin_list_properties(status: Optional[str] = None, q: Optional[str] =
 @api.get("/projects")
 async def list_projects(city: Optional[str] = None, location: Optional[str] = None,
                         developer_id: Optional[str] = None, featured: Optional[bool] = None,
+                        category: Optional[str] = None,
                         q: Optional[str] = None, sort: str = "newest",
                         page: int = 1, page_size: int = 12):
     query: dict[str, Any] = {"status": "active"}
@@ -417,6 +439,7 @@ async def list_projects(city: Optional[str] = None, location: Optional[str] = No
     if location: query["location"] = location
     if developer_id: query["developer_id"] = developer_id
     if featured is not None: query["featured"] = featured
+    if category: query["property_category"] = category
     if q: query["$or"] = [{"name": {"$regex": q, "$options": "i"}},
                           {"description": {"$regex": q, "$options": "i"}}]
     total = await db.projects.count_documents(query)
@@ -435,11 +458,13 @@ async def featured_projects(limit: int = 6):
 @api.get("/projects/{slug_or_id}")
 async def get_project(slug_or_id: str):
     doc = await db.projects.find_one({"$or": [{"slug": slug_or_id}, {"id": slug_or_id}]}, PROJ)
-    if not doc:
+    if not doc or doc.get("status") == "archived":
         raise HTTPException(404, "Project not found")
     developer = await db.developers.find_one({"id": doc.get("developer_id")}, PROJ)
-    properties = await db.properties.find({"project_id": doc["id"]}, PROJ).limit(12).to_list(12)
-    similar = await db.projects.find({"id": {"$ne": doc["id"]}, "city": doc.get("city")}, PROJ).limit(6).to_list(6)
+    properties = await db.properties.find({"project_id": doc["id"], "status": "active"}, PROJ).limit(12).to_list(12)
+    similar = await db.projects.find({"id": {"$ne": doc["id"]}, "city": doc.get("city"), "status": "active"}, PROJ).limit(6).to_list(6)
+    units = await db.units.find({"project_id": doc["id"], "published": {"$ne": False}}, PROJ).sort([("typology", 1), ("price", 1)]).to_list(200)
+    return {**doc, "developer": developer, "properties": properties, "similar": similar, "units": units}
     return {**doc, "developer": developer, "properties": properties, "similar": similar}
 
 
@@ -464,10 +489,31 @@ async def delete_project(pid: str):
     return {"deleted": res.deleted_count}
 
 
+@api.put("/admin/projects/{pid}/archive", dependencies=[Depends(require_roles("admin"))])
+async def archive_project(pid: str):
+    res = await db.projects.update_one({"id": pid}, {"$set": {"status": "archived", "updated_at": _now_iso_str()}})
+    if not res.matched_count:
+        raise HTTPException(404, "Not found")
+    return {"ok": True, "status": "archived"}
+
+
+@api.put("/admin/projects/{pid}/restore", dependencies=[Depends(require_roles("admin"))])
+async def restore_project(pid: str):
+    res = await db.projects.update_one({"id": pid}, {"$set": {"status": "active", "updated_at": _now_iso_str()}})
+    if not res.matched_count:
+        raise HTTPException(404, "Not found")
+    return {"ok": True, "status": "active"}
+
+
 @api.get("/admin/projects", dependencies=[Depends(require_roles("admin"))])
 async def admin_list_projects(q: Optional[str] = None, city: Optional[str] = None,
+                              status: Optional[str] = None,
                               page: int = 1, page_size: int = 20):
     query: dict = {}
+    if status:
+        query["status"] = status
+    else:
+        query["status"] = {"$ne": "archived"}
     if city: query["city"] = city
     if q: query["$or"] = [{"name": {"$regex": q, "$options": "i"}},
                           {"slug": {"$regex": q, "$options": "i"}}]
@@ -860,6 +906,19 @@ async def list_amenities():
     return await db.amenities.find({"active": True}, PROJ).to_list(200)
 
 
+@api.post("/admin/amenities", dependencies=[Depends(require_roles("admin", "agent", "developer", "owner"))])
+async def create_amenity(body: dict = Body(...)):
+    name = (body.get("name") or "").strip()
+    if not name:
+        raise HTTPException(400, "Amenity name required")
+    existing = await db.amenities.find_one({"name": {"$regex": f"^{re.escape(name)}$", "$options": "i"}}, PROJ)
+    if existing:
+        return existing
+    a = Amenity(name=name, category=body.get("category") or "General")
+    await db.amenities.insert_one(a.model_dump())
+    return _clean(a.model_dump())
+
+
 # ---------------- Media Uploads (persistent local storage) ----------------
 ALLOWED_UPLOAD_KINDS = {"blogs", "testimonials", "og", "properties", "projects", "developers", "agents", "general"}
 MAX_UPLOAD_BYTES = 8 * 1024 * 1024
@@ -875,7 +934,7 @@ async def admin_upload(kind: str = Query("general"), file: UploadFile = File(...
     except Exception as e: raise HTTPException(500,f"Upload failed: {e}")
     file_doc={"id":path.split("/")[-1].rsplit(".",1)[0],"storage_path":path,"original_filename":file.filename,"content_type":ct,"size":len(data),"kind":kind,"is_deleted":False,"created_at":_now_iso_str()}
     await db.files.insert_one(file_doc)
-    return {"ok":True,"url":f"/media/{path}","path":path,"size":len(data),"content_type":ct}
+    return {"ok":True,"url":f"/api/files/{path}","path":path,"size":len(data),"content_type":ct}
 
 @api.get("/files/{path:path}")
 async def serve_file(path: str):
@@ -916,6 +975,8 @@ async def create_lead(body: Lead, background: BackgroundTasks):
         "callback": "Callback",
         "get_price": "Get Price",
         "footer": "Contact",
+        "home_loan": "Home Loan",
+        "home_vip_concierge": "Concierge",
     }
     kind = kind_map.get(body.source, "Website")
 
@@ -1042,9 +1103,11 @@ async def compare_properties(body: dict = Body(...)):
 @api.get("/admin/stats", dependencies=[Depends(require_roles("admin"))])
 async def admin_stats():
     return {
-        "properties_total": await db.properties.count_documents({}),
+        "properties_total": await db.properties.count_documents({"status": {"$ne": "archived"}}),
         "properties_active": await db.properties.count_documents({"status": "active"}),
-        "projects_total": await db.projects.count_documents({}),
+        "properties_archived": await db.properties.count_documents({"status": "archived"}),
+        "projects_total": await db.projects.count_documents({"status": {"$ne": "archived"}}),
+        "projects_archived": await db.projects.count_documents({"status": "archived"}),
         "leads_total": await db.leads.count_documents({}),
         "leads_new": await db.leads.count_documents({"status": "new"}),
         "site_visits_total": await db.site_visits.count_documents({}),
@@ -1206,6 +1269,35 @@ async def ai_chat(body: ChatInput):
     else:
         reply = "Tell me your preferred location, BHK or property type and budget, and I can help you search CarpetAdda listings."
     return {"reply": reply}
+
+
+# ---------------- SEO: per-page meta management ----------------
+@api.get("/seo")
+async def get_seo_for_page(page: str = "/"):
+    doc = await db.seo_pages.find_one({"page": page}, PROJ)
+    return doc or {"page": page}
+
+
+@api.get("/admin/seo-pages", dependencies=[Depends(require_roles("admin"))])
+async def admin_list_seo_pages():
+    return await db.seo_pages.find({}, PROJ).sort([("page", 1)]).to_list(500)
+
+
+@api.put("/admin/seo-pages", dependencies=[Depends(require_roles("admin"))])
+async def admin_upsert_seo_page(body: dict = Body(...)):
+    page = (body.get("page") or "").strip()
+    if not page:
+        raise HTTPException(400, "page is required")
+    body.pop("_id", None); body.pop("id", None); body.pop("created_at", None)
+    body["page"] = page
+    body["updated_at"] = _now_iso_str()
+    seed = SeoPage(page=page)
+    await db.seo_pages.update_one(
+        {"page": page},
+        {"$set": body, "$setOnInsert": {"id": seed.id, "created_at": seed.created_at}},
+        upsert=True,
+    )
+    return await db.seo_pages.find_one({"page": page}, PROJ)
 
 
 # ---------------- SEO: Sitemap ----------------

@@ -4,7 +4,7 @@ import api from "@/lib/api";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
-import { Pencil, Trash, Plus, MagnifyingGlass, Star, Package } from "@phosphor-icons/react";
+import { Pencil, Plus, MagnifyingGlass, Star, Package, Archive } from "@phosphor-icons/react";
 import { formatINR } from "@/lib/format";
 
 const CITIES = ["mumbai", "thane", "navi-mumbai", "dombivli", "kalyan"];
@@ -28,10 +28,10 @@ export default function AdminProjects() {
 
   const onSearch = (e) => { e.preventDefault(); setPage(1); load(); };
 
-  const remove = async (id) => {
-    if (!confirm("Delete this project permanently?")) return;
-    try { await api.delete(`/projects/${id}`); toast.success("Deleted"); load(); }
-    catch { toast.error("Delete failed"); }
+  const archive = async (id) => {
+    if (!confirm("Archive this project? It will be hidden from the site. You can restore it anytime from the Archive tab.")) return;
+    try { await api.put(`/admin/projects/${id}/archive`); toast.success("Archived — find it in the Archive tab"); load(); }
+    catch { toast.error("Archive failed"); }
   };
 
   const toggleFeatured = async (row) => {
@@ -97,7 +97,7 @@ export default function AdminProjects() {
                     <div className="flex items-center justify-end gap-1">
                       <button onClick={() => nav(`/admin/projects/${r.id}/units`)} data-testid={`units-proj-${r.id}`} title="Manage Units" className="p-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"><Package size={14} /></button>
                       <button onClick={() => nav(`/admin/projects/${r.id}/edit`)} data-testid={`edit-proj-${r.id}`} className="p-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"><Pencil size={14} /></button>
-                      <button onClick={() => remove(r.id)} data-testid={`del-proj-${r.id}`} className="p-2 text-slate-600 hover:text-rose-600 hover:bg-rose-50 rounded transition-colors"><Trash size={14} /></button>
+                      <button onClick={() => archive(r.id)} data-testid={`archive-proj-${r.id}`} title="Archive (restorable)" className="p-2 text-slate-600 hover:text-amber-600 hover:bg-amber-50 rounded transition-colors"><Archive size={14} /></button>
                     </div>
                   </td>
                 </tr>

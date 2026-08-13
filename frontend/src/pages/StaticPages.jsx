@@ -1,11 +1,13 @@
 import { Link } from "react-router-dom";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import SearchBar from "@/components/SearchBar";
 import api from "@/lib/api";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { PhoneCall, EnvelopeSimple, MapPin, PaperPlaneTilt } from "@phosphor-icons/react";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { useSettings } from "@/lib/useSettings";
 
 export function NotFound() {
   return (
@@ -40,6 +42,9 @@ export function About() {
 }
 
 export function Contact() {
+  const s = useSettings();
+  const waDigits = (s?.whatsapp_number || "918828830707").replace(/\D/g, "");
+  const waDisplay = `+${waDigits.slice(0, 2)} ${waDigits.slice(2, 7)} ${waDigits.slice(7)}`;
   const [form, setForm] = useState({ name: "", phone: "", email: "", configuration: "", budget: "", message: "" });
   const [sending, setSending] = useState(false);
 
@@ -116,7 +121,7 @@ export function Contact() {
           <div className="card-premium p-6">
             <div className="w-11 h-11 rounded-lg bg-blue-100 flex items-center justify-center mb-3"><PhoneCall size={20} weight="bold" className="text-blue-600" /></div>
             <div className="text-xs uppercase tracking-widest text-slate-500 font-semibold mb-1">WhatsApp</div>
-            <a href="https://wa.me/919820000000" className="text-lg font-bold text-slate-900 hover:text-blue-600 transition-colors">+91 98200 00000</a>
+            <a href={`https://wa.me/${waDigits}`} className="text-lg font-bold text-slate-900 hover:text-blue-600 transition-colors">{waDisplay}</a>
           </div>
           <div className="card-premium p-6">
             <div className="w-11 h-11 rounded-lg bg-blue-100 flex items-center justify-center mb-3"><EnvelopeSimple size={20} weight="bold" className="text-blue-600" /></div>
@@ -129,6 +134,38 @@ export function Contact() {
             <div className="text-sm font-medium text-slate-900 leading-relaxed">A-502, BSEL Tech Park, Sector 30A, Opp. Vashi Railway Station, Navi Mumbai, Maharashtra.</div>
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+export function FAQs() {
+  const [faqs, setFaqs] = useState(null);
+  useEffect(() => {
+    api.get("/faqs").then(r => setFaqs(r.data || [])).catch(() => setFaqs([]));
+  }, []);
+  return (
+    <div>
+      <div className="section-blue py-14">
+        <div className="max-w-4xl mx-auto px-6">
+          <div className="text-xs uppercase tracking-widest text-blue-600 font-semibold mb-3">Help Center</div>
+          <h1 className="text-4xl sm:text-5xl font-bold text-slate-900 tracking-tight">Frequently Asked Questions</h1>
+          <p className="text-lg text-slate-600 mt-4 max-w-2xl">Answers to common questions about buying, renting and investing with CarpetAdda.</p>
+        </div>
+      </div>
+      <div className="max-w-3xl mx-auto px-6 py-14" data-testid="faqs-page">
+        {faqs === null && <div className="text-center text-slate-500 py-10">Loading…</div>}
+        {faqs !== null && faqs.length === 0 && <div className="text-center text-slate-500 py-10">No FAQs published yet.</div>}
+        {faqs && faqs.length > 0 && (
+          <Accordion type="single" collapsible className="card-premium px-6">
+            {faqs.map(f => (
+              <AccordionItem key={f.id} value={f.id} data-testid={`faq-item-${f.id}`}>
+                <AccordionTrigger className="text-left text-slate-900 font-medium">{f.question}</AccordionTrigger>
+                <AccordionContent className="text-slate-600 leading-relaxed">{f.answer}</AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
+        )}
       </div>
     </div>
   );

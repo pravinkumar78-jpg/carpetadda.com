@@ -38,7 +38,7 @@ export default function AdminTestimonials() {
           <h2 className="text-xl font-bold text-slate-900">Testimonials</h2>
           <p className="text-sm text-slate-500">Customer stories shown on the homepage and about page.</p>
         </div>
-        <button data-testid="testimonial-add" onClick={() => setEditing({ name: "", review: "", rating: 5, role: "", project: "", photo: "", published: true, show_on_homepage: false })} className="inline-flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2.5 rounded-lg shadow-md shadow-blue-500/20">
+        <button data-testid="testimonial-add" onClick={() => setEditing({ name: "", review: "", rating: 5, role: "", project: "", photo: "", published: true, show_on_homepage: false, seo: { title: "", description: "", keywords: "" } })} className="inline-flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2.5 rounded-lg shadow-md shadow-blue-500/20">
           <Plus size={16} weight="bold" /> Add Testimonial
         </button>
       </div>
@@ -116,6 +116,14 @@ function TestimonialDialog({ row, onClose, onSaved }) {
             <ImageUpload value={form.photo || ""} onChange={v => setForm({ ...form, photo: v })} kind="testimonials" dataTestid="testimonial-photo-upload" />
           </Field>
           <Field label="Review *"><Textarea required rows={4} data-testid="testimonial-review" value={form.review} onChange={e => setForm({ ...form, review: e.target.value })} className="rounded-lg border-slate-200" /></Field>
+          <div className="border-t border-slate-100 pt-4">
+            <div className="text-xs uppercase tracking-widest text-blue-600 font-semibold mb-2">SEO</div>
+            <div className="grid grid-cols-1 gap-3">
+              <Field label="Meta title"><Input data-testid="testimonial-seo-title" value={form.seo?.title || ""} onChange={e => setForm({ ...form, seo: { ...(form.seo || {}), title: e.target.value } })} className="h-11 rounded-lg border-slate-200" /></Field>
+              <Field label="Meta description"><Textarea rows={2} data-testid="testimonial-seo-description" value={form.seo?.description || ""} onChange={e => setForm({ ...form, seo: { ...(form.seo || {}), description: e.target.value } })} className="rounded-lg border-slate-200" /></Field>
+              <Field label="Meta keywords"><Input data-testid="testimonial-seo-keywords" value={form.seo?.keywords || ""} onChange={e => setForm({ ...form, seo: { ...(form.seo || {}), keywords: e.target.value } })} className="h-11 rounded-lg border-slate-200" /></Field>
+            </div>
+          </div>
           <div className="flex items-center gap-6">
             <label className="flex items-center gap-2 text-sm text-slate-700"><input type="checkbox" checked={form.published} onChange={e => setForm({ ...form, published: e.target.checked })} /> Published</label>
             <label className="flex items-center gap-2 text-sm text-slate-700"><input type="checkbox" checked={form.show_on_homepage} onChange={e => setForm({ ...form, show_on_homepage: e.target.checked })} /> Show on homepage</label>

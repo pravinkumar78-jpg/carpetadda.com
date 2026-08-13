@@ -4,7 +4,7 @@ import api from "@/lib/api";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
-import { Pencil, Trash, Copy, Plus, MagnifyingGlass, ShieldCheck, Star } from "@phosphor-icons/react";
+import { Pencil, Copy, Plus, MagnifyingGlass, ShieldCheck, Star, Archive } from "@phosphor-icons/react";
 import { formatINR } from "@/lib/format";
 
 const CITIES = ["mumbai", "thane", "navi-mumbai", "dombivli", "kalyan"];
@@ -32,10 +32,10 @@ export default function AdminProperties() {
 
   const onSearch = (e) => { e.preventDefault(); setPage(1); load(); };
 
-  const remove = async (id) => {
-    if (!confirm("Delete this property permanently?")) return;
-    try { await api.delete(`/properties/${id}`); toast.success("Deleted"); load(); }
-    catch { toast.error("Delete failed"); }
+  const archive = async (id) => {
+    if (!confirm("Archive this property? It will be hidden from the site. You can restore it anytime from the Archive tab.")) return;
+    try { await api.put(`/admin/properties/${id}/archive`); toast.success("Archived — find it in the Archive tab"); load(); }
+    catch { toast.error("Archive failed"); }
   };
 
   const duplicate = async (id) => {
@@ -125,7 +125,7 @@ export default function AdminProperties() {
                     <div className="flex items-center justify-end gap-1">
                       <button data-testid={`edit-${r.id}`} onClick={() => nav(`/admin/properties/${r.id}/edit`)} className="p-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"><Pencil size={14} /></button>
                       <button data-testid={`dup-${r.id}`} onClick={() => duplicate(r.id)} className="p-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"><Copy size={14} /></button>
-                      <button data-testid={`del-${r.id}`} onClick={() => remove(r.id)} className="p-2 text-slate-600 hover:text-rose-600 hover:bg-rose-50 rounded transition-colors"><Trash size={14} /></button>
+                      <button data-testid={`archive-${r.id}`} onClick={() => archive(r.id)} title="Archive (restorable)" className="p-2 text-slate-600 hover:text-amber-600 hover:bg-amber-50 rounded transition-colors"><Archive size={14} /></button>
                     </div>
                   </td>
                 </tr>

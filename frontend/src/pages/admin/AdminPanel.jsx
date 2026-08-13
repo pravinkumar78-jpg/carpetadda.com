@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import { Navigate, Link } from "react-router-dom";
+import { Navigate, Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import api from "@/lib/api";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Buildings, ChartBar, UserCircle, ChatCircle, House, Package, ListChecks, Question, Star, Article, Users, Gear } from "@phosphor-icons/react";
+import { Buildings, ChartBar, UserCircle, ChatCircle, House, Package, ListChecks, Question, Star, Article, Users, Gear, MagnifyingGlass, Archive } from "@phosphor-icons/react";
 import AdminProperties from "@/pages/admin/AdminProperties";
 import AdminProjects from "@/pages/admin/AdminProjects";
 import AdminLeads from "@/pages/admin/AdminLeads";
@@ -12,10 +12,28 @@ import AdminFAQs from "@/pages/admin/AdminFAQs";
 import AdminTestimonials from "@/pages/admin/AdminTestimonials";
 import AdminBlogs from "@/pages/admin/AdminBlogs";
 import AdminSettings from "@/pages/admin/AdminSettings";
+import AdminSeo from "@/pages/admin/AdminSeo";
+import AdminArchive from "@/pages/admin/AdminArchive";
+
+const TABS = [
+  ["overview", "Overview", ChartBar],
+  ["properties", "Properties", House],
+  ["projects", "Projects", Buildings],
+  ["leads", "Leads", ChatCircle],
+  ["blogs", "Blog", Article],
+  ["testimonials", "Testimonials", Star],
+  ["faqs", "FAQs", Question],
+  ["seo", "SEO", MagnifyingGlass],
+  ["archive", "Archive", Archive],
+  ["users", "Users", Users],
+  ["settings", "Settings", Gear],
+];
 
 export default function AdminPanel() {
   const { user, ready } = useAuth();
+  const nav = useNavigate();
   const [stats, setStats] = useState(null);
+  const [tab, setTab] = useState("overview");
 
   useEffect(() => {
     if (user?.role === "admin" || user?.role === "super_admin") api.get("/admin/stats").then(r => setStats(r.data));
@@ -40,59 +58,36 @@ export default function AdminPanel() {
       </div>
 
       <div className="max-w-7xl mx-auto px-6 lg:px-10 py-8">
-        <Tabs defaultValue="overview">
-          <TabsList className="bg-slate-100 p-1 h-auto rounded-lg mb-6 inline-flex flex-wrap gap-1">
-            {[
-              ["overview", "Overview", ChartBar],
-              ["properties", "Properties", House],
-              ["projects", "Projects", Buildings],
-              ["leads", "Leads", ChatCircle],
-              ["blogs", "Blog", Article],
-              ["testimonials", "Testimonials", Star],
-              ["faqs", "FAQs", Question],
-              ["users", "Users", Users],
-              ["settings", "Settings", Gear],
-            ].map(([v, l, Icon]) => (
-              <TabsTrigger key={v} value={v} data-testid={`admin-tab-${v}`} className="rounded-md px-4 py-2 text-sm font-medium data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm text-slate-600 flex items-center gap-2">
+        <Tabs value={tab} onValueChange={setTab} className="grid grid-cols-1 lg:grid-cols-[230px,1fr] gap-8 items-start">
+          {/* Left-side navigation */}
+          <TabsList className="flex flex-row lg:flex-col flex-wrap h-auto bg-white card-premium p-3 gap-1 lg:sticky lg:top-24 w-full items-stretch justify-start" data-testid="admin-left-nav">
+            {TABS.map(([v, l, Icon]) => (
+              <TabsTrigger key={v} value={v} data-testid={`admin-tab-${v}`} className="justify-start rounded-lg px-4 py-2.5 text-sm font-medium data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-sm text-slate-600 flex items-center gap-2.5 w-auto lg:w-full">
                 <Icon size={16} weight="bold" /> {l}
               </TabsTrigger>
             ))}
           </TabsList>
 
-          <TabsContent value="overview">
-            <Overview stats={stats} />
-          </TabsContent>
-          <TabsContent value="properties">
-            <AdminProperties />
-          </TabsContent>
-          <TabsContent value="projects">
-            <AdminProjects />
-          </TabsContent>
-          <TabsContent value="leads">
-            <AdminLeads />
-          </TabsContent>
-          <TabsContent value="blogs">
-            <AdminBlogs />
-          </TabsContent>
-          <TabsContent value="testimonials">
-            <AdminTestimonials />
-          </TabsContent>
-          <TabsContent value="faqs">
-            <AdminFAQs />
-          </TabsContent>
-          <TabsContent value="users">
-            <AdminUsers />
-          </TabsContent>
-          <TabsContent value="settings">
-            <AdminSettings />
-          </TabsContent>
+          <div className="min-w-0">
+            <TabsContent value="overview"><Overview stats={stats} go={setTab} nav={nav} /></TabsContent>
+            <TabsContent value="properties"><AdminProperties /></TabsContent>
+            <TabsContent value="projects"><AdminProjects /></TabsContent>
+            <TabsContent value="leads"><AdminLeads /></TabsContent>
+            <TabsContent value="blogs"><AdminBlogs /></TabsContent>
+            <TabsContent value="testimonials"><AdminTestimonials /></TabsContent>
+            <TabsContent value="faqs"><AdminFAQs /></TabsContent>
+            <TabsContent value="seo"><AdminSeo /></TabsContent>
+            <TabsContent value="archive"><AdminArchive /></TabsContent>
+            <TabsContent value="users"><AdminUsers /></TabsContent>
+            <TabsContent value="settings"><AdminSettings /></TabsContent>
+          </div>
         </Tabs>
       </div>
     </div>
   );
 }
 
-function Overview({ stats }) {
+function Overview({ stats, go, nav }) {
   if (!stats) return <div className="text-slate-500">Loading stats…</div>;
   const cards = [
     { icon: House, label: "Total Properties", val: stats.properties_total, color: "blue" },
@@ -100,16 +95,25 @@ function Overview({ stats }) {
     { icon: Buildings, label: "Total Projects", val: stats.projects_total, color: "blue" },
     { icon: ChatCircle, label: "New Leads", val: stats.leads_new, color: "amber" },
     { icon: ListChecks, label: "Total Leads", val: stats.leads_total, color: "blue" },
-    { icon: ChartBar, label: "Site Visits", val: stats.site_visits_total, color: "blue" },
+    { icon: ListChecks, label: "Site Visits", val: stats.site_visits_total, color: "blue" },
     { icon: UserCircle, label: "Users", val: stats.users_total, color: "blue" },
-    { icon: Buildings, label: "Developers", val: stats.developers_total, color: "blue" },
-    { icon: UserCircle, label: "Agents", val: stats.agents_total, color: "blue" },
+    { icon: Archive, label: "Archived", val: (stats.properties_archived || 0) + (stats.projects_archived || 0), color: "amber" },
   ];
   const styles = {
     blue: { bg: "#dbeafe", fg: "#2563eb" },
     emerald: { bg: "#d1fae5", fg: "#059669" },
     amber: { bg: "#fef3c7", fg: "#d97706" },
   };
+  const actions = [
+    { label: "Manage Properties", onClick: () => go("properties"), tid: "qa-properties" },
+    { label: "Manage Projects", onClick: () => go("projects"), tid: "qa-projects" },
+    { label: "Manage Leads", onClick: () => go("leads"), tid: "qa-leads" },
+    { label: "New Property", onClick: () => nav("/admin/properties/new"), tid: "qa-new-property" },
+    { label: "New Project", onClick: () => nav("/admin/projects/new"), tid: "qa-new-project" },
+    { label: "SEO Management", onClick: () => go("seo"), tid: "qa-seo" },
+    { label: "Open Archive", onClick: () => go("archive"), tid: "qa-archive" },
+    { label: "Site Settings", onClick: () => go("settings"), tid: "qa-settings" },
+  ];
   return (
     <div>
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-8">
@@ -127,10 +131,11 @@ function Overview({ stats }) {
         <div className="text-2xl font-bold mb-3">Quick actions</div>
         <p className="text-blue-50 text-sm mb-6 max-w-2xl">Manage every listing, project and lead in one place — no code required.</p>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm font-medium">
-          <a href="#" onClick={e => { e.preventDefault(); document.querySelector('[data-testid="admin-tab-properties"]')?.click(); }} className="text-center py-3 bg-white/10 backdrop-blur border border-white/20 rounded-lg hover:bg-white/20 transition-colors">Manage Properties</a>
-          <a href="#" onClick={e => { e.preventDefault(); document.querySelector('[data-testid="admin-tab-projects"]')?.click(); }} className="text-center py-3 bg-white/10 backdrop-blur border border-white/20 rounded-lg hover:bg-white/20 transition-colors">Manage Projects</a>
-          <a href="#" onClick={e => { e.preventDefault(); document.querySelector('[data-testid="admin-tab-leads"]')?.click(); }} className="text-center py-3 bg-white/10 backdrop-blur border border-white/20 rounded-lg hover:bg-white/20 transition-colors">Manage Leads</a>
-          <a href="/api/sitemap" target="_blank" rel="noopener" className="text-center py-3 bg-white/10 backdrop-blur border border-white/20 rounded-lg hover:bg-white/20 transition-colors">View Sitemap</a>
+          {actions.map(a => (
+            <button key={a.tid} data-testid={a.tid} onClick={a.onClick} className="text-center py-3 bg-white/10 backdrop-blur border border-white/20 rounded-lg hover:bg-white/20 transition-colors flex items-center justify-center gap-1.5">
+              {a.label}
+            </button>
+          ))}
         </div>
       </div>
     </div>

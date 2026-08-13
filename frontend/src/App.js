@@ -8,6 +8,7 @@ import "@/index.css";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import ChatWidget from "@/components/ChatWidget";
+import SeoManager from "@/components/SeoManager";
 import { AuthProvider } from "@/lib/auth";
 
 import Home from "@/pages/Home";
@@ -31,7 +32,8 @@ import AISearch from "@/pages/AISearch";
 import EMICalculator from "@/pages/EMICalculator";
 import Compare from "@/pages/Compare";
 import PostProperty from "@/pages/PostProperty";
-import { NotFound, About, Contact } from "@/pages/StaticPages";
+import HomeLoan from "@/pages/HomeLoan";
+import { NotFound, About, Contact, FAQs } from "@/pages/StaticPages";
 
 export default function App() {
   useEffect(() => {
@@ -45,6 +47,7 @@ export default function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
+        <SeoManager />
         <div className="flex flex-col min-h-screen">
           <Header />
           <main className="flex-1">
@@ -82,6 +85,8 @@ export default function App() {
               <Route path="/post-property" element={<PostProperty />} />
               <Route path="/about" element={<About />} />
               <Route path="/contact" element={<Contact />} />
+              <Route path="/faqs" element={<FAQs />} />
+              <Route path="/home-loan" element={<HomeLoan />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </main>

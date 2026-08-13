@@ -129,8 +129,17 @@ function BlogDialog({ row, onClose, onSaved }) {
           <div className="border-t border-slate-100 pt-4">
             <div className="text-xs uppercase tracking-widest text-blue-600 font-semibold mb-2">SEO</div>
             <div className="grid grid-cols-1 gap-3">
-              <Field label="Meta title"><Input value={form.seo?.title || ""} onChange={e => setForm({ ...form, seo: { ...form.seo, title: e.target.value } })} className="h-11 rounded-lg border-slate-200" /></Field>
-              <Field label="Meta description"><Textarea rows={2} value={form.seo?.description || ""} onChange={e => setForm({ ...form, seo: { ...form.seo, description: e.target.value } })} className="rounded-lg border-slate-200" /></Field>
+              <Field label="Meta title"><Input data-testid="blog-seo-title" value={form.seo?.title || ""} onChange={e => setForm({ ...form, seo: { ...form.seo, title: e.target.value } })} className="h-11 rounded-lg border-slate-200" /></Field>
+              <Field label="Meta description"><Textarea rows={2} data-testid="blog-seo-description" value={form.seo?.description || ""} onChange={e => setForm({ ...form, seo: { ...form.seo, description: e.target.value } })} className="rounded-lg border-slate-200" /></Field>
+              <Field label="Meta keywords"><Input data-testid="blog-seo-keywords" value={form.seo?.keywords || ""} onChange={e => setForm({ ...form, seo: { ...form.seo, keywords: e.target.value } })} className="h-11 rounded-lg border-slate-200" /></Field>
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="OG title"><Input data-testid="blog-og-title" value={form.seo?.og_title || ""} onChange={e => setForm({ ...form, seo: { ...form.seo, og_title: e.target.value } })} className="h-11 rounded-lg border-slate-200" /></Field>
+                <Field label="Canonical URL"><Input data-testid="blog-canonical" value={form.seo?.canonical || ""} onChange={e => setForm({ ...form, seo: { ...form.seo, canonical: e.target.value } })} className="h-11 rounded-lg border-slate-200" /></Field>
+              </div>
+              <Field label="OG description"><Textarea rows={2} data-testid="blog-og-description" value={form.seo?.og_description || ""} onChange={e => setForm({ ...form, seo: { ...form.seo, og_description: e.target.value } })} className="rounded-lg border-slate-200" /></Field>
+              <Field label="OG image">
+                <ImageUpload value={form.seo?.og_image || ""} onChange={v => setForm({ ...form, seo: { ...form.seo, og_image: v } })} kind="og" dataTestid="blog-og-image-upload" />
+              </Field>
             </div>
           </div>
           <label className="flex items-center gap-2 text-sm text-slate-700"><input type="checkbox" checked={form.published} onChange={e => setForm({ ...form, published: e.target.checked })} /> Published</label>

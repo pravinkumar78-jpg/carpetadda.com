@@ -4,9 +4,8 @@ import api from "@/lib/api";
 import PropertyMap from "@/components/PropertyMap";
 import PropertyCard from "@/components/PropertyCard";
 import { formatINR, formatArea } from "@/lib/format";
-import { MapPin, Bed, Bathtub, ArrowsOutSimple, Car, Buildings, Calendar, ShieldCheck, PhoneCall, WhatsappLogo, Heart, ShareNetwork, Download, CaretRight, CalendarBlank } from "@phosphor-icons/react";
+import { MapPin, Bed, Bathtub, ArrowsOutSimple, Car, Buildings, Calendar, ShieldCheck, PhoneCall, WhatsappLogo, Heart, ShareNetwork, Download, CaretRight, CalendarBlank, Check, Compass, Couch, FileText } from "@phosphor-icons/react";
 import { toast } from "sonner";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import ScheduleVisitDialog from "@/components/ScheduleVisitDialog";
@@ -25,13 +24,19 @@ export default function PropertyDetail() {
   useEffect(() => {
     if (p?.seo?.title) document.title = p.seo.title;
     else if (p?.title) document.title = `${p.title} | CarpetAdda`;
+    if (p?.seo?.description) {
+      let el = document.head.querySelector('meta[name="description"]');
+      if (!el) { el = document.createElement("meta"); el.setAttribute("name", "description"); document.head.appendChild(el); }
+      el.setAttribute("content", p.seo.description);
+    }
   }, [p]);
 
   if (p === false) return <div className="max-w-4xl mx-auto p-20 text-center"><h1 className="text-3xl font-bold text-slate-900">Property not found</h1><Link to="/properties" className="text-blue-600 mt-4 inline-block font-medium">Browse all properties →</Link></div>;
   if (!p) return <div className="max-w-4xl mx-auto p-20 text-center text-slate-500">Loading…</div>;
 
   const price = p.listing_type === "rent" ? `${formatINR(p.rent)}/mo` : formatINR(p.price);
-  const waMsg = `https://wa.me/919820000000?text=${encodeURIComponent(`Hi, I'm interested in ${p.title} (${window.location.href})`)}`;
+  const waMsg = `https://wa.me/918828830707?text=${encodeURIComponent(`Hi, I'm interested in ${p.title} (${window.location.href})`)}`;
+  const hasHtml = (p.description || "").includes("<");
 
   const submitEnquiry = async (e) => {
     e.preventDefault();
@@ -43,7 +48,7 @@ export default function PropertyDetail() {
         property_id: p.id,
         source: "property_page",
         source_url: window.location.href,
-        configuration: p.bhk ? `${p.bhk} BHK` : (p.category === "commercial" ? "Commercial" : undefined),
+        configuration: p.bhk ? `${p.bhk} BHK` : (p.property_category === "commercial" ? "Commercial" : undefined),
         budget_max: p.price || p.rent,
       });
       toast.success("Enquiry sent! Our team will contact you shortly.");
@@ -51,10 +56,24 @@ export default function PropertyDetail() {
     } catch (err) { toast.error(err?.response?.data?.detail || "Please try again"); }
   };
 
+  const detailRows = [
+    ["Listing Type", p.listing_type === "rent" ? "For Rent" : "For Sale"],
+    ["Category", p.property_category],
+    ["Property Type", p.property_type?.replace(/_/g, " ")],
+    ["Furnishing", p.furnishing],
+    ["Construction", p.construction_status?.replace(/_/g, " ")],
+    ["Possession", p.possession],
+    ["Built-up Area", p.builtup_area ? formatArea(p.builtup_area) : null],
+    ["Balconies", p.balcony],
+    ["Price per sq.ft.", p.price_per_sqft ? `₹${p.price_per_sqft}` : null],
+    ["Security Deposit", p.deposit ? formatINR(p.deposit) : null],
+    ["Maintenance", p.maintenance ? `${formatINR(p.maintenance)}/mo` : null],
+    ["RERA Number", p.rera_number],
+  ].filter(([, v]) => v !== null && v !== undefined && v !== "");
+
   return (
     <div>
       <div className="max-w-7xl mx-auto px-6 lg:px-10 py-6">
-        {/* Breadcrumbs */}
         <nav className="text-xs text-slate-500 mb-6 flex items-center gap-1 flex-wrap">
           <Link to="/" className="hover:text-blue-600">Home</Link><CaretRight size={10} />
           <Link to="/properties" className="hover:text-blue-600">Properties</Link><CaretRight size={10} />
@@ -62,7 +81,6 @@ export default function PropertyDetail() {
           <span className="text-slate-700">{p.title}</span>
         </nav>
 
-        {/* Title bar */}
         <div className="flex items-start justify-between flex-wrap gap-6 mb-6">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-3 flex-wrap">
@@ -75,72 +93,143 @@ export default function PropertyDetail() {
           </div>
           <div className="flex items-center gap-3">
             <div className="text-right">
-              <div className="text-3xl font-bold text-slate-900">{price}</div>
-              {p.price_per_sqft && <div className="text-sm text-slate-500 font-medium">₹{p.price_per_sqft}/sq.ft.</div>}
+              <div className="text-3xl font-bold text-slate-900"><span className="rupee">{price}</span></div>
+              {p.price_per_sqft && <div className="text-sm text-slate-500 font-medium"><span className="rupee">₹</span>{p.price_per_sqft}/sq.ft.</div>}
             </div>
             <button data-testid="share-btn" onClick={() => { navigator.clipboard.writeText(window.location.href); toast.success("Link copied!"); }} className="p-3 border border-slate-200 rounded-lg text-slate-600 hover:border-blue-300 hover:text-blue-600 transition-colors"><ShareNetwork size={16} /></button>
             <button data-testid="save-btn" onClick={async () => { try { await api.post(`/favorites/${p.id}`); toast.success("Saved!"); } catch { toast.error("Please login to save"); } }} className="p-3 border border-slate-200 rounded-lg text-slate-600 hover:border-rose-300 hover:text-rose-500 transition-colors"><Heart size={16} /></button>
           </div>
         </div>
 
-        {/* Gallery */}
+        {/* 1. Main Image with Grid */}
         <div className="grid grid-cols-1 md:grid-cols-4 md:grid-rows-2 gap-3 mb-10 rounded-2xl overflow-hidden" data-testid="property-gallery">
           <div className="md:col-span-3 md:row-span-2 aspect-[16/10] md:aspect-auto overflow-hidden">
-            <img src={p.images?.[0]} alt={p.title} className="w-full h-full object-cover" />
+            <img src={p.main_image || p.images?.[0]} alt={p.title} className="w-full h-full object-cover" />
           </div>
-          {(p.images || []).slice(1, 5).map((src, i) => (
+          {(p.images || []).filter(src => src !== (p.main_image || p.images?.[0])).slice(0, 4).map((src, i) => (
             <div key={i} className="aspect-[4/3] overflow-hidden hidden md:block"><img src={src} alt="" className="w-full h-full object-cover" /></div>
           ))}
         </div>
       </div>
 
       <div className="max-w-7xl mx-auto px-6 lg:px-10 grid grid-cols-1 lg:grid-cols-3 gap-10">
-        <div className="lg:col-span-2 space-y-10">
-          {/* Facts */}
-          <div className="card-premium p-6 grid grid-cols-2 md:grid-cols-4 gap-4">
-            {p.bhk && <Fact icon={<Bed size={20} />} label="Configuration" value={`${p.bhk} BHK`} />}
-            {p.bathrooms && <Fact icon={<Bathtub size={20} />} label="Bathrooms" value={p.bathrooms} />}
-            {p.carpet_area && <Fact icon={<ArrowsOutSimple size={20} />} label="Carpet Area" value={formatArea(p.carpet_area)} />}
-            {p.parking !== null && <Fact icon={<Car size={20} />} label="Parking" value={p.parking || "—"} />}
-            {p.floor && <Fact icon={<Buildings size={20} />} label="Floor" value={`${p.floor}/${p.total_floors || "—"}`} />}
-            {p.possession && <Fact icon={<Calendar size={20} />} label="Possession" value={p.possession} />}
-          </div>
+        <div className="lg:col-span-2 space-y-12">
+          {/* 2. Overview */}
+          <section data-testid="section-overview">
+            <h2 className="text-2xl font-bold text-slate-900 mb-5">Overview</h2>
+            <div className="card-premium p-6 grid grid-cols-2 md:grid-cols-4 gap-4">
+              {p.bhk && <Fact icon={<Bed size={20} />} label="Configuration" value={`${p.bhk} BHK`} />}
+              {p.bathrooms && <Fact icon={<Bathtub size={20} />} label="Bathrooms" value={p.bathrooms} />}
+              {p.carpet_area && <Fact icon={<ArrowsOutSimple size={20} />} label="Carpet Area" value={formatArea(p.carpet_area)} />}
+              {p.parking !== null && p.parking !== undefined && <Fact icon={<Car size={20} />} label="Parking" value={p.parking || "—"} />}
+              {p.floor && <Fact icon={<Buildings size={20} />} label="Floor" value={`${p.floor}/${p.total_floors || "—"}`} />}
+              {p.possession && <Fact icon={<Calendar size={20} />} label="Possession" value={p.possession} />}
+            </div>
+            {p.features?.length > 0 && (
+              <div className="mt-6">
+                <div className="text-xs uppercase tracking-widest text-blue-600 font-semibold mb-3">Highlights</div>
+                <ul className="grid grid-cols-2 gap-2">{p.features.map(f => <li key={f} className="text-sm text-slate-700 flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-blue-500" /> {f}</li>)}</ul>
+              </div>
+            )}
+          </section>
 
-          <Tabs defaultValue="overview">
-            <TabsList className="bg-slate-100 rounded-xl p-1 h-auto inline-flex flex-wrap">
-              {[["overview", "Overview"], ["amenities", "Amenities"], ["location", "Location"], ["similar", "Similar"]].map(([v, l]) => (
-                <TabsTrigger key={v} value={v} data-testid={`tab-${v}`} className="rounded-lg px-4 py-2 text-sm font-medium data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm text-slate-600">{l}</TabsTrigger>
-              ))}
-            </TabsList>
-            <TabsContent value="overview" className="pt-6 space-y-6">
-              <h3 className="text-2xl font-semibold text-slate-900">About this property</h3>
-              <p className="text-slate-700 leading-relaxed">{p.description}</p>
-              {p.features?.length > 0 && (
-                <div>
-                  <div className="text-xs uppercase tracking-widest text-blue-600 font-semibold mb-3">Highlights</div>
-                  <ul className="grid grid-cols-2 gap-2">{p.features.map(f => <li key={f} className="text-sm text-slate-700 flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-blue-500" /> {f}</li>)}</ul>
-                </div>
-              )}
-            </TabsContent>
-            <TabsContent value="amenities" className="pt-6">
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                {(p.amenities || []).map(a => (
-                  <div key={a} className="flex items-center gap-2 py-2.5 px-3 bg-blue-50 text-slate-700 rounded-lg text-sm">
-                    <span className="w-6 h-6 rounded-full bg-white flex items-center justify-center flex-shrink-0"><span className="w-1.5 h-1.5 rounded-full bg-blue-500" /></span>
-                    {a}
+          {/* 3. Description */}
+          <section data-testid="section-description">
+            <h2 className="text-2xl font-bold text-slate-900 mb-4">Description</h2>
+            {hasHtml
+              ? <div className="text-slate-700 leading-relaxed rich-content" dangerouslySetInnerHTML={{ __html: p.description }} />
+              : <p className="text-slate-700 leading-relaxed">{p.description}</p>}
+          </section>
+
+          {/* 4. Property Details */}
+          <section data-testid="section-details">
+            <h2 className="text-2xl font-bold text-slate-900 mb-5">Property Details</h2>
+            <div className="card-premium overflow-hidden">
+              <table className="w-full text-sm">
+                <tbody>
+                  {detailRows.map(([k, v], i) => (
+                    <tr key={k} className={i % 2 ? "bg-slate-50/60" : ""}>
+                      <td className="px-5 py-3 text-slate-500 font-medium w-1/2">{k}</td>
+                      <td className="px-5 py-3 text-slate-900 font-semibold capitalize">{v}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          {/* 5. Amenities */}
+          {p.amenities?.length > 0 && (
+            <section data-testid="section-amenities">
+              <h2 className="text-2xl font-bold text-slate-900 mb-5">Amenities</h2>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                {p.amenities.map(a => (
+                  <div key={a} className="card-premium p-4 flex items-center gap-3">
+                    <span className="w-9 h-9 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center flex-shrink-0"><Check size={16} weight="bold" /></span>
+                    <span className="text-sm font-medium text-slate-800">{a}</span>
                   </div>
                 ))}
               </div>
-            </TabsContent>
-            <TabsContent value="location" className="pt-6">
-              {p.lat && p.lng ? <div className="rounded-xl overflow-hidden"><PropertyMap items={[p]} center={[p.lat, p.lng]} zoom={14} height={400} /></div> : <div className="text-slate-500">Location not available.</div>}
-            </TabsContent>
-            <TabsContent value="similar" className="pt-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                {(p.similar || []).map(s => <PropertyCard key={s.id} p={s} />)}
+            </section>
+          )}
+
+          {/* 6. Nearby Locations + Map */}
+          <section data-testid="section-location">
+            <h2 className="text-2xl font-bold text-slate-900 mb-5">Location &amp; Nearby</h2>
+            {p.nearby_locations?.length > 0 && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
+                {p.nearby_locations.map((n, i) => (
+                  <div key={i} className="card-premium p-4 flex items-center gap-3">
+                    <span className="w-9 h-9 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center flex-shrink-0"><Compass size={16} weight="bold" /></span>
+                    <div className="min-w-0">
+                      <div className="text-sm font-semibold text-slate-900 truncate">{n.name}</div>
+                      <div className="text-xs text-slate-500">{[n.category, n.distance].filter(Boolean).join(" · ")}</div>
+                    </div>
+                  </div>
+                ))}
               </div>
-            </TabsContent>
-          </Tabs>
+            )}
+            {p.lat && p.lng
+              ? <div className="rounded-xl overflow-hidden"><PropertyMap items={[p]} center={[p.lat, p.lng]} zoom={14} height={400} /></div>
+              : <div className="text-slate-500 text-sm">Map location not available.</div>}
+            {p.google_map_link && (
+              <a href={p.google_map_link} target="_blank" rel="noopener" data-testid="google-map-link" className="inline-flex items-center gap-2 mt-4 text-sm font-medium text-blue-600 hover:text-blue-700">
+                <MapPin size={16} /> Open in Google Maps →
+              </a>
+            )}
+          </section>
+
+          {/* 7. Unit Plan */}
+          {p.unit_plan && (
+            <section data-testid="section-unit-plan">
+              <h2 className="text-2xl font-bold text-slate-900 mb-5">Unit Plan</h2>
+              <a href={p.unit_plan} target="_blank" rel="noopener" className="card-premium overflow-hidden block group">
+                <img src={p.unit_plan} alt="Unit plan" className="w-full max-h-[480px] object-contain bg-slate-50 group-hover:opacity-95 transition-opacity" />
+                <div className="p-4 text-sm text-blue-600 font-medium flex items-center gap-2"><FileText size={16} /> View full unit plan →</div>
+              </a>
+            </section>
+          )}
+
+          {/* 8. Schedule Visit */}
+          <section data-testid="section-schedule-visit" className="card-premium p-6 bg-gradient-to-r from-blue-600 to-blue-500 border-blue-500 text-white flex items-center justify-between flex-wrap gap-4">
+            <div>
+              <h2 className="text-2xl font-bold">See it in person</h2>
+              <p className="text-blue-100 text-sm mt-1">Book a free guided site visit at a time that suits you.</p>
+            </div>
+            <button data-testid="schedule-visit-strip" onClick={() => setVisitOpen(true)} className="inline-flex items-center gap-2 bg-white text-blue-600 px-6 py-3 rounded-lg font-semibold hover:bg-blue-50 transition-colors shadow-md">
+              <CalendarBlank size={16} weight="bold" /> Schedule Visit
+            </button>
+          </section>
+
+          {/* 9. Similar Properties */}
+          {p.similar?.length > 0 && (
+            <section data-testid="section-similar">
+              <h2 className="text-2xl font-bold text-slate-900 mb-6">Similar Properties</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                {p.similar.map(s => <PropertyCard key={s.id} p={s} />)}
+              </div>
+            </section>
+          )}
         </div>
 
         {/* Sidebar */}
@@ -167,7 +256,7 @@ export default function PropertyDetail() {
               </form>
 
               <div className="grid grid-cols-2 gap-2 mt-3">
-                <a data-testid="detail-call" href="tel:+919820000000" className="flex items-center justify-center gap-1.5 text-sm py-2.5 border border-slate-200 rounded-lg text-slate-700 hover:bg-blue-50 hover:border-blue-300 hover:text-blue-600 transition-colors font-medium"><PhoneCall size={14} /> Call</a>
+                <a data-testid="detail-call" href="tel:+918828830707" className="flex items-center justify-center gap-1.5 text-sm py-2.5 border border-slate-200 rounded-lg text-slate-700 hover:bg-blue-50 hover:border-blue-300 hover:text-blue-600 transition-colors font-medium"><PhoneCall size={14} /> Call</a>
                 <a data-testid="detail-whatsapp" href={waMsg} target="_blank" rel="noopener" className="flex items-center justify-center gap-1.5 text-sm py-2.5 border border-emerald-200 bg-emerald-50 text-emerald-700 rounded-lg hover:bg-emerald-100 transition-colors font-medium"><WhatsappLogo size={14} /> WhatsApp</a>
               </div>
 

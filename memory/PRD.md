@@ -23,9 +23,25 @@
 - Dark glassmorphic gold header + monumental gold-shimmer footer
 - Lenis momentum scrolling globally
 
-## Verified
-- API: /api/properties, /api/projects, /api/locations, /api/auth/login, /api/admin/stats, /api/leads (curl)
-- E2E: hero search → /properties filtering, lead form submit → success toast → lead in DB, EMI calculator output correct, no console errors
+## Implemented (2026-08-13, iteration 2 — client change list)
+- Reverted to LIGHT theme globally (Poppins; Arial for ₹ via .rupee class)
+- Header: Home | Properties (dropdown: Buy/Rent/Residential/Commercial Projects) | Home Loan | New & Blog | Sign-in | List Property; Journal removed
+- Footer: light, no giant wordmark, header items + About/Contact/FAQs, RERA A51700039535 in copyright, phone 8828830707 everywhere (DB settings + all wa/tel links)
+- Home hero: new headline, overline/stats/floating images removed; "Expert Choice Projects"; "Share Your Requirement" lead form; Projects tab search shows Status: Residential|Commercial (backend category filter added)
+- Directory: "Landmark Developers", agents gallery removed
+- /home-loan page: Full Name/Mobile/Email/Profession/Designation/Company form → POST /leads (source=home_loan, new Lead fields) → Thank You; EMI page "Apply for Home Loan" button → /home-loan
+- Property form: Unit Plan upload (fixed broken /media upload URL → /api/files), Add New Amenity (persists to amenities collection), rich-text description editor (bold/size/lists/alignment)
+- Project form: Upload RERA QR, Upload Main Image above gallery, Add New Amenity, rich description, location link + nearby locations, Manage Units button
+- Units: extended model (balcony, parking, unit_plan upload, description, published toggle, auto unit no, Save & Publish); published units included in public project detail
+- Location: google_map_link + nearby_locations on both property & project; displayed on detail pages with map
+- Project detail: main image + gallery as slider only (embla, arrows, loop); sections reordered per spec; collapsible Unit Plans accordion; Similar Projects
+- Property detail: sections reordered per spec (gallery grid → overview → description → details → amenities → nearby+map → unit plan → schedule visit → similar)
+- Admin: all tabs on LEFT, quick-action boxes clickable, SEO tab (per-page meta/OG/canonical editor, applied live via SeoManager), Archive tab with Restore; Delete replaced with Archive on properties & projects (status=archived, excluded everywhere public); SEO fields added to FAQs/Testimonials/Blogs dialogs
+- Public /faqs page
+
+## Verified (iteration 2)
+- UI: header dropdowns, hero, project-status search → /projects?category=residential, home-loan form → Thank You → lead in DB with profession/company, admin login, quick actions, archive→Archive tab→Restore (toast confirmed), SEO save → live title on home, project slider arrows, property detail section order, amenity add persisted, EMI apply → /home-loan, FAQs page, mobile menu; console clean
+- API: amenities POST, archive/restore, seo-pages PUT/GET, units POST with new fields, project detail includes units
 
 ## Backlog
 - P0: none blocking

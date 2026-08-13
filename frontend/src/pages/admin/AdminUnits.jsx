@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { formatINR } from "@/lib/format";
+import ImageUpload from "@/components/ImageUpload";
 import {
   ArrowLeft, Plus, Trash, PencilSimple, Package, MagnifyingGlass, ClockCounterClockwise, Rows,
 } from "@phosphor-icons/react";

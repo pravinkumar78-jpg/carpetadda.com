@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { Calculator } from "@phosphor-icons/react";
 import { Input } from "@/components/ui/input";
 import { formatINR } from "@/lib/format";
@@ -43,10 +44,13 @@ export default function EMICalculator() {
             <div className="text-xs uppercase tracking-widest text-blue-100 font-semibold mb-2">Monthly EMI</div>
             <div className="text-5xl font-bold mb-8 text-white">{formatINR(Math.round(emi))}</div>
             <div className="space-y-3 text-sm">
-              <div className="flex justify-between border-b border-white/20 pb-3"><span className="text-blue-100">Principal</span><span className="font-semibold text-white">{formatINR(amt)}</span></div>
-              <div className="flex justify-between border-b border-white/20 pb-3"><span className="text-blue-100">Total Interest</span><span className="font-semibold text-white">{formatINR(Math.round(interest))}</span></div>
-              <div className="flex justify-between pt-2"><span className="text-blue-100">Total Payment</span><span className="font-bold text-lg text-white">{formatINR(Math.round(total))}</span></div>
+              <div className="flex justify-between border-b border-white/20 pb-3"><span className="text-blue-100">Principal</span><span className="font-semibold text-white rupee">{formatINR(amt)}</span></div>
+              <div className="flex justify-between border-b border-white/20 pb-3"><span className="text-blue-100">Total Interest</span><span className="font-semibold text-white rupee">{formatINR(Math.round(interest))}</span></div>
+              <div className="flex justify-between pt-2"><span className="text-blue-100">Total Payment</span><span className="font-bold text-lg text-white rupee">{formatINR(Math.round(total))}</span></div>
             </div>
+            <Link to="/home-loan" data-testid="emi-apply-loan" className="mt-8 w-full inline-flex items-center justify-center gap-2 bg-white text-blue-700 py-3 rounded-lg font-semibold hover:bg-blue-50 transition-colors shadow-md">
+              Apply for Home Loan
+            </Link>
           </div>
         </div>
       </div>

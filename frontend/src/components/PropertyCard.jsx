@@ -20,7 +20,7 @@ export default function PropertyCard({ p, layout = "grid" }) {
   };
 
   const price = p.listing_type === "rent" ? formatINR(p.rent) + "/mo" : formatINR(p.price);
-  const wa = `https://wa.me/919820000000?text=${encodeURIComponent(`Hi, I'm interested in ${p.title} (${p.slug})`)}`;
+  const wa = `https://wa.me/918828830707?text=${encodeURIComponent(`Hi, I'm interested in ${p.title} (${p.slug})`)}`;
 
   if (layout === "list") {
     return (
@@ -93,7 +93,7 @@ export default function PropertyCard({ p, layout = "grid" }) {
           <a href={wa} target="_blank" rel="noopener" data-testid={`whatsapp-${p.id}`} className="flex items-center justify-center gap-1.5 text-xs py-2.5 border border-slate-200 text-slate-700 rounded-lg hover:bg-emerald-50 hover:border-emerald-300 hover:text-emerald-700 transition-colors font-medium">
             <WhatsappLogo size={14} /> WhatsApp
           </a>
-          <a href="tel:+919820000000" data-testid={`call-${p.id}`} className="flex items-center justify-center gap-1.5 text-xs py-2.5 border border-blue-200 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors font-medium">
+          <a href="tel:+918828830707" data-testid={`call-${p.id}`} className="flex items-center justify-center gap-1.5 text-xs py-2.5 border border-blue-200 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors font-medium">
             <PhoneCall size={14} /> Call
           </a>
         </div>

@@ -9,6 +9,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@
 import { Switch } from "@/components/ui/switch";
 import { ArrowLeft, FloppyDisk, Upload, Eye, Info, House, MapPin, Sparkle, Image as ImageIcon, MagnifyingGlass, Flag } from "@phosphor-icons/react";
 import ImageUpload from "@/components/ImageUpload";
+import RichTextEditor from "@/components/RichTextEditor";
 
 const CITIES = ["mumbai", "thane", "navi-mumbai", "dombivli", "kalyan"];
 const PROJECT_FLAGS = [["featured", "Featured"], ["new_launch", "New Launch"], ["best_payment_plan", "Best Payment Plan"], ["best_performer", "Best Performer"]];
@@ -39,8 +40,28 @@ export default function ProjectForm() {
   const [saving, setSaving] = useState(false);
   const [loaded, setLoaded] = useState(!id);
   const [developers, setDevelopers] = useState([]);
+  const [amenityOptions, setAmenityOptions] = useState(AMENITIES);
+  const [newAmenity, setNewAmenity] = useState("");
 
   useEffect(() => { api.get("/developers").then(r => setDevelopers(r.data)); }, []);
+  useEffect(() => {
+    api.get("/amenities").then(r => {
+      const names = (r.data || []).map(a => a.name);
+      setAmenityOptions(prev => Array.from(new Set([...prev, ...names])));
+    }).catch(() => {});
+  }, []);
+
+  const addAmenity = async () => {
+    const name = newAmenity.trim();
+    if (!name) return;
+    try {
+      await api.post("/admin/amenities", { name });
+      setAmenityOptions(prev => prev.includes(name) ? prev : [...prev, name]);
+      if (!(f.amenities || []).includes(name)) set("amenities", [...(f.amenities || []), name]);
+      setNewAmenity("");
+      toast.success(`"${name}" added — available on all future projects`);
+    } catch { toast.error("Could not add amenity"); }
+  };
 
   useEffect(() => {
     if (id) {
@@ -72,6 +93,7 @@ export default function ProjectForm() {
     try {
       const payload = { ...f };
       if (!payload.slug) payload.slug = payload.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 60);
+      if (!payload.main_image && payload.images?.[0]) payload.main_image = payload.images[0];
       payload.status = publish ? "active" : "draft";
       if (id) {
         const pid = payload.id; ["id","created_at","updated_at","developer","properties","similar"].forEach(k => delete payload[k]);
@@ -108,6 +130,7 @@ export default function ProjectForm() {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            {id && <Link to={`/admin/projects/${id}/units`} data-testid="manage-units-btn" className="px-4 py-2 border border-slate-200 rounded-lg text-sm text-slate-700 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-1.5">Manage Units</Link>}
             {id && f.status === "active" && <Link to={`/project/${f.slug}`} target="_blank" className="px-4 py-2 border border-slate-200 rounded-lg text-sm text-slate-700 hover:bg-blue-50 flex items-center gap-1.5"><Eye size={14} /> View Live</Link>}
             <button onClick={() => save(false)} disabled={saving} className="px-4 py-2 border border-blue-200 bg-blue-50 text-blue-700 rounded-lg text-sm font-medium hover:bg-blue-100 flex items-center gap-1.5 disabled:opacity-50"><FloppyDisk size={14} /> Save Draft</button>
             <button onClick={() => save(true)} disabled={saving} className="px-5 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 shadow-sm flex items-center gap-1.5 disabled:opacity-50">
@@ -133,7 +156,7 @@ export default function ProjectForm() {
             <div className="space-y-4">
               <h2 className="text-xl font-semibold text-slate-900 mb-4">Basic Information</h2>
               <F label="Project Title *"><Input value={f.name} onChange={e => set("name", e.target.value)} /></F>
-              <F label="Description"><Textarea rows={4} value={f.description} onChange={e => set("description", e.target.value)} /></F>
+              <F label="Description"><RichTextEditor value={f.description || ""} onChange={v => set("description", v)} dataTestid="project-description-editor" /></F>
               <div className="grid grid-cols-2 gap-4">
                 <F label="Developer *"><Sel value={f.developer_id} onChange={v => set("developer_id", v)} options={developers.map(d => [d.id, d.name])} placeholder="Select developer" /></F>
                 <F label="Category"><Sel value={f.property_category} onChange={v => set("property_category", v)} options={[["residential","Residential"],["commercial","Commercial"]]} /></F>
@@ -175,6 +198,14 @@ export default function ProjectForm() {
                 <F label="Latitude"><Input type="number" step="0.0001" value={f.lat ?? ""} onChange={e => set("lat", Number(e.target.value) || null)} /></F>
                 <F label="Longitude"><Input type="number" step="0.0001" value={f.lng ?? ""} onChange={e => set("lng", Number(e.target.value) || null)} /></F>
               </div>
+              <F label="Location Link (Google Maps)"><Input data-testid="project-map-link" value={f.google_map_link || ""} onChange={e => set("google_map_link", e.target.value)} placeholder="https://maps.google.com/…" /></F>
+              <F label="Nearby Locations (one per line: Name | Distance | Category)">
+                <Textarea rows={4} data-testid="project-nearby" value={(f.nearby_locations || []).map(n => `${n.name} | ${n.distance || ""} | ${n.category || ""}`).join("\n")}
+                  onChange={e => set("nearby_locations", e.target.value.split("\n").filter(Boolean).map(l => {
+                    const [name, distance, category] = l.split("|").map(s => s.trim());
+                    return { name, distance, category };
+                  }))} placeholder="Metro Station | 1.2km | Transit&#10;DMart | 500m | Shopping" />
+              </F>
             </div>
           )}
 
@@ -183,16 +214,19 @@ export default function ProjectForm() {
               <h2 className="text-xl font-semibold text-slate-900 mb-4">RERA</h2>
               <F label="RERA Number"><Input value={f.rera_number || ""} onChange={e => set("rera_number", e.target.value)} placeholder="P51700xxxxx" /></F>
               <F label="RERA Website Link"><Input value={f.rera_link || ""} onChange={e => set("rera_link", e.target.value)} placeholder="https://maharera.mahaonline.gov.in/…" /></F>
-              <F label="RERA QR Image URL"><Input value={f.rera_qr_url || ""} onChange={e => set("rera_qr_url", e.target.value)} /></F>
-              {f.rera_qr_url && <img src={f.rera_qr_url} alt="RERA QR" className="w-32 h-32 border border-slate-200 rounded-lg p-2" />}
+              <F label="Upload RERA QR"><ImageUpload value={f.rera_qr_url || ""} onChange={v => set("rera_qr_url", v)} kind="projects" dataTestid="project-rera-qr-upload" allowUrl={false} /></F>
             </div>
           )}
 
           {tab === "amenities" && (
             <div className="space-y-4">
               <h2 className="text-xl font-semibold text-slate-900 mb-4">Amenities</h2>
+              <div className="flex gap-2 mb-2">
+                <Input data-testid="new-amenity-input" value={newAmenity} onChange={e => setNewAmenity(e.target.value)} onKeyDown={e => e.key === "Enter" && (e.preventDefault(), addAmenity())} placeholder="Add new amenity, e.g. Sky Deck" className="h-11 rounded-lg border-slate-200 max-w-xs" />
+                <button type="button" data-testid="add-amenity-btn" onClick={addAmenity} className="px-4 h-11 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors whitespace-nowrap">+ Add New Amenity</button>
+              </div>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                {AMENITIES.map(a => {
+                {amenityOptions.map(a => {
                   const on = (f.amenities || []).includes(a);
                   return (
                     <button key={a} type="button" onClick={() => set("amenities", on ? f.amenities.filter(x => x !== a) : [...(f.amenities || []), a])}
@@ -208,6 +242,7 @@ export default function ProjectForm() {
           {tab === "media" && (
             <div className="space-y-4">
               <h2 className="text-xl font-semibold text-slate-900 mb-4">Media</h2>
+              <F label="Upload Main Image *"><ImageUpload value={f.main_image || ""} onChange={v => set("main_image", v)} kind="projects" dataTestid="project-main-image-upload" allowUrl={false} /></F>
               <F label="Project Gallery Images">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {(f.images || []).map((url, i) => <ImageUpload key={`${url}-${i}`} value={url} onChange={v => set("images", (f.images || []).map((x,j) => j===i ? v : x).filter(Boolean))} kind="projects" dataTestid={`project-image-upload-${i}`} allowUrl={false} />)}
@@ -226,13 +261,14 @@ export default function ProjectForm() {
               <F label="URL Slug"><Input value={f.slug || ""} onChange={e => set("slug", e.target.value)} placeholder="auto if blank" /></F>
               <F label="Meta Title"><Input value={f.seo?.title || ""} onChange={e => setSeo("title", e.target.value)} /></F>
               <F label="Meta Description"><Textarea rows={2} value={f.seo?.description || ""} onChange={e => setSeo("description", e.target.value)} /></F>
+              <F label="Meta Keywords"><Input value={f.seo?.keywords || ""} onChange={e => setSeo("keywords", e.target.value)} placeholder="new launch thane, 2 bhk project" /></F>
               <div className="grid grid-cols-2 gap-4">
                 <F label="Focus Keyword"><Input value={f.seo?.focus_keyword || ""} onChange={e => setSeo("focus_keyword", e.target.value)} /></F>
                 <F label="Canonical URL"><Input value={f.seo?.canonical || ""} onChange={e => setSeo("canonical", e.target.value)} /></F>
               </div>
               <F label="OG Title"><Input value={f.seo?.og_title || ""} onChange={e => setSeo("og_title", e.target.value)} /></F>
               <F label="OG Description"><Textarea rows={2} value={f.seo?.og_description || ""} onChange={e => setSeo("og_description", e.target.value)} /></F>
-              <F label="OG Image URL"><Input value={f.seo?.og_image || ""} onChange={e => setSeo("og_image", e.target.value)} /></F>
+              <F label="OG Image"><ImageUpload value={f.seo?.og_image || ""} onChange={v => setSeo("og_image", v)} kind="og" dataTestid="project-og-image-upload" /></F>
             </div>
           )}
 

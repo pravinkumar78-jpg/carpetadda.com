@@ -11,6 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ArrowLeft, FloppyDisk, Upload, Eye, Info, House, MapPin, Sparkle, Image as ImageIcon, MagnifyingGlass, Flag } from "@phosphor-icons/react";
 import ImageUpload from "@/components/ImageUpload";
+import RichTextEditor from "@/components/RichTextEditor";
 
 const RES_TYPES = ["apartment", "studio_apartment", "penthouse", "duplex", "independent_house", "villa", "farmhouse", "builder_floor", "plot", "residential_land"];
 const COM_TYPES = ["office_space", "doctor_space", "coworker_space", "retail_shop", "showroom", "business_centre", "warehouse", "industrial_shed", "industrial_space", "commercial_land", "industrial_land"];
@@ -44,6 +45,27 @@ export default function PropertyForm() {
   const [tab, setTab] = useState("basic");
   const [saving, setSaving] = useState(false);
   const [loaded, setLoaded] = useState(!id);
+  const [amenityOptions, setAmenityOptions] = useState(AMENITIES_DEFAULT);
+  const [newAmenity, setNewAmenity] = useState("");
+
+  useEffect(() => {
+    api.get("/amenities").then(r => {
+      const names = (r.data || []).map(a => a.name);
+      setAmenityOptions(prev => Array.from(new Set([...prev, ...names])));
+    }).catch(() => {});
+  }, []);
+
+  const addAmenity = async () => {
+    const name = newAmenity.trim();
+    if (!name) return;
+    try {
+      await api.post("/admin/amenities", { name });
+      setAmenityOptions(prev => prev.includes(name) ? prev : [...prev, name]);
+      if (!(f.amenities || []).includes(name)) set("amenities", [...(f.amenities || []), name]);
+      setNewAmenity("");
+      toast.success(`"${name}" added — available on all future listings`);
+    } catch { toast.error("Could not add amenity"); }
+  };
 
   useEffect(() => {
     if (id) {
@@ -140,7 +162,7 @@ export default function PropertyForm() {
               <h2 className="text-xl font-semibold text-slate-900 mb-1">Basic Information</h2>
               <p className="text-sm text-slate-500 mb-4">Core details buyers see first.</p>
               <F label="Property Title *"><Input value={f.title} onChange={e => set("title", e.target.value)} placeholder="Luxurious 3 BHK …" /></F>
-              <F label="Description"><Textarea rows={4} value={f.description} onChange={e => set("description", e.target.value)} /></F>
+              <F label="Description"><RichTextEditor value={f.description || ""} onChange={v => set("description", v)} dataTestid="property-description-editor" /></F>
               <div className="grid grid-cols-2 gap-4">
                 <F label="Sell / Rent"><Sel value={f.listing_type} onChange={v => set("listing_type", v)} options={[["sale","Sell"],["rent","Rent"]]} /></F>
                 <F label="Category"><Sel value={f.property_category} onChange={v => set("property_category", v)} options={[["residential","Residential"],["commercial","Commercial"]]} /></F>
@@ -225,8 +247,12 @@ export default function PropertyForm() {
           {tab === "amenities" && (
             <div className="space-y-4">
               <h2 className="text-xl font-semibold text-slate-900 mb-4">Amenities</h2>
+              <div className="flex gap-2 mb-2">
+                <Input data-testid="new-amenity-input" value={newAmenity} onChange={e => setNewAmenity(e.target.value)} onKeyDown={e => e.key === "Enter" && (e.preventDefault(), addAmenity())} placeholder="Add new amenity, e.g. Sky Deck" className="h-11 rounded-lg border-slate-200 max-w-xs" />
+                <button type="button" data-testid="add-amenity-btn" onClick={addAmenity} className="px-4 h-11 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors whitespace-nowrap">+ Add New Amenity</button>
+              </div>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                {AMENITIES_DEFAULT.map(a => {
+                {amenityOptions.map(a => {
                   const on = (f.amenities || []).includes(a);
                   return (
                     <button key={a} type="button" onClick={() => set("amenities", on ? f.amenities.filter(x => x !== a) : [...(f.amenities || []), a])}
@@ -261,13 +287,14 @@ export default function PropertyForm() {
               <F label="URL Slug"><Input value={f.slug || ""} onChange={e => set("slug", e.target.value)} placeholder="auto if blank" /></F>
               <F label="Meta Title"><Input value={f.seo?.title || ""} onChange={e => setSeo("title", e.target.value)} /></F>
               <F label="Meta Description"><Textarea rows={2} value={f.seo?.description || ""} onChange={e => setSeo("description", e.target.value)} /></F>
+              <F label="Meta Keywords"><Input value={f.seo?.keywords || ""} onChange={e => setSeo("keywords", e.target.value)} placeholder="2 bhk dombivli, buy flat dombivli" /></F>
               <div className="grid grid-cols-2 gap-4">
                 <F label="Focus Keyword"><Input value={f.seo?.focus_keyword || ""} onChange={e => setSeo("focus_keyword", e.target.value)} /></F>
                 <F label="Canonical URL"><Input value={f.seo?.canonical || ""} onChange={e => setSeo("canonical", e.target.value)} /></F>
               </div>
               <F label="OG Title"><Input value={f.seo?.og_title || ""} onChange={e => setSeo("og_title", e.target.value)} /></F>
               <F label="OG Description"><Textarea rows={2} value={f.seo?.og_description || ""} onChange={e => setSeo("og_description", e.target.value)} /></F>
-              <F label="OG Image URL"><Input value={f.seo?.og_image || ""} onChange={e => setSeo("og_image", e.target.value)} /></F>
+              <F label="OG Image"><ImageUpload value={f.seo?.og_image || ""} onChange={v => setSeo("og_image", v)} kind="og" dataTestid="property-og-image-upload" /></F>
               <F label="RERA Number"><Input value={f.rera_number || ""} onChange={e => set("rera_number", e.target.value)} /></F>
             </div>
           )}

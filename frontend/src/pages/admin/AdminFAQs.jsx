@@ -40,7 +40,7 @@ export default function AdminFAQs() {
           <h2 className="text-xl font-bold text-slate-900">FAQs</h2>
           <p className="text-sm text-slate-500">Frequently asked questions shown across the site.</p>
         </div>
-        <button data-testid="faq-add" onClick={() => setEditing({ question: "", answer: "", category: "general", order: 0, published: true })} className="inline-flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2.5 rounded-lg shadow-md shadow-blue-500/20">
+        <button data-testid="faq-add" onClick={() => setEditing({ question: "", answer: "", category: "general", order: 0, published: true, seo: { title: "", description: "", keywords: "" } })} className="inline-flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2.5 rounded-lg shadow-md shadow-blue-500/20">
           <Plus size={16} weight="bold" /> Add FAQ
         </button>
       </div>
@@ -123,6 +123,14 @@ function FAQDialog({ row, onClose, onSaved }) {
               </Select>
             </Field>
             <Field label="Display order"><Input type="number" value={form.order} onChange={e => setForm({ ...form, order: e.target.value })} className="h-11 rounded-lg border-slate-200" /></Field>
+          </div>
+          <div className="border-t border-slate-100 pt-4">
+            <div className="text-xs uppercase tracking-widest text-blue-600 font-semibold mb-2">SEO</div>
+            <div className="grid grid-cols-1 gap-3">
+              <Field label="Meta title"><Input data-testid="faq-seo-title" value={form.seo?.title || ""} onChange={e => setForm({ ...form, seo: { ...(form.seo || {}), title: e.target.value } })} className="h-11 rounded-lg border-slate-200" /></Field>
+              <Field label="Meta description"><Textarea rows={2} data-testid="faq-seo-description" value={form.seo?.description || ""} onChange={e => setForm({ ...form, seo: { ...(form.seo || {}), description: e.target.value } })} className="rounded-lg border-slate-200" /></Field>
+              <Field label="Meta keywords"><Input data-testid="faq-seo-keywords" value={form.seo?.keywords || ""} onChange={e => setForm({ ...form, seo: { ...(form.seo || {}), keywords: e.target.value } })} className="h-11 rounded-lg border-slate-200" /></Field>
+            </div>
           </div>
           <label className="flex items-center gap-2 text-sm text-slate-700">
             <input type="checkbox" checked={form.published} onChange={e => setForm({ ...form, published: e.target.checked })} /> Published (visible on live site)

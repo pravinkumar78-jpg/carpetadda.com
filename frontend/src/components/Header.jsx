@@ -1,99 +1,112 @@
 import { Link, NavLink, useNavigate } from "react-router-dom";
-import { List, MagnifyingGlass, Heart } from "@phosphor-icons/react";
+import { List, CaretDown, Heart } from "@phosphor-icons/react";
 import { useAuth } from "@/lib/auth";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
-const LIGHT_LOGO = "https://customer-assets-jt897jd0.emergentagent.net/job_dombivli-properties-1/artifacts/n2hi2rgl_CarpetAdda%20Light%20Logo.png";
+const DARK_LOGO = "https://customer-assets-jt897jd0.emergentagent.net/job_dombivli-properties-1/artifacts/doh3cm7v_CarpetAdda%20Dark%20Logo.png";
 
-const links = [
-  { to: "/", label: "Home", end: true },
-  { to: "/properties?listing_type=sale", label: "Buy" },
-  { to: "/properties?listing_type=rent", label: "Rent" },
-  { to: "/projects", label: "New Launches" },
-  { to: "/properties?category=commercial", label: "Commercial" },
-  { to: "/blog", label: "Journal" },
+const PROPERTY_MENU = [
+  { to: "/properties?listing_type=sale", label: "Buy", tid: "nav-prop-buy" },
+  { to: "/properties?listing_type=rent", label: "Rent", tid: "nav-prop-rent" },
+  { to: "/projects?category=residential", label: "Residential Projects", tid: "nav-prop-residential" },
+  { to: "/projects?category=commercial", label: "Commercial Projects", tid: "nav-prop-commercial" },
 ];
+
+const NEWS_MENU = [
+  { to: "/projects", label: "New Launches", tid: "nav-news-launches" },
+  { to: "/blog", label: "Blog", tid: "nav-news-blog" },
+];
+
+const linkCls = ({ isActive }) =>
+  `text-sm font-medium px-3 py-2 rounded-md transition-colors duration-200 ${isActive ? "text-blue-600 bg-blue-50" : "text-slate-700 hover:text-blue-600 hover:bg-blue-50"}`;
 
 export default function Header() {
   const { user, logout } = useAuth();
   const nav = useNavigate();
   const [open, setOpen] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
-
-  useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 10);
-    window.addEventListener("scroll", onScroll);
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
 
   return (
-    <header data-testid="site-header" className={`sticky top-0 z-40 border-b transition-all duration-300 backdrop-blur-xl bg-[#0B0C0E]/70 ${scrolled ? "border-amber-500/20 py-2" : "border-amber-500/10 py-3.5"}`}>
-      <div className="max-w-7xl mx-auto px-6 lg:px-10 flex items-center justify-between gap-6">
+    <header data-testid="site-header" className="sticky top-0 z-40 bg-white border-b border-slate-200 shadow-[0_1px_3px_rgba(15,23,42,0.05)]">
+      <div className="max-w-7xl mx-auto px-6 lg:px-10 flex items-center justify-between gap-6 py-3">
         <Link to="/" data-testid="logo-link" aria-label="CarpetAdda.com — Home" className="flex items-center shrink-0">
-          <img src={LIGHT_LOGO} alt="CarpetAdda.com" width="457" height="140" className="h-9 sm:h-10 md:h-11 w-auto select-none" draggable="false" />
+          <img src={DARK_LOGO} alt="CarpetAdda.com" width="457" height="140" className="h-9 sm:h-10 md:h-11 w-auto select-none" draggable="false" />
         </Link>
 
         <nav className="hidden lg:flex items-center gap-1">
-          {links.map((l) => (
-            <NavLink
-              key={l.to}
-              to={l.to}
-              end={l.end}
-              data-testid={`nav-${l.label.toLowerCase().replace(/\s/g, "-")}`}
-              className={({ isActive }) =>
-                `font-cinzel text-[11px] tracking-[0.2em] uppercase px-3 py-2 rounded-md transition-colors duration-300 ${
-                  isActive ? "text-[#E6C665]" : "text-stone-400 hover:text-[#E6C665]"
-                }`
-              }
-            >
-              {l.label}
-            </NavLink>
-          ))}
+          <NavLink to="/" end data-testid="nav-home" className={linkCls}>Home</NavLink>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger data-testid="nav-properties" className={`text-sm font-medium px-3 py-2 rounded-md transition-colors duration-200 text-slate-700 hover:text-blue-600 hover:bg-blue-50 inline-flex items-center gap-1 outline-none`}>
+              Properties <CaretDown size={12} weight="bold" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-56">
+              {PROPERTY_MENU.map(i => (
+                <DropdownMenuItem key={i.to} asChild>
+                  <Link to={i.to} data-testid={i.tid} className="cursor-pointer">{i.label}</Link>
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          <NavLink to="/home-loan" data-testid="nav-home-loan" className={linkCls}>Home Loan</NavLink>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger data-testid="nav-new-blog" className="text-sm font-medium px-3 py-2 rounded-md transition-colors duration-200 text-slate-700 hover:text-blue-600 hover:bg-blue-50 inline-flex items-center gap-1 outline-none">
+              New &amp; Blog <CaretDown size={12} weight="bold" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-48">
+              {NEWS_MENU.map(i => (
+                <DropdownMenuItem key={i.to} asChild>
+                  <Link to={i.to} data-testid={i.tid} className="cursor-pointer">{i.label}</Link>
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </nav>
 
-        <div className="hidden lg:flex items-center gap-3">
-          <button data-testid="ai-search-btn" onClick={() => nav("/ai-search")}
-            className="flex items-center gap-2 font-cinzel text-[11px] tracking-[0.2em] uppercase px-3 py-2 text-stone-400 hover:text-[#E6C665] transition-colors">
-            <MagnifyingGlass size={15} weight="bold" /> AI Search
-          </button>
+        <div className="hidden lg:flex items-center gap-2">
           {user ? (
             <>
-              <Link to="/favorites" data-testid="header-favorites" className="p-2 text-stone-400 hover:text-[#E6C665] transition-colors"><Heart size={19} /></Link>
-              <Link to="/dashboard" data-testid="header-dashboard" className="text-sm px-3 py-2 text-stone-300 hover:text-[#E6C665] font-medium">{user.name.split(" ")[0]}</Link>
-              <button data-testid="header-logout" onClick={() => { logout(); nav("/"); }} className="text-sm text-stone-500 hover:text-stone-200 px-2">Logout</button>
+              <Link to="/favorites" data-testid="header-favorites" className="p-2 text-slate-700 hover:text-blue-600 transition-colors"><Heart size={20} /></Link>
+              <Link to="/dashboard" data-testid="header-dashboard" className="text-sm px-3 py-2 rounded-md text-slate-700 hover:text-blue-600 font-medium">{user.name.split(" ")[0]}</Link>
+              <button data-testid="header-logout" onClick={() => { logout(); nav("/"); }} className="text-sm text-slate-500 hover:text-slate-900 px-2">Logout</button>
             </>
           ) : (
-            <Link to="/login" data-testid="header-login" className="font-cinzel text-[11px] tracking-[0.2em] uppercase px-3 py-2 text-stone-400 hover:text-[#E6C665] transition-colors">Sign In</Link>
+            <Link to="/login" data-testid="header-login" className="text-sm font-medium px-3 py-2 rounded-md text-slate-700 hover:text-blue-600 transition-colors">Sign-in</Link>
           )}
-          <Link to="/post-property" data-testid="header-post-property" className="lux-btn-gold text-xs px-5 py-2.5">Post Property</Link>
+          <Link to="/post-property" data-testid="header-post-property" className="text-sm px-5 py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 shadow-sm hover:shadow-md transition-all">List Property</Link>
         </div>
 
         <Sheet open={open} onOpenChange={setOpen}>
           <SheetTrigger asChild>
-            <button data-testid="mobile-menu-btn" className="lg:hidden p-2 text-stone-300"><List size={26} /></button>
+            <button data-testid="mobile-menu-btn" className="lg:hidden p-2 text-slate-700"><List size={26} /></button>
           </SheetTrigger>
-          <SheetContent side="right" className="w-80 bg-[#0B0C0E] border-l border-amber-500/15">
+          <SheetContent side="right" className="w-80 bg-white">
             <div className="mt-8 flex flex-col gap-1">
-              {links.map(l => (
-                <Link key={l.to} to={l.to} onClick={() => setOpen(false)} data-testid={`mobile-nav-${l.label.toLowerCase().replace(/\s/g, "-")}`} className="font-cinzel text-xs tracking-[0.2em] uppercase py-3.5 px-3 rounded-md hover:bg-amber-500/10 text-stone-300 hover:text-[#E6C665]">{l.label}</Link>
+              <Link to="/" onClick={() => setOpen(false)} data-testid="mobile-nav-home" className="text-base font-medium py-3 px-3 rounded-md hover:bg-blue-50 hover:text-blue-600 text-slate-800">Home</Link>
+              <div className="text-xs uppercase tracking-widest text-slate-400 font-semibold px-3 pt-3 pb-1">Properties</div>
+              {PROPERTY_MENU.map(i => (
+                <Link key={i.to} to={i.to} onClick={() => setOpen(false)} data-testid={`mobile-${i.tid}`} className="text-base py-2.5 px-6 rounded-md hover:bg-blue-50 hover:text-blue-600 text-slate-800">{i.label}</Link>
               ))}
-              <div className="h-px bg-amber-500/15 my-2" />
-              <Link to="/ai-search" onClick={() => setOpen(false)} className="font-cinzel text-xs tracking-[0.2em] uppercase py-3.5 px-3 rounded-md hover:bg-amber-500/10 text-stone-300">AI Search</Link>
-              <Link to="/emi-calculator" onClick={() => setOpen(false)} className="font-cinzel text-xs tracking-[0.2em] uppercase py-3.5 px-3 rounded-md hover:bg-amber-500/10 text-stone-300">EMI Calculator</Link>
-              <Link to="/compare" onClick={() => setOpen(false)} className="font-cinzel text-xs tracking-[0.2em] uppercase py-3.5 px-3 rounded-md hover:bg-amber-500/10 text-stone-300">Compare</Link>
+              <Link to="/home-loan" onClick={() => setOpen(false)} data-testid="mobile-nav-home-loan" className="text-base font-medium py-3 px-3 rounded-md hover:bg-blue-50 hover:text-blue-600 text-slate-800">Home Loan</Link>
+              <div className="text-xs uppercase tracking-widest text-slate-400 font-semibold px-3 pt-3 pb-1">New &amp; Blog</div>
+              {NEWS_MENU.map(i => (
+                <Link key={i.to} to={i.to} onClick={() => setOpen(false)} data-testid={`mobile-${i.tid}`} className="text-base py-2.5 px-6 rounded-md hover:bg-blue-50 hover:text-blue-600 text-slate-800">{i.label}</Link>
+              ))}
+              <div className="h-px bg-slate-200 my-2" />
+              <Link to="/emi-calculator" onClick={() => setOpen(false)} className="text-base py-3 px-3 rounded-md hover:bg-blue-50 hover:text-blue-600 text-slate-800">EMI Calculator</Link>
+              <Link to="/faqs" onClick={() => setOpen(false)} className="text-base py-3 px-3 rounded-md hover:bg-blue-50 hover:text-blue-600 text-slate-800">FAQs</Link>
               {user ? (
                 <>
-                  <Link to="/dashboard" onClick={() => setOpen(false)} className="font-cinzel text-xs tracking-[0.2em] uppercase py-3.5 px-3 rounded-md hover:bg-amber-500/10 text-stone-300">Dashboard</Link>
-                  <button onClick={() => { logout(); setOpen(false); nav("/"); }} className="font-cinzel text-xs tracking-[0.2em] uppercase py-3.5 px-3 text-left rounded-md hover:bg-amber-500/10 text-stone-300">Logout</button>
+                  <Link to="/dashboard" onClick={() => setOpen(false)} className="text-base py-3 px-3 rounded-md hover:bg-blue-50 hover:text-blue-600 text-slate-800">Dashboard</Link>
+                  <button onClick={() => { logout(); setOpen(false); nav("/"); }} className="text-base py-3 px-3 text-left rounded-md hover:bg-blue-50 text-slate-800">Logout</button>
                 </>
               ) : (
-                <>
-                  <Link to="/login" onClick={() => setOpen(false)} className="font-cinzel text-xs tracking-[0.2em] uppercase py-3.5 px-3 rounded-md hover:bg-amber-500/10 text-stone-300">Sign In</Link>
-                  <Link to="/register" onClick={() => setOpen(false)} className="font-cinzel text-xs tracking-[0.2em] uppercase py-3.5 px-3 rounded-md hover:bg-amber-500/10 text-stone-300">Register</Link>
-                </>
+                <Link to="/login" onClick={() => setOpen(false)} data-testid="mobile-nav-signin" className="text-base py-3 px-3 rounded-md hover:bg-blue-50 hover:text-blue-600 text-slate-800">Sign-in</Link>
               )}
-              <Link to="/post-property" onClick={() => setOpen(false)} className="lux-btn-gold mt-4 text-sm py-3.5 px-4">Post Property</Link>
+              <Link to="/post-property" onClick={() => setOpen(false)} data-testid="mobile-nav-list-property" className="mt-4 text-center bg-blue-600 text-white py-3 px-4 rounded-lg font-medium">List Property</Link>
             </div>
           </SheetContent>
         </Sheet>

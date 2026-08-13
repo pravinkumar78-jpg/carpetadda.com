@@ -241,7 +241,25 @@ class Project(BaseDoc):
     # RERA additions
     rera_qr_url: Optional[str] = None
 
+    # Media + location additions
+    main_image: Optional[str] = None
+    property_category: str = "residential"  # residential | commercial
+    nearby_locations: List[dict] = Field(default_factory=list)  # {name, distance, category}
+    google_map_link: Optional[str] = None
+
     seo: dict = Field(default_factory=dict)
+
+
+# ---------- SEO Page (per-route meta, editable in admin) ----------
+class SeoPage(BaseDoc):
+    page: str  # route path, e.g. "/", "/properties", "/home-loan"
+    meta_title: Optional[str] = None
+    meta_description: Optional[str] = None
+    meta_keywords: Optional[str] = None
+    og_title: Optional[str] = None
+    og_description: Optional[str] = None
+    og_image: Optional[str] = None
+    canonical_url: Optional[str] = None
 
 
 # ---------- Lead / Enquiry ----------
@@ -249,6 +267,9 @@ class Lead(BaseDoc):
     name: str
     phone: str
     email: Optional[EmailStr] = None
+    profession: Optional[str] = None
+    designation: Optional[str] = None
+    company_name: Optional[str] = None
     message: Optional[str] = None
     property_id: Optional[str] = None
     project_id: Optional[str] = None
@@ -329,6 +350,7 @@ class Testimonial(BaseDoc):
     project: Optional[str] = None
     published: bool = True
     show_on_homepage: bool = False
+    seo: dict = Field(default_factory=dict)
 
 
 # ---------- Amenity ----------
@@ -346,6 +368,7 @@ class FAQ(BaseDoc):
     category: Optional[str] = None  # buy | rent | invest | general
     order: int = 0
     published: bool = True
+    seo: dict = Field(default_factory=dict)
 
 
 # ---------- Site Settings (singleton) ----------
@@ -353,8 +376,8 @@ class SiteSettings(BaseDoc):
     key: str = "default"  # always "default" — singleton
     # Contact / channels
     contact_email: str = "contact@carpetadda.com"
-    contact_phone: Optional[str] = None
-    whatsapp_number: str = "919820000000"
+    contact_phone: Optional[str] = "8828830707"
+    whatsapp_number: str = "918828830707"
     office_address: str = "A-502, BSEL Tech Park, Sector 30A, Opp. Vashi Railway Station, Navi Mumbai, Maharashtra."
     # Socials
     instagram_url: Optional[str] = None
@@ -383,11 +406,16 @@ class Unit(BaseDoc):
     unit_no: str
     tower: Optional[str] = None
     floor: Optional[int] = None
-    typology: Optional[str] = None  # "1 BHK", "2 BHK", "3 BHK", "Shop", "Office" ...
+    typology: Optional[str] = None  # Configuration: "1 BHK", "2 BHK", "Shop", "Office" ...
     carpet_area: Optional[float] = None
     builtup_area: Optional[float] = None
+    balcony: Optional[int] = None
+    parking: Optional[int] = None
     facing: Optional[str] = None
     price: Optional[float] = None
+    unit_plan: Optional[str] = None  # uploaded unit plan image URL
+    description: Optional[str] = None
+    published: bool = True
     status: str = "available"  # available | hold | token | booked | sold
     buyer_name: Optional[str] = None
     buyer_phone: Optional[str] = None
