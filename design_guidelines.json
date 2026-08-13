@@ -1,0 +1,339 @@
+{
+  "project_info": {
+    "name": "CarpetAdda",
+    "description": "Awwwards Site-of-the-Day level ultra-luxury Indian Real Estate Marketplace covering Mumbai, Thane, Navi Mumbai, and Kalyan-Dombivli.",
+    "art_direction": "Dark Editorial Luxury meets Architectural Opulence (Deep Obsidian + Antique Champagne Gold + Sandstone Texture)",
+    "target_audience": "HNIs, Luxury Property Buyers, Premium Renters, High-end Investors, Top Real Estate Developers & Elite Agents in MMR (Mumbai Metropolitan Region)"
+  },
+  "typography": {
+    "font_family_pairings": {
+      "headings": {
+        "primary": "Playfair Display, Cormorant Garamond, serif",
+        "description": "High-contrast editorial serif for bold, architectural headlines that feel bespoke and timeless."
+      },
+      "subheadings_and_accents": {
+        "primary": "Cinzel, Cormorant, serif",
+        "description": "Uppercase, widely tracked, refined serif for badges, numbers, chapter labels, and architectural callouts."
+      },
+      "body_and_ui": {
+        "primary": "Plus Jakarta Sans, Manrope, sans-serif",
+        "description": "Ultra-clean geometric sans for high legibility in property metadata, filters, forms, and cards."
+      },
+      "numbers_and_data": {
+        "primary": "Space Mono, JetBrains Mono, monospace",
+        "description": "Precision monospace for carpet area (sq.ft), price per sq.ft, EMI breakdowns, and listing IDs."
+      }
+    },
+    "font_size_hierarchy": {
+      "h1_hero": "text-4xl sm:text-5xl lg:text-6xl font-serif tracking-tight leading-[1.08]",
+      "h2_section": "text-2xl sm:text-3xl lg:text-4xl font-serif tracking-tight leading-snug",
+      "h3_card_header": "text-xl sm:text-2xl font-serif tracking-normal leading-normal",
+      "manifesto_numeral": "text-6xl sm:text-8xl font-serif text-amber-500/20 font-bold tracking-tighter",
+      "body_text": "text-base sm:text-lg font-sans text-stone-300 leading-relaxed",
+      "body_sm": "text-sm font-sans text-stone-400 leading-normal",
+      "label_overline": "text-xs font-mono uppercase tracking-[0.25em] text-amber-400/90 font-medium"
+    }
+  },
+  "color_palette": {
+    "mode": "dark",
+    "archetype": "LUXURY_AND_EDITORIAL",
+    "colors": {
+      "background_primary": "#0B0C0E",
+      "background_secondary": "#121418",
+      "background_elevated": "#1A1D24",
+      "surface_card": "#15181F",
+      "border_subtle": "rgba(212, 175, 55, 0.15)",
+      "border_glow": "rgba(212, 175, 55, 0.40)",
+      "brand_primary_gold": "#D4AF37",
+      "brand_secondary_warm": "#C85A32",
+      "brand_emerald_accent": "#0F2820",
+      "accent_champagne": "#F3E5AB",
+      "text_primary": "#F7F5F0",
+      "text_secondary": "#A1A8B8",
+      "text_muted": "#626B7D",
+      "text_gold": "#E6C665",
+      "overlay_dark": "rgba(11, 12, 14, 0.75)"
+    },
+    "gradients": {
+      "hero_vignette": "linear-gradient(180deg, rgba(11,12,14,0.85) 0%, rgba(11,12,14,0.40) 50%, rgba(11,12,14,0.95) 100%)",
+      "gold_shimmer": "linear-gradient(135deg, #BF953F 0%, #FCF6BA 25%, #B38728 50%, #FBF5B7 75%, #AA771C 100%)",
+      "card_spotlight": "radial-gradient(600px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(212,175,55,0.08), transparent 40%)"
+    }
+  },
+  "spacing_and_layout": {
+    "container": "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8",
+    "section_padding": "py-20 sm:py-28 lg:py-36",
+    "grid_gap": "gap-8 lg:gap-12",
+    "border_radius": {
+      "cards": "rounded-2xl",
+      "buttons": "rounded-full",
+      "pills": "rounded-full",
+      "frames": "rounded-3xl"
+    },
+    "asymmetric_bento_grid": {
+      "hero_card": "col-span-12 lg:col-span-8 row-span-2",
+      "side_card": "col-span-12 lg:col-span-4 row-span-1",
+      "tall_card": "col-span-12 md:col-span-6 lg:col-span-4 row-span-2",
+      "wide_card": "col-span-12 lg:col-span-8"
+    }
+  },
+  "motion_and_effects": {
+    "libraries": [
+      "framer-motion",
+      "lenis",
+      "lucide-react"
+    ],
+    "lenis_config": {
+      "duration": 1.2,
+      "easing": "easeOutQuart",
+      "smoothTouch": true
+    },
+    "hero_animation": {
+      "onload_reveal": "Masked line-by-line stagger reveal with y-axis translate (y: 60 to 0) and blur reduction.",
+      "parallax_3d": "Mouse move tilt + depth layer floating cards for 3D hero illusion."
+    },
+    "scroll_reveals": {
+      "initial": {
+        "opacity": 0,
+        "y": 40
+      },
+      "whileInView": {
+        "opacity": 1,
+        "y": 0
+      },
+      "transition": {
+        "duration": 0.8,
+        "ease": [
+          0.16,
+          1,
+          0.3,
+          1
+        ]
+      }
+    },
+    "micro_interactions": {
+      "button_hover": "scale-105 transition-transform duration-300 ease-out shadow-[0_0_25px_rgba(212,175,55,0.3)]",
+      "card_hover": "-translate-y-2 border-amber-500/50 shadow-2xl transition-all duration-500"
+    }
+  },
+  "curated_image_urls": {
+    "hero_backgrounds": [
+      "https://images.unsplash.com/photo-1573132223210-d65883b944aa?auto=format&fit=crop&w=2000&q=85",
+      "https://images.unsplash.com/photo-1710582308582-55cc0c461c4e?auto=format&fit=crop&w=2000&q=85"
+    ],
+    "featured_properties": [
+      "https://images.unsplash.com/photo-1704040686428-7534b262d0d8?auto=format&fit=crop&w=1200&q=85",
+      "https://images.unsplash.com/photo-1564078516393-cf04bd966897?auto=format&fit=crop&w=1200&q=85",
+      "https://images.pexels.com/photos/20418771/pexels-photo-20418771.jpeg?auto=format&fit=crop&w=1200&q=85",
+      "https://images.unsplash.com/photo-1613490493576-7fde63acd811?auto=format&fit=crop&w=1200&q=85",
+      "https://images.unsplash.com/photo-1580587771525-78b9dba3b914?auto=format&fit=crop&w=1200&q=85"
+    ],
+    "new_launch_projects": [
+      "https://images.unsplash.com/photo-1670589953882-b94c9cb380f5?auto=format&fit=crop&w=1200&q=85",
+      "https://images.unsplash.com/photo-1721815693498-cc28507c0ba2?auto=format&fit=crop&w=1200&q=85"
+    ],
+    "localities": [
+      "https://images.unsplash.com/photo-1653299311171-31939b3b84b0?auto=format&fit=crop&w=1000&q=85",
+      "https://images.unsplash.com/photo-1716396635935-b7ba3d91a1cb?auto=format&fit=crop&w=1000&q=85"
+    ],
+    "agents_and_developers": [
+      "https://images.unsplash.com/photo-1647580427155-0483906cb9de?auto=format&fit=crop&w=600&q=85",
+      "https://images.unsplash.com/photo-1581065178047-8ee15951ede6?auto=format&fit=crop&w=600&q=85",
+      "https://images.unsplash.com/photo-1610631066894-62452ccb927c?auto=format&fit=crop&w=600&q=85"
+    ]
+  },
+  "home_page_sections_blueprint": [
+    {
+      "section_id": "header_navigation",
+      "title": "Sticky Glassmorphic Nav Header",
+      "key_elements": [
+        "CarpetAdda Brand Logo with Gold Monogram",
+        "Desktop Links: Buy, Rent, New Launches, Localities, Developers, EMI Calculator, AI Search",
+        "Action Buttons: 'Post Property' (Gold Pill) & 'Sign In'",
+        "Glass Backdrop: backdrop-blur-xl bg-[#0B0C0E]/70 border-b border-amber-500/10"
+      ],
+      "data_testids": [
+        "nav-logo",
+        "nav-link-buy",
+        "nav-link-rent",
+        "nav-link-launches",
+        "nav-link-localities",
+        "nav-link-emi",
+        "nav-link-ai-search",
+        "nav-btn-post-property",
+        "nav-btn-auth"
+      ]
+    },
+    {
+      "section_id": "kinetic_hero_search",
+      "title": "Kinetic Hero with Multimodal Search & Parallax Depth",
+      "key_elements": [
+        "Overline: 'THE MMR REAL ESTATE ARCHIVE • MUMBAI / THANE / NAVI MUMBAI'",
+        "Headline with Masked Onload Line Reveal: 'Curated Architectural Masterpieces For Discerning Buyers'",
+        "Interactive Filter Tabs: Buy | Rent | Commercial | New Projects",
+        "Unified Search Bar: Location input, BHK selection dropdown, Budget slider, Property Type",
+        "AI Natural Language Prompt CTA: 'Search like: 3 BHK sea view in Bandra West under 8 Cr'",
+        "Live Market Stat Badges: '12,400+ Verified Homes', '4 Locality Zones', '99.8% Price Accuracy'"
+      ],
+      "data_testids": [
+        "hero-title",
+        "hero-tab-buy",
+        "hero-tab-rent",
+        "hero-search-input-location",
+        "hero-search-select-bhk",
+        "hero-search-select-budget",
+        "hero-search-submit-button",
+        "hero-ai-search-prompt-link"
+      ]
+    },
+    {
+      "section_id": "editorial_marquee",
+      "title": "Slow Editorial Ribbon Marquee",
+      "key_elements": [
+        "Smooth infinite ticker with gold separator dots",
+        "Phrases: 'MUMBAI SKYLINE COLLECTION', 'THANE LUXURY ESTATES', 'NAVI MUMBAI WATERFRONT', 'KALYAN-DOMBIVLI TOWNSHIPS', 'RERA VERIFIED DEVELOPERS', 'ZERO BROKERAGE ON SELECT NEW LAUNCHES'"
+      ],
+      "data_testids": [
+        "editorial-marquee"
+      ]
+    },
+    {
+      "section_id": "featured_properties_grid",
+      "title": "Featured Property Listings with Spotlight Effect & Clipped Frames",
+      "key_elements": [
+        "Sub-header: 'HANDPICKED RESIDENCES'",
+        "Interactive Filter Pills: All | Mumbai | Thane | Navi Mumbai | Kalyan",
+        "Property Cards with Mouse-tracking Spotlight border and image hover zoom",
+        "Card Metadata: Price (Cr / Lakhs), BHK, Carpet Area (sq.ft), Location tag, RERA badge, Compare checkbox",
+        "CTAs per card: 'View Details', 'Schedule Visit', 'Compare'"
+      ],
+      "data_testids": [
+        "featured-properties-section",
+        "filter-pill-mumbai",
+        "filter-pill-thane",
+        "property-card-item",
+        "property-card-price",
+        "property-card-btn-view",
+        "property-card-btn-schedule",
+        "property-card-checkbox-compare"
+      ]
+    },
+    {
+      "section_id": "manifesto_chapters",
+      "title": "Numbered Brand Manifesto Chapters",
+      "key_elements": [
+        "Chapter 01: 'True Carpet Area Verification'",
+        "Chapter 02: 'Curated Architectural Standard'",
+        "Chapter 03: 'Direct Developer Transparency'",
+        "Chapter 04: 'End-to-End Concierge Advisory'",
+        "Large background numbers (01, 02, 03, 04) with gold text glow and interactive accordion/tabs reveal"
+      ],
+      "data_testids": [
+        "manifesto-section",
+        "manifesto-chapter-1",
+        "manifesto-chapter-2",
+        "manifesto-chapter-3",
+        "manifesto-chapter-4"
+      ]
+    },
+    {
+      "section_id": "new_launch_showcase",
+      "title": "New-Launch Mega Projects Showcase",
+      "key_elements": [
+        "Cinematic dark cards featuring upcoming iconic towers in Worli, Pokhran Road Thane, Palm Beach Road Navi Mumbai",
+        "Tower status pill: 'Under Construction', 'Pre-Launch Offer', 'Possession Q4 2026'",
+        "Interactive Floor plan preview button & Brochure download lead trigger"
+      ],
+      "data_testids": [
+        "new-launches-section",
+        "project-card-item",
+        "project-btn-download-brochure",
+        "project-btn-view-details"
+      ]
+    },
+    {
+      "section_id": "localities_explorer",
+      "title": "Locality & Micro-Market Heatmap Explorer",
+      "key_elements": [
+        "Interactive grid of MMR nodes: South Mumbai, Western Suburbs, Thane West, Palm Beach Road, Dombivli East",
+        "Avg price trend per sq.ft (+8.4% YoY), connectivity score, key upcoming infrastructure (Metro 3, Coastal Road, MTHL)"
+      ],
+      "data_testids": [
+        "localities-explorer-section",
+        "locality-card-bandra",
+        "locality-card-thane",
+        "locality-card-palm-beach"
+      ]
+    },
+    {
+      "section_id": "emi_calculator_entry",
+      "title": "Interactive EMI & Affordability Preview Widget",
+      "key_elements": [
+        "Sliders for Loan Amount (Lakhs/Cr), Interest Rate (%), Tenure (Years)",
+        "Real-time Monthly EMI output card with Principal vs Interest split visual bar",
+        "CTA: 'Calculate Detailed Tax Benefits & Apply'"
+      ],
+      "data_testids": [
+        "emi-calculator-widget",
+        "emi-slider-amount",
+        "emi-slider-rate",
+        "emi-slider-tenure",
+        "emi-result-monthly-value",
+        "emi-btn-full-calculator"
+      ]
+    },
+    {
+      "section_id": "developers_and_agents",
+      "title": "Top Developers & Verified Concierge Agents Directory",
+      "key_elements": [
+        "Prominent developer logos & verified agent cards with sales volume stats",
+        "Direct WhatsApp/Call request modal trigger"
+      ],
+      "data_testids": [
+        "directory-section",
+        "agent-card-item",
+        "developer-logo-item",
+        "agent-btn-contact"
+      ]
+    },
+    {
+      "section_id": "lead_capture_cta",
+      "title": "High-Conversion Exclusive VIP Advisory CTA",
+      "key_elements": [
+        "Headline: 'Looking For Off-Market Luxury Penthouses?'",
+        "Lead form: Name, Phone, Desired Micro-market, Budget Range",
+        "Submit CTA: 'Request Private Concierge Callback'"
+      ],
+      "data_testids": [
+        "lead-capture-section",
+        "lead-input-name",
+        "lead-input-phone",
+        "lead-select-location",
+        "lead-form-submit-button"
+      ]
+    },
+    {
+      "section_id": "footer_section",
+      "title": "Monumental Editorial Footer",
+      "key_elements": [
+        "Massive Typography: 'CARPETADDA'",
+        "Links: Quick Search by City, Property Types, Calculators, Developer Directory, Legal & RERA Disclaimers",
+        "Copyright & Social links"
+      ],
+      "data_testids": [
+        "footer-logo-text",
+        "footer-link-mumbai",
+        "footer-link-thane",
+        "footer-link-privacy",
+        "footer-link-terms"
+      ]
+    }
+  ],
+  "implementation_rules_for_main_agent": {
+    "file_structure_guidelines": "Modify or create React components in src/pages/Home.jsx, src/components/Header.jsx, src/components/Footer.jsx, src/components/PropertyCard.jsx, src/components/SearchBar.jsx.",
+    "testing_requirement": "EVERY interactive element (inputs, buttons, tabs, links, sliders, cards) MUST contain a data-testid attribute in kebab-case format.",
+    "contrast_and_accessibility": "Always ensure high text contrast against dark backgrounds. Use text shadow or solid/semi-solid backdrop layers when overlaying text over images.",
+    "component_reuse": "Use Shadcn components for complex interactions (Select, Dialog, Slider, Tabs, Accordion, Toast via sonner) while styling with Tailwind to match the dark luxury gold art direction.",
+    "motion_stack": "Import motion from framer-motion for smooth entrance and hover effects. Use Lenis smooth scrolling initialized in App.js or Home.jsx."
+  }
+}
