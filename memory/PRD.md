@@ -243,3 +243,6 @@
 - PERFORMANCE AUDIT: Home/Property/Project/Admin on desktop+mobile load in 1.3–1.9s with 8–10 API calls at load and ZERO background requests during 8–10s idle; zero console errors. Only timers: hero rotation (5s/7s, lightweight). Backend has no daemons — only per-request FastAPI BackgroundTasks. No bottleneck found.
 - EMAIL LOGS: verified reliable → KEPT per user's condition (33 entries logging correctly across kinds, admin-only 401 guard, UI + Resend working). Fixed one real reliability bug: failed resends returned HTTP 502 which the preview CDN replaced with a generic Cloudflare HTML error page (hid the reason) — endpoint now returns JSON 200 {ok:false,message}; frontend shows the real reason; error column renders human-readable text (raw JSON envelope stripped); squashed To column fixed (min-w). 
 - Email delivery untouched (test email still sends); DB untouched; 31/31 pytest; yarn build clean.
+
+## Change (2026-08-14 — List Property lands on Login first)
+- /post-property logged-out redirect changed from /register to /login?next=/post-property (user request). Login returns to the listing form; the "Create account" link on the login page carries next so new users still reach the form after registering. Verified in browser: click→/login?next=..., login→form visible, register link carries next.
