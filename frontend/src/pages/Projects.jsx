@@ -57,7 +57,7 @@ export default function Projects() {
         <div className="max-w-7xl mx-auto px-6 lg:px-10 flex items-end justify-between flex-wrap gap-4">
           <div>
             <div className="text-xs uppercase tracking-widest text-blue-600 font-semibold mb-3">New Launches</div>
-            <h1 className="text-4xl sm:text-5xl font-bold text-slate-900 tracking-tight mb-3">Signature Projects</h1>
+            <h1 className="text-4xl sm:text-5xl font-bold text-slate-900 tracking-tight mb-3">Commercial Projects</h1>
             <p className="text-slate-600 max-w-2xl">Handpicked new-launch developments from India's most trusted builders — RERA verified, on-time delivery.</p>
           </div>
           <div className="flex bg-white border border-slate-300 rounded-lg overflow-hidden" data-testid="project-layout-toggle">
