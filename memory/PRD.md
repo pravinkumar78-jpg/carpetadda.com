@@ -212,3 +212,11 @@
 ## Pending
 - P0: Full QA pass of Admin Email Logs page + client auto-reply delivery (testing agent)
 - P0: User decision: real emails for demo agent/developer accounts (a) all -> contact@carpetadda.com, (b) user provides real addresses, (c) leave fake seed data
+
+## Implemented (2026-08-14, iteration 15 — hero background rotation + slide captions)
+- Admin → Settings → "Hero Settings": Hero Background Images manager — multi-upload (kind="hero" added to ALLOWED_UPLOAD_KINDS), preview thumbnails, enable/disable toggle, up/down reorder, delete; saved via existing PUT /admin/settings into settings singleton (`hero_backgrounds: [{url, enabled}]`, SiteSettings model extended)
+- Homepage hero: rotating background layer (7s crossfade, first image eager, rest lazy) behind the existing Hero Project carousel — fully independent layers; only enabled images render; all-disabled/absent → existing static hero_image/hero-dark fallback (no broken images)
+- Hero slide chip upgraded to 3-line premium card: project name + arrow, prettified location (slug→"Andheri West, Mumbai", dedupes locality⊃city), real price (₹ range "₹90 L – ₹2.22 Cr" or "₹X onwards"; hidden when no price) — all from DB, no hardcoding
+- Hero bottom padding bumped (pb-36 / lg:pb-44) so the taller chip never touches hero text; chip stays bottom-8 xl:bottom-16 above the search straddle band; mobile alignment from iteration-14 fix preserved
+- Verified: admin toggle/reorder UI, API save/public read, rotation opacity advance, fallback state, chip click-through → correct project page, geometry 320–1920 (zero overlap/overflow/errors), dark mode, 31/31 pytest, yarn build clean (Hostinger-safe)
+- Demo note: two generated dusk-skyline test images currently active as hero backgrounds — replace anytime via Admin → Settings → Hero Settings

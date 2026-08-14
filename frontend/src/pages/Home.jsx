@@ -7,6 +7,7 @@ import PropertyCard from "@/components/PropertyCard";
 import ProjectCard from "@/components/ProjectCard";
 import api from "@/lib/api";
 import { useSettings } from "@/lib/useSettings";
+import { formatINR } from "@/lib/format";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -19,12 +20,20 @@ export default function Home() {
   const [sending, setSending] = useState(false);
   const [heroIdx, setHeroIdx] = useState(0);
   const heroSlides = hp?.hero_projects || [];
+  const bgImages = (settings?.hero_backgrounds || []).filter(b => b && b.enabled && b.url).map(b => b.url);
+  const [bgIdx, setBgIdx] = useState(0);
 
   useEffect(() => {
     if (heroSlides.length < 2) return;
     const t = setInterval(() => setHeroIdx(i => (i + 1) % heroSlides.length), 5000);
     return () => clearInterval(t);
   }, [heroSlides.length]);
+
+  useEffect(() => {
+    if (bgImages.length < 2) return;
+    const t = setInterval(() => setBgIdx(i => (i + 1) % bgImages.length), 7000);
+    return () => clearInterval(t);
+  }, [bgImages.length]);
 
   useEffect(() => {
     let cancelled = false;
@@ -66,9 +75,38 @@ export default function Home() {
     <div>
       {/* Hero */}
       <section className="relative overflow-hidden bg-slate-50" data-testid="hero-section">
-        {heroSlides.length > 0 ? (
+        {/* Admin-managed rotating background (fallback: static hero image) */}
+        {bgImages.length > 0 ? (
+          <div className="absolute inset-0" data-testid="hero-bg-rotator" aria-hidden="true">
+            {bgImages.map((url, i) => (
+              <img key={url} src={url} alt="" loading={i === 0 ? "eager" : "lazy"}
+                className="absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ease-in-out"
+                style={{ opacity: i === bgIdx % bgImages.length ? 1 : 0 }} />
+            ))}
+          </div>
+        ) : (
+          <>
+            <img src={settings?.hero_image || "/hero-carpetadda.png"} alt="CarpetAdda real estate" className="hero-img-light absolute inset-0 w-full h-full object-cover" />
+            <img src="/hero-dark.webp" alt="CarpetAdda real estate — night skyline" className="hero-img-dark absolute inset-0 w-full h-full object-cover" />
+          </>
+        )}
+        {/* Hero Project carousel — independent layer above the background */}
+        {heroSlides.length > 0 && (
           <div className="absolute inset-0" data-testid="hero-carousel">
-            {heroSlides.map((proj, i) => (
+            {heroSlides.map((proj, i) => {
+              const loc = (() => {
+                const pretty = s => (s || "").replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase()).trim();
+                const locality = pretty(proj.location);
+                const city = pretty(proj.city);
+                if (locality && city && !locality.toLowerCase().includes(city.toLowerCase())) return `${locality}, ${city}`;
+                return locality || city;
+              })();
+              const price = proj.price_from
+                ? (proj.price_to && proj.price_to > proj.price_from
+                  ? `${formatINR(proj.price_from)} – ${formatINR(proj.price_to)}`
+                  : `${formatINR(proj.price_from)} onwards`)
+                : null;
+              return (
               <Link
                 key={proj.id}
                 to={`/project/${proj.slug}`}
@@ -78,11 +116,17 @@ export default function Home() {
                 style={{ opacity: i === heroIdx % heroSlides.length ? 1 : 0, pointerEvents: i === heroIdx % heroSlides.length ? "auto" : "none" }}
               >
                 <img src={proj.main_image} alt={proj.name} className="w-full h-full object-cover object-center" loading={i === 0 ? "eager" : "lazy"} />
-                <span className="absolute bottom-8 xl:bottom-16 left-6 lg:left-10 z-10 inline-block max-w-[calc(100vw-3rem)] truncate bg-white/90 backdrop-blur px-4 py-2 rounded-lg text-sm font-semibold text-slate-900 shadow-md border border-slate-200">
-                  {proj.name} <span className="text-blue-600 font-medium">→ View Project</span>
+                <span data-testid={`hero-chip-${proj.slug}`} className="absolute bottom-8 xl:bottom-16 left-6 lg:left-10 z-10 block max-w-[calc(100vw-3rem)] bg-white/90 backdrop-blur px-4 py-2.5 rounded-xl shadow-lg border border-slate-200">
+                  <span className="flex items-center gap-1.5 text-sm font-bold text-slate-900">
+                    <span className="truncate">{proj.name}</span>
+                    <ArrowRight size={13} weight="bold" className="text-blue-600 flex-shrink-0" />
+                  </span>
+                  {loc && <span className="block text-xs text-slate-600 truncate mt-0.5">{loc}</span>}
+                  {price && <span className="block text-xs font-semibold text-blue-600 truncate mt-0.5">{price}</span>}
                 </span>
               </Link>
-            ))}
+              );
+            })}
             {heroSlides.length > 1 && (
               <div className="absolute bottom-3 xl:bottom-16 right-6 z-10 flex gap-1.5" data-testid="hero-dots">
                 {heroSlides.map((proj, i) => (
@@ -92,16 +136,11 @@ export default function Home() {
               </div>
             )}
           </div>
-        ) : (
-          <>
-            <img src={settings?.hero_image || "/hero-carpetadda.png"} alt="CarpetAdda real estate" className="hero-img-light absolute inset-0 w-full h-full object-cover" />
-            <img src="/hero-dark.webp" alt="CarpetAdda real estate — night skyline" className="hero-img-dark absolute inset-0 w-full h-full object-cover" />
-          </>
         )}
         <div className="hero-overlay-light absolute inset-0 bg-gradient-to-r from-white/90 via-white/45 to-transparent pointer-events-none" />
         <div className="hero-overlay-dark absolute inset-0 bg-gradient-to-r from-[#162E2A]/90 via-[#162E2A]/50 to-[#162E2A]/20 pointer-events-none" />
         <div className="hero-overlay-light absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-white/70 to-transparent pointer-events-none" />
-        <div className="relative max-w-7xl mx-auto px-6 lg:px-10 pt-16 pb-24 lg:pt-24 lg:pb-32">
+        <div className="relative max-w-7xl mx-auto px-6 lg:px-10 pt-16 pb-36 lg:pt-24 lg:pb-44">
           <div className="max-w-3xl">
             <h1 data-testid="hero-title" className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.08] text-slate-900 mb-6">
               Every Dream <span className="text-blue-600">Deserves</span> an Address

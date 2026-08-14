@@ -1511,7 +1511,7 @@ async def create_amenity(body: dict = Body(...)):
 
 
 # ---------------- Media Uploads (persistent local storage) ----------------
-ALLOWED_UPLOAD_KINDS = {"blogs", "testimonials", "og", "properties", "projects", "developers", "agents", "general", "avatars"}
+ALLOWED_UPLOAD_KINDS = {"blogs", "testimonials", "og", "properties", "projects", "developers", "agents", "general", "avatars", "hero"}
 MAX_UPLOAD_BYTES = 8 * 1024 * 1024
 
 @api.post("/admin/uploads", dependencies=[Depends(require_roles("admin"))])

@@ -419,6 +419,8 @@ class SiteSettings(BaseDoc):
     hero_headline: str = "Every Dream Deserves an Address"
     hero_highlight: str = "Address"  # word rendered in blue
     hero_subtitle: str = "Discover residential and commercial properties, new projects, resale homes and rentals — verified listings from India's most trusted developers."
+    # Hero background rotation — [{url, enabled}], ordered; only enabled images rotate on the homepage
+    hero_backgrounds: list = Field(default_factory=list)
     # Footer content
     footer_tagline: str = "India's premium real estate platform. Verified listings, expert agents, and market intelligence across Mumbai, Thane, Navi Mumbai, Dombivli & Kalyan."
     # Site-wide SEO defaults

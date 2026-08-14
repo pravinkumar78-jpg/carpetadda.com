@@ -3,8 +3,9 @@ import api from "@/lib/api";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { FloppyDisk } from "@phosphor-icons/react";
+import { FloppyDisk, CaretUp, CaretDown, Trash } from "@phosphor-icons/react";
 import ImageUpload from "@/components/ImageUpload";
+import MultiImageUpload from "@/components/MultiImageUpload";
 
 export default function AdminSettings() {
   const [s, setS] = useState(null);
@@ -73,6 +74,11 @@ export default function AdminSettings() {
       </Section>
 
 
+      {/* Hero Settings */}
+      <Section title="Hero Settings" subtitle="Hero Background Images — dusk skyline / cityscape imagery that rotates behind the homepage hero. Only enabled images appear on the site; if none are enabled, the default hero image above is used.">
+        <HeroBackgrounds value={s.hero_backgrounds} onChange={v => set("hero_backgrounds", v)} />
+      </Section>
+
       {/* Email diagnostics */}
       <EmailDiagnostics />
 
@@ -127,6 +133,53 @@ function Field({ label, children, full }) {
     </label>
   );
 }
+function HeroBackgrounds({ value, onChange }) {
+  const items = Array.isArray(value) ? value.filter(b => b && b.url) : [];
+  const update = (next) => onChange(next);
+  const move = (i, d) => {
+    const j = i + d;
+    if (j < 0 || j >= items.length) return;
+    const next = [...items];
+    [next[i], next[j]] = [next[j], next[i]];
+    update(next);
+  };
+  const toggle = (i) => update(items.map((b, j) => (j === i ? { ...b, enabled: !b.enabled } : b)));
+  const del = (i) => update(items.filter((_, j) => j !== i));
+
+  return (
+    <div data-testid="hero-backgrounds">
+      {items.length === 0 && (
+        <p className="text-sm text-slate-500 mb-3">No custom hero backgrounds yet — the default hero image is used. Upload images below, then Save.</p>
+      )}
+      {items.length > 0 && (
+        <div className="space-y-2 mb-4">
+          {items.map((b, i) => (
+            <div key={`${b.url}-${i}`} data-testid={`hero-bg-item-${i}`} className={`flex items-center gap-3 p-2 rounded-lg border bg-white ${b.enabled ? "border-slate-200" : "border-slate-100 opacity-60"}`}>
+              <span className="text-xs font-bold text-slate-400 w-5 text-center">{i + 1}</span>
+              <img src={b.url} alt={`Hero background ${i + 1}`} className="w-24 h-14 object-cover rounded-md border border-slate-200 flex-shrink-0" loading="lazy" />
+              <div className="flex-1 min-w-0">
+                <div className="text-xs text-slate-500 truncate">{b.url.split("/").pop()}</div>
+                <button type="button" onClick={() => toggle(i)} data-testid={`hero-bg-toggle-${i}`}
+                  className={`mt-1 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${b.enabled ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-slate-50 text-slate-500 border-slate-200"}`}>
+                  {b.enabled ? "Enabled" : "Disabled"}
+                </button>
+              </div>
+              <div className="flex items-center gap-1 flex-shrink-0">
+                <button type="button" onClick={() => move(i, -1)} disabled={i === 0} data-testid={`hero-bg-up-${i}`} aria-label="Move up" className="p-1.5 rounded-md text-slate-500 hover:bg-blue-50 hover:text-blue-600 disabled:opacity-30 transition-colors"><CaretUp size={14} weight="bold" /></button>
+                <button type="button" onClick={() => move(i, 1)} disabled={i === items.length - 1} data-testid={`hero-bg-down-${i}`} aria-label="Move down" className="p-1.5 rounded-md text-slate-500 hover:bg-blue-50 hover:text-blue-600 disabled:opacity-30 transition-colors"><CaretDown size={14} weight="bold" /></button>
+                <button type="button" onClick={() => del(i)} data-testid={`hero-bg-delete-${i}`} aria-label="Delete" className="p-1.5 rounded-md text-slate-500 hover:bg-rose-50 hover:text-rose-600 transition-colors"><Trash size={14} weight="bold" /></button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+      <MultiImageUpload kind="hero" dataTestid="hero-bg-upload" onAdd={urls => update([...items, ...urls.map(url => ({ url, enabled: true }))])} />
+      <p className="text-xs text-slate-400 mt-3">Recommended: 1920×1080 JPG/WebP under 400 KB each. Images rotate top-to-bottom order every 7 seconds with a crossfade. Reorder with the arrows, disable to hide without deleting, and click "Save all changes" to go live.</p>
+    </div>
+  );
+}
+
+
 
 
 function EmailDiagnostics() {
