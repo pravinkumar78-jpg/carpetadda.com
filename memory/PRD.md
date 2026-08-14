@@ -256,3 +256,10 @@
 - Dashboards (Admin/User/Agent/Developer): new shared DashNav.jsx — mobile sidebar collapsed by default, floating arrow pill at RIGHT screen-middle ("MENU"/"Close"), slide-in drawer from right with backdrop + X, auto-closes on tab select, desktop sidebar unchanged (lg+ static, toggle hidden)
 - Fixed corrupted stray lines at end of server.py (duplicate _shutdown fragment) that crashed backend reload
 - Verified: all 4 dashboards open/close/select at 390px with zero h-overflow + zero console errors; desktop admin sidebar inline; categories/cities/developers counts; home-loan card navigation; testimonials page 4 cards; 31/31 pytest; yarn build clean
+
+## Audit (2026-08-14 — complete error audit)
+- Full audit executed: production build, backend startup, 25 public pages × desktop+mobile sweeps (console+network+overflow), all 4 role dashboards, all admin tabs, auth positive/negative flows, upload→serve chain, archive/restore, PUT /site-visits/{id}, email test send, logout, idle-polling watch
+- FIX: nested <form> (AdminPasswordChange inside AdminSettings form) → React hydration error on admin Settings; converted to div + onClick
+- FIX (earlier same day): server.py trailing corrupted _shutdown fragment removed; email resend 502→JSON 200
+- PostHog "t is not a function" in preview = Emergent platform's own injected recorder script (assets.emergent.sh in public/index.html), NOT app code; no app error triggered
+- Results: build PASS (warnings only — known React Hook dependency hints, non-breaking), backend PASS, all API routes PASS, uploads PASS, email PASS, zero app console errors, zero failed requests, zero idle polling, no hardcoded localhost/preview URLs in app code
