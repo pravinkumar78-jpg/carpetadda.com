@@ -32,6 +32,8 @@ export default function Projects() {
   useEffect(() => {
     setLoading(true);
     const qp = new URLSearchParams(sp);
+    if (qp.get("category") === "commercial") qp.delete("bhk"); // BHK never applies to commercial
+    else qp.delete("config");
     qp.set("page_size", "60");
     api.get(`/projects?${qp.toString()}`)
       .then(r => { setItems(r.data.items || []); setTotal(r.data.total || 0); })
@@ -77,13 +79,23 @@ export default function Projects() {
             <Input data-testid="pf-keyword" value={keyword} onChange={e => setKeyword(e.target.value)}
               onKeyDown={e => e.key === "Enter" && search()} placeholder="Project or developer…" className="h-11 rounded-lg border-slate-300" />
           </div>
-          <div>
-            <div className="text-xs uppercase tracking-widest text-slate-500 font-semibold mb-2">BHK</div>
-            <Select value={params.bhk || ""} onValueChange={v => update("bhk", v === "any" ? "" : v)}>
-              <SelectTrigger data-testid="pf-bhk" className="h-11 rounded-lg border-slate-300"><SelectValue placeholder="Any" /></SelectTrigger>
-              <SelectContent><SelectItem value="any">Any</SelectItem>{[1, 2, 3, 4, 5].map(n => <SelectItem key={n} value={String(n)}>{n} BHK</SelectItem>)}</SelectContent>
-            </Select>
-          </div>
+          {params.category === "commercial" ? (
+            <div>
+              <div className="text-xs uppercase tracking-widest text-slate-500 font-semibold mb-2">Commercial Sub-Category</div>
+              <Select value={params.config || ""} onValueChange={v => update("config", v === "any" ? "" : v)}>
+                <SelectTrigger data-testid="pf-config" className="h-11 rounded-lg border-slate-300"><SelectValue placeholder="Any" /></SelectTrigger>
+                <SelectContent><SelectItem value="any">Any</SelectItem>{[["shop", "Shop"], ["office", "Office Space"], ["showroom", "Showroom"]].map(([v, l]) => <SelectItem key={v} value={v}>{l}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+          ) : (
+            <div>
+              <div className="text-xs uppercase tracking-widest text-slate-500 font-semibold mb-2">BHK</div>
+              <Select value={params.bhk || ""} onValueChange={v => update("bhk", v === "any" ? "" : v)}>
+                <SelectTrigger data-testid="pf-bhk" className="h-11 rounded-lg border-slate-300"><SelectValue placeholder="Any" /></SelectTrigger>
+                <SelectContent><SelectItem value="any">Any</SelectItem>{[1, 2, 3, 4, 5].map(n => <SelectItem key={n} value={String(n)}>{n} BHK</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+          )}
           <div>
             <div className="text-xs uppercase tracking-widest text-slate-500 font-semibold mb-2">Location</div>
             <Select value={params.location || ""} onValueChange={v => update("location", v === "any" ? "" : v)}>

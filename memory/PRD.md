@@ -263,3 +263,8 @@
 - FIX (earlier same day): server.py trailing corrupted _shutdown fragment removed; email resend 502→JSON 200
 - PostHog "t is not a function" in preview = Emergent platform's own injected recorder script (assets.emergent.sh in public/index.html), NOT app code; no app error triggered
 - Results: build PASS (warnings only — known React Hook dependency hints, non-breaking), backend PASS, all API routes PASS, uploads PASS, email PASS, zero app console errors, zero failed requests, zero idle polling, no hardcoded localhost/preview URLs in app code
+
+## Change (2026-08-14 — BHK off commercial + Signature Projects label)
+- Projects page: BHK filter hidden when category=commercial; a Commercial Sub-Category select (Shop/Office Space/Showroom) takes its place via new additive `config` param on GET /projects (matches configurations prefix, case-insensitive); bhk stripped from API call when commercial. Properties page already had the correct swap (verified). SearchBar/NewLaunch have no BHK (verified).
+- "Commercial Projects" display text → "Signature Projects" on homepage section, header nav, footer link (URLs + DB category + filtering unchanged). Note: 0 commercial projects exist in seed data — commercial project pages legitimately show empty.
+- Verified in browser: both categories on /projects + /properties, sub-category select filters, footer link navigation, no console errors, 31/31 pytest, build clean.

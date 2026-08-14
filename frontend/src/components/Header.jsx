@@ -11,7 +11,7 @@ const PROPERTY_MENU = [
   { to: "/properties?listing_type=sale", label: "Buy", tid: "nav-prop-buy" },
   { to: "/properties?listing_type=rent", label: "Rent", tid: "nav-prop-rent" },
   { to: "/projects?category=residential", label: "Residential Projects", tid: "nav-prop-residential" },
-  { to: "/projects?category=commercial", label: "Commercial Projects", tid: "nav-prop-commercial" },
+  { to: "/projects?category=commercial", label: "Signature Projects", tid: "nav-prop-commercial" },
 ];
 
 const linkCls = ({ isActive }) =>

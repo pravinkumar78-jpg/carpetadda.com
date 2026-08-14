@@ -685,6 +685,7 @@ async def list_projects(city: Optional[str] = None, location: Optional[str] = No
                         developer_id: Optional[str] = None, featured: Optional[bool] = None,
                         category: Optional[str] = None,
                         bhk: Optional[int] = None,
+                        config: Optional[str] = None,
                         hero: Optional[bool] = None,
                         price_min: Optional[float] = None, price_max: Optional[float] = None,
                         q: Optional[str] = None, sort: str = "newest",
@@ -697,6 +698,7 @@ async def list_projects(city: Optional[str] = None, location: Optional[str] = No
     if hero is not None: query["hero_project"] = hero
     if category: query["property_category"] = category
     if bhk: query["configurations"] = {"$regex": f"^{bhk}\\s*BHK", "$options": "i"}
+    if config: query["configurations"] = {"$regex": f"^{re.escape(config)}", "$options": "i"}  # commercial sub-category
     if price_min is not None: query["price_to"] = {"$gte": price_min}
     if price_max is not None: query["price_from"] = {"$lte": price_max}
     if q: query["$or"] = [{"name": {"$regex": q, "$options": "i"}},

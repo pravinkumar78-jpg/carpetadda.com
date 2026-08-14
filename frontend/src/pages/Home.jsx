@@ -210,7 +210,7 @@ export default function Home() {
 
       {/* Commercial Projects */}
       {hp.commercial_projects.length > 0 && (
-        <Section title="Commercial Projects" eyebrow="Business & Retail" more="/projects?category=commercial" bg="section-blue">
+        <Section title="Signature Projects" eyebrow="Business & Retail" more="/projects?category=commercial" bg="section-blue">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {hp.commercial_projects.map(p => <ProjectCard key={p.id} p={p} />)}
           </div>
