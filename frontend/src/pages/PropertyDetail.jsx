@@ -73,6 +73,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import ScheduleVisitDialog from "@/components/ScheduleVisitDialog";
 import ScrollVisitPopup from "@/components/ScrollVisitPopup";
+import AllImagesGallery from "@/components/AllImagesGallery";
 
 export default function PropertyDetail() {
   const { slug } = useParams();
@@ -101,6 +102,12 @@ export default function PropertyDetail() {
   const price = p.listing_type === "rent" ? `${formatINR(p.rent)}/mo` : formatINR(p.price);
   const waMsg = waPropertyMsg(p);
   const hasHtml = (p.description || "").includes("<");
+  const allImages = [
+    { src: p.main_image, label: "Main Image" },
+    ...(p.images || []).map(src => ({ src, label: "Gallery" })),
+    { src: p.floor_plan, label: "Floor Plan" },
+    { src: p.unit_plan, label: "Unit Plan" },
+  ];
 
   const submitEnquiry = async (e) => {
     e.preventDefault();
@@ -263,6 +270,9 @@ export default function PropertyDetail() {
               </a>
             )}
           </section>
+
+          {/* 6b. All Images — every stored property image, deduped, with lightbox */}
+          <AllImagesGallery items={allImages} testid="all-images" />
 
           {/* 7. Unit Plan */}
           {p.unit_plan && (

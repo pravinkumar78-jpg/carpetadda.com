@@ -228,3 +228,12 @@
 - /post-property now redirects logged-out visitors to /register?next=/post-property (intended destination preserved; was plain /register). Register/Login already honor next → after authentication user returns straight to the Property Listing form.
 - Header List Property now visible for logged-in users too (desktop + mobile) — logged-in click opens the form directly, logged-out click starts the register flow. Guards intact: /post-property + /dashboard/list-property both redirect unauthenticated visitors.
 - Verified all 3 cases in browser: A) new visitor → register → authenticated → form (account really created); B) existing user via Sign-in link (next carried over) → form; C) logged-in → form directly. Full submit e2e: property saved as pending_review owned by the new account. No loops/404/blank/auth errors. QA artifacts cleaned from DB.
+
+## Implemented (2026-08-14, iteration 16 — All Images galleries + welcome email)
+- New reusable AllImagesGallery.jsx: aggregates existing listing image fields (deduped by URL, labeled) into responsive grid (2/3/4 cols, aspect-[4/3], object-cover, lazy) + lightbox (dark overlay, counter "Image N of M · label", Prev/Next pills, close X, Esc/Arrow keys, touch swipe >40px, body scroll lock, image contained in viewport)
+- ProjectDetail: All Images section directly below Map — main_image, images[], floor_plans[].image, units[].unit_plan, rera_qr_url
+- PropertyDetail: All Images section directly below Map — main_image, images[], floor_plan, unit_plan
+- No master_plan field exists in the schema (verified) — closest stored plans (floor/unit/RERA) included; nothing fabricated
+- Welcome email: register() now fires background _send_welcome_email (FastAPI BackgroundTasks — never blocks/fails registration): branded HTML, user name, account-ready confirmation, Explore Properties/New Launch CTA buttons + dashboard link (absolute https URLs pass the safety gate), kind="welcome" recorded in email_log. Verified: register succeeds + welcome attempt logged (fake test domain correctly refused by proxy; real addresses deliver)
+- Root fix: html/body overflow-x:clip (off-canvas embla slides caused 2–7px horizontal scroll at 320px on detail pages; `clip` preserves the sticky header — verified)
+- Verified: lightbox open/next/prev/keyboard/close/fits on both pages, section order (below Map, above Unit Plans), zero broken images, zero console errors, 320–430/768/1920 widths, 31/31 pytest, yarn build clean

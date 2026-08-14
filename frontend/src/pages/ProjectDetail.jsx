@@ -13,6 +13,7 @@ import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import ScheduleVisitDialog from "@/components/ScheduleVisitDialog";
 import ScrollVisitPopup from "@/components/ScrollVisitPopup";
+import AllImagesGallery from "@/components/AllImagesGallery";
 
 export default function ProjectDetail() {
   const { slug } = useParams();
@@ -43,6 +44,13 @@ export default function ProjectDetail() {
   if (!p) return <div className="p-20 text-center text-slate-500">Loading…</div>;
 
   const gallery = Array.from(new Set([p.main_image, ...(p.images || [])].filter(Boolean)));
+  const allImages = [
+    { src: p.main_image, label: "Main Image" },
+    ...(p.images || []).map(src => ({ src, label: "Gallery" })),
+    ...(p.floor_plans || []).map(fp => ({ src: fp.image, label: fp.title ? `Floor Plan · ${fp.title}` : "Floor Plan" })),
+    ...(p.units || []).map(u => ({ src: u.unit_plan, label: `Unit Plan · ${u.typology || u.unit_no || "Unit"}` })),
+    { src: p.rera_qr_url, label: "RERA QR" },
+  ];
   const hasHtml = (p.description || "").includes("<");
 
   const submit = async (e) => {
@@ -229,6 +237,9 @@ export default function ProjectDetail() {
               </a>
             )}
           </section>
+
+          {/* 6b. All Images — every stored project image, deduped, with lightbox */}
+          <AllImagesGallery items={allImages} testid="all-images" />
 
           {/* 7. Unit Plan (collapsible) */}
           {(p.units?.length > 0 || p.floor_plans?.length > 0) && (

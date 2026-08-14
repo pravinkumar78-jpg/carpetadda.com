@@ -33,7 +33,8 @@ from auth import (  # noqa: E402
     verify_password,
 )
 import email_service  # noqa: E402
-from email_service import send_lead_notification, send_lead_notification_report, send_account_email, send_client_auto_reply, record_email_log, smtp_self_test, resend_email_log  # noqa: E402
+from email_service import send_lead_notification, send_lead_notification_report, send_account_email, send_client_auto_reply, record_email_log, smtp_self_test, resend_email_log, _absolutize  # noqa: E402
+from html import escape  # noqa: E402
 from storage import ROOT as UPLOAD_ROOT, build_upload_path, get_object, guess_content_type, init_storage, put_object  # noqa: E402
 from models import (  # noqa: E402
     Agent,
@@ -95,7 +96,7 @@ async def health():
 
 # ---------------- Auth ----------------
 @api.post("/auth/register")
-async def register(body: RegisterInput):
+async def register(body: RegisterInput, background: BackgroundTasks):
     existing = await db.users.find_one({"email": body.email})
     if existing:
         raise HTTPException(400, "Email already registered")
@@ -106,8 +107,36 @@ async def register(body: RegisterInput):
     await db.users.insert_one(u.model_dump())
     if email_ready:
         await _send_verification_email(u)
+    background.add_task(_send_welcome_email, u)  # never blocks or fails registration
     return {"token": create_token(u.id, u.role),
             "user": UserOut(**u.model_dump()).model_dump()}
+
+
+async def _send_welcome_email(u: User):
+    """Warm account-created confirmation. Delivery result is logged via send_account_email;
+    any failure is swallowed so registration is never affected."""
+    try:
+        base = os.environ.get("FRONTEND_URL", os.environ.get("SITE_URL", "http://localhost:3000")).rstrip("/")
+        name = escape(str(u.name or "there"))
+        html = _absolutize(
+            f'<div style="font-family:Poppins,Arial,sans-serif;max-width:640px;margin:0 auto">'
+            f'<div style="background:#162E2A;padding:24px 32px;border-radius:12px 12px 0 0">'
+            f'<span style="color:#fff;font-size:20px;font-weight:700">CarpetAdda<span style="color:#9DB3EE">.com</span></span></div>'
+            f'<div style="border:1px solid #E2E8F0;border-top:0;border-radius:0 0 12px 12px;padding:32px">'
+            f'<h2 style="margin:0 0 8px;color:#0F172A">Welcome aboard, {name}!</h2>'
+            f'<p style="color:#475569;line-height:1.6;margin:0 0 16px">Your CarpetAdda account has been created successfully and is ready to use. '
+            f'We are delighted to have you with us.</p>'
+            f'<p style="color:#475569;line-height:1.6;margin:0 0 16px">Start exploring verified residential and commercial properties, new launches from '
+            f'trusted developers, save your favourites, and schedule site visits — all from your personal dashboard.</p>'
+            f'<p style="margin:24px 0">'
+            f'<a href="{base}/properties" style="background:#708DE6;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:600">Explore Properties</a>&nbsp;&nbsp;'
+            f'<a href="{base}/projects" style="background:#162E2A;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:600">New Launch Projects</a></p>'
+            f'<p style="color:#475569;line-height:1.6;margin:0 0 4px">Your dashboard: <a href="{base}/dashboard" style="color:#708DE6">{base}/dashboard</a></p>'
+            f'<p style="color:#94A3B8;font-size:12px;margin-top:24px">— Team CarpetAdda · India\'s premium real estate platform</p>'
+            f'</div></div>')
+        await send_account_email(u.email, "Welcome to CarpetAdda — Your Account Is Ready", html, kind="welcome")
+    except Exception:
+        pass
 
 
 async def _send_verification_email(u: User):
