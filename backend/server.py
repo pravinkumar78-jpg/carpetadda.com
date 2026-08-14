@@ -1450,7 +1450,9 @@ async def admin_email_logs(limit: int = 100):
 async def admin_email_resend(log_id: str):
     ok, err = await resend_email_log(log_id)
     if not ok:
-        raise HTTPException(502, f"Resend failed: {err}")
+        # 200 + ok:false — a 502 here gets replaced by the CDN/ingress error page,
+        # hiding the real reason from the admin UI
+        return {"ok": False, "message": f"Resend failed: {err}"}
     return {"ok": True, "message": "Email resent successfully"}
 
 

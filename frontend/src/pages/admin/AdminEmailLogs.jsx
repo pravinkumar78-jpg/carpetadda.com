@@ -19,8 +19,9 @@ export default function AdminEmailLogs() {
   const resend = async (r) => {
     setResending(r.id);
     try {
-      await api.post(`/admin/email/resend/${r.id}`);
-      toast.success("Email resent successfully");
+      const { data } = await api.post(`/admin/email/resend/${r.id}`);
+      if (data?.ok === false) toast.error(data.message || "Resend failed");
+      else toast.success(data?.message || "Email resent successfully");
       load();
     } catch (err) {
       toast.error(err?.response?.data?.detail || "Resend failed");
@@ -28,9 +29,19 @@ export default function AdminEmailLogs() {
     } finally { setResending(null); }
   };
 
+  const fmtErr = (e) => {
+    if (!e) return "—";
+    let msg = String(e);
+    try {
+      const m = msg.match(/\{.*\}/s);
+      if (m) { const j = JSON.parse(m[0]); msg = j.message || j.error || msg; }
+    } catch { /* keep raw */ }
+    msg = msg.replace(/^Email proxy HTTP \d+:\s*/, "").trim();
+    return msg.length > 160 ? msg.slice(0, 160) + "…" : msg;
+  };
+
   const statusBadge = (s) => s === "sent"
-    ? <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full bg-emerald-50 text-emerald-700"><CheckCircle size={11} weight="fill" /> Sent</span>
-    : s === "skipped"
+    ? <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full bg-emerald-50 text-emerald-700"><CheckCircle size={11} weight="fill" /> Sent</span>    : s === "skipped"
       ? <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full bg-amber-50 text-amber-700"><Clock size={11} weight="fill" /> Skipped</span>
       : <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full bg-rose-50 text-rose-700"><XCircle size={11} weight="fill" /> Failed</span>;
 
@@ -47,7 +58,7 @@ export default function AdminEmailLogs() {
       </div>
       <div className="card-premium overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-sm min-w-[960px]">
+          <table className="w-full text-sm min-w-[1100px]">
             <thead>
               <tr className="text-left text-[10px] uppercase tracking-widest text-slate-500 border-b border-slate-200 bg-slate-50">
                 <th className="px-4 py-3 font-semibold">Date / Time</th>
@@ -65,7 +76,7 @@ export default function AdminEmailLogs() {
                 <tr key={r.id || r.at} data-testid={`email-log-${r.id || r.at}`} className="border-b border-slate-100 hover:bg-blue-50/40 transition-colors align-top">
                   <td className="px-4 py-3 text-xs text-slate-500 whitespace-nowrap">{new Date(r.at).toLocaleString("en-IN")}</td>
                   <td className="px-4 py-3 text-xs font-semibold text-slate-700 capitalize">{(r.kind || "").replace(/[:_]/g, " ")}{r.resend_of ? " (resend)" : ""}</td>
-                  <td className="px-4 py-3 text-xs text-slate-600 max-w-44 break-all">{(r.to || []).join(", ")}</td>
+                  <td className="px-4 py-3 text-xs text-slate-600 min-w-44 max-w-52 break-all">{(r.to || []).join(", ")}</td>
                   <td className="px-4 py-3 text-xs text-slate-600 max-w-52 truncate" title={r.subject}>{r.subject}</td>
                   <td className="px-4 py-3 text-xs text-slate-500">
                     {r.meta?.client && <div>{r.meta.client}</div>}
@@ -73,7 +84,7 @@ export default function AdminEmailLogs() {
                     {r.meta?.lead_id && <div className="text-[10px] text-slate-400">Lead {String(r.meta.lead_id).slice(0, 8)}…</div>}
                   </td>
                   <td className="px-4 py-3">{statusBadge(r.status)}</td>
-                  <td className="px-4 py-3 text-xs text-rose-600 max-w-52 break-words">{r.error || "—"}</td>
+                  <td className="px-4 py-3 text-xs text-rose-600 max-w-52 break-words" title={r.error || ""}>{fmtErr(r.error)}</td>
                   <td className="px-4 py-3 text-right">
                     {r.status === "failed" && r.resendable && (
                       <button onClick={() => resend(r)} disabled={resending === r.id} data-testid={`resend-${r.id}`}
