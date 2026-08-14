@@ -78,13 +78,13 @@ export default function Home() {
                 style={{ opacity: i === heroIdx % heroSlides.length ? 1 : 0, pointerEvents: i === heroIdx % heroSlides.length ? "auto" : "none" }}
               >
                 <img src={proj.main_image} alt={proj.name} className="w-full h-full object-cover object-center" loading={i === 0 ? "eager" : "lazy"} />
-                <span className="absolute bottom-8 left-6 lg:left-10 z-10 bg-white/90 backdrop-blur px-4 py-2 rounded-lg text-sm font-semibold text-slate-900 shadow-md border border-slate-200">
+                <span className="absolute bottom-8 xl:bottom-16 left-6 lg:left-10 z-10 inline-block max-w-[calc(100vw-3rem)] truncate bg-white/90 backdrop-blur px-4 py-2 rounded-lg text-sm font-semibold text-slate-900 shadow-md border border-slate-200">
                   {proj.name} <span className="text-blue-600 font-medium">→ View Project</span>
                 </span>
               </Link>
             ))}
             {heroSlides.length > 1 && (
-              <div className="absolute bottom-8 right-6 z-10 flex gap-1.5" data-testid="hero-dots">
+              <div className="absolute bottom-3 xl:bottom-16 right-6 z-10 flex gap-1.5" data-testid="hero-dots">
                 {heroSlides.map((proj, i) => (
                   <button key={proj.id} type="button" onClick={() => setHeroIdx(i)} aria-label={`Go to slide ${i + 1}`} data-testid={`hero-dot-${i}`}
                     className={`h-1.5 rounded-full transition-all duration-300 ${i === heroIdx % heroSlides.length ? "w-6 bg-blue-600" : "w-1.5 bg-slate-400/60 hover:bg-slate-500"}`} />
@@ -113,8 +113,8 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Search bar — pulled down to sit between the hero and the next strip */}
-      <div className="relative z-10 -mt-12 mb-4 max-w-7xl mx-auto px-6 lg:px-10" data-testid="hero-search-wrap">
+      {/* Search bar — in flow below the hero on mobile/tablet, straddles the hero boundary on desktop */}
+      <div className="relative z-10 mt-6 mb-8 xl:-mt-12 xl:mb-4 max-w-7xl mx-auto px-6 lg:px-10" data-testid="hero-search-wrap">
         <SearchBar />
       </div>
 

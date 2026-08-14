@@ -198,3 +198,17 @@
 - FRONTEND_URL/SITE_URL set in .env (verification/reset links https — were http://localhost which the safety gate correctly rejected); .env.example updated with SMTP_SECURE
 - Verified REAL delivery: test email, contact, requirement, property enquiry, home loan, site visit, verification = SENT (proxy accepted); password-reset to demo user@estatehub.in = FAILED with real reason (undeliverable fake demo domain — expected; real user emails deliver, proven by verification send); CC to fake demo agent/developer emails fail separately without touching primary
 - 31/31 pytest, build clean
+
+## Implemented (2026-08-14, iteration 14 — email logs, hero projects)
+- Real email flow: Emergent managed proxy live; client auto-reply on enquiry; every attempt recorded in email_log collection; leads/site_visits carry email_status
+- Admin → Email Logs page (AdminEmailLogs.jsx): full delivery history with status/errors + Resend button (POST /admin/email-logs/{id}/resend)
+- Hero Projects: `show_on_homepage` flag on projects (admin ProjectForm toggle); GET /homepage returns hero_projects; Home hero = auto-rotating carousel (5s) of hero project images, slide click-through to project detail, dots navigation; search bar pulled to hero boundary
+
+## Fix (2026-08-14 — mobile hero overlap)
+- Root cause: search bar -mt-12 straddle band (48px) collided with absolutely-positioned hero chip/dots at bottom-8 at every width < ~1794px (worst on mobile where search bar is full-width); chip & dots also collided with each other at 320px; footer email caused horizontal page overflow at 768px; ProjectCard nested <a> in <Link> caused hydration console error
+- Fix: search bar in normal flow (mt-6 mb-8) below xl, straddle (-mt-12) preserved at xl+ (desktop design untouched, verified 48px); chip bottom-8 xl:bottom-16 + max-w truncate; dots own line bottom-3 on mobile, xl:bottom-16 aligned with chip; footer email break-all; ProjectCard WA inner anchor -> button (stopPropagation + window.open)
+- Verified geometrically + functionally at 320/360/375/390/414/430/768/1024/1280/1440/1920: zero overlaps, zero h-overflow, zero console errors, dot nav PASS, chip click-through PASS, search PASS, dark mode PASS
+
+## Pending
+- P0: Full QA pass of Admin Email Logs page + client auto-reply delivery (testing agent)
+- P0: User decision: real emails for demo agent/developer accounts (a) all -> contact@carpetadda.com, (b) user provides real addresses, (c) leave fake seed data

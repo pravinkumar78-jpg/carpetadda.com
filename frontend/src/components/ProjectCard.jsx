@@ -30,11 +30,11 @@ export default function ProjectCard({ p, layout = "grid" }) {
             <div className="flex items-center gap-4 text-xs text-slate-500">
               <span className="flex items-center gap-1"><Buildings size={12} className="text-blue-500" /> {p.total_units} units</span>
               <span className="flex items-center gap-1"><Calendar size={12} className="text-blue-500" /> {p.possession_date}</span>
-              <a href={waProjectMsg(p)} target="_blank" rel="noopener" data-testid={`project-wa-${p.id}`} aria-label={`WhatsApp about ${p.name}`}
-                onClick={e => e.stopPropagation()}
+              <button type="button" data-testid={`project-wa-${p.id}`} aria-label={`WhatsApp about ${p.name}`}
+                onClick={e => { e.stopPropagation(); e.preventDefault(); window.open(waProjectMsg(p), "_blank", "noopener"); }}
                 className="p-2 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-500 hover:text-white transition-colors">
                 <WhatsappLogo size={14} weight="fill" />
-              </a>
+              </button>
             </div>
           </div>
         </div>
@@ -68,11 +68,11 @@ export default function ProjectCard({ p, layout = "grid" }) {
         </div>
         <div className="flex items-center justify-between pt-1">
           <div className="text-blue-600 text-sm font-medium flex items-center gap-1 group-hover:gap-2 transition-all">View Project <ArrowRight size={14} /></div>
-          <a href={waProjectMsg(p)} target="_blank" rel="noopener" data-testid={`project-wa-${p.id}`} aria-label={`WhatsApp about ${p.name}`}
-            onClick={e => e.stopPropagation()}
+          <button type="button" data-testid={`project-wa-${p.id}`} aria-label={`WhatsApp about ${p.name}`}
+            onClick={e => { e.stopPropagation(); e.preventDefault(); window.open(waProjectMsg(p), "_blank", "noopener"); }}
             className="p-2 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-500 hover:text-white transition-colors">
             <WhatsappLogo size={15} weight="fill" />
-          </a>
+          </button>
         </div>
       </div>
     </Link>

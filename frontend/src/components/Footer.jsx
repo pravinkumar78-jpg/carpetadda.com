@@ -99,7 +99,7 @@ export default function Footer() {
           <ul className="space-y-3 text-sm text-slate-600">
             <li className="flex items-center gap-2"><PhoneCall size={16} className="text-blue-500" /> <a data-testid="footer-phone" href={`tel:+${whatsappDigits}`} className="hover:text-blue-600">{formatWa(whatsappDigits)}</a></li>
             <li className="flex items-center gap-2"><WhatsappLogo size={16} className="text-blue-500" /> <a data-testid="footer-whatsapp" href={`https://wa.me/${whatsappDigits}`} className="hover:text-blue-600">{formatWa(whatsappDigits)}</a></li>
-            <li className="flex items-center gap-2"><EnvelopeSimple size={16} className="text-blue-500" /> <a data-testid="footer-email" href={`mailto:${email}`} className="hover:text-blue-600">{email}</a></li>
+            <li className="flex items-center gap-2"><EnvelopeSimple size={16} className="text-blue-500" /> <a data-testid="footer-email" href={`mailto:${email}`} className="hover:text-blue-600 break-all">{email}</a></li>
             <li className="flex items-start gap-2 pt-1 text-slate-500 leading-relaxed" data-testid="footer-address"><MapPin size={16} className="text-blue-500 mt-1 flex-shrink-0" /> {address}</li>
           </ul>
         </div>
