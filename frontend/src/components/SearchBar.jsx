@@ -40,7 +40,7 @@ export default function SearchBar({ compact = false }) {
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList className="bg-transparent rounded-xl p-0 h-auto mb-5 inline-flex gap-2">
           {[["sale", "Buy"], ["rent", "Rent"], ["new_projects", "Projects"]].map(([v, l]) => (
-            <TabsTrigger key={v} value={v} data-testid={`tab-${v}`} className="rounded-lg px-4 py-2 text-sm font-medium bg-[#708DE6] text-white border border-[#5C76D4] hover:bg-[#5C76D4] data-[state=active]:bg-[#708DE6] data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:font-semibold transition-colors">
+            <TabsTrigger key={v} value={v} data-testid={`tab-${v}`} className="rounded-lg px-4 py-2 text-sm font-medium bg-white text-slate-600 border border-slate-200 hover:border-[#708DE6] hover:text-[#708DE6] data-[state=active]:bg-[#708DE6] data-[state=active]:text-white data-[state=active]:border-[#708DE6] data-[state=active]:shadow-md data-[state=active]:font-semibold transition-colors">
               {l}
             </TabsTrigger>
           ))}

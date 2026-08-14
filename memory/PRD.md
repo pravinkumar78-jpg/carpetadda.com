@@ -246,3 +246,13 @@
 
 ## Change (2026-08-14 — List Property lands on Login first)
 - /post-property logged-out redirect changed from /register to /login?next=/post-property (user request). Login returns to the listing form; the "Create account" link on the login page carries next so new users still reach the form after registering. Verified in browser: click→/login?next=..., login→form visible, register link carries next.
+
+## Implemented (2026-08-14, iteration 17 — homepage & mobile dashboard UI batch)
+- Hero search tabs: ONLY the active tab is #708DE6 + white text; inactive tabs are white/slate with blue hover (per new instruction, superseding the all-blue tabs). Projects tab Residential/Commercial behaviour untouched.
+- Browse by Categories: exactly 6 cards — Residential / Commercial / Buy / Rent / Projects / Home Loan (→ /home-loan), all counts real from new browse_counts in GET /homepage (5 count queries); Home Loan shows "EMI & eligibility" (no fake count)
+- Browse by City: top 6 ranked by real listing counts (5 cities exist in DB); Landmark Developers limited to top 6 with initials-avatar fallback for missing/broken logos
+- Testimonials removed from homepage; NEW public /testimonials page (existing GET /testimonials) + Footer link; admin + DB untouched
+- Mobile menu scrolling: verified with real CDP touch input — sheet scrolls naturally, all items reachable at 320–430px and short viewports; no change needed
+- Dashboards (Admin/User/Agent/Developer): new shared DashNav.jsx — mobile sidebar collapsed by default, floating arrow pill at RIGHT screen-middle ("MENU"/"Close"), slide-in drawer from right with backdrop + X, auto-closes on tab select, desktop sidebar unchanged (lg+ static, toggle hidden)
+- Fixed corrupted stray lines at end of server.py (duplicate _shutdown fragment) that crashed backend reload
+- Verified: all 4 dashboards open/close/select at 390px with zero h-overflow + zero console errors; desktop admin sidebar inline; categories/cities/developers counts; home-loan card navigation; testimonials page 4 cards; 31/31 pytest; yarn build clean

@@ -1233,9 +1233,9 @@ async def homepage_bundle():
     if not best_resale:
         best_resale = await db.properties.find({"status": "active", "listing_type": "sale"}, PROJ).sort([("views", -1)]).limit(3).to_list(3)
 
-    top_developers = await db.developers.find({"show_on_homepage": True}, PROJ).limit(9).to_list(9)
+    top_developers = await db.developers.find({"show_on_homepage": True}, PROJ).limit(6).to_list(6)
     if not top_developers:
-        top_developers = await db.developers.find({}, PROJ).limit(9).to_list(9)
+        top_developers = await db.developers.find({}, PROJ).limit(6).to_list(6)
 
     testimonials = await db.testimonials.find({"show_on_homepage": True, "published": True}, PROJ).limit(6).to_list(6)
     if not testimonials:
@@ -1248,7 +1248,7 @@ async def homepage_bundle():
         count = await db.properties.count_documents({"property_type": t, "status": "active"})
         categories.append({"slug": t, "label": t.title(), "count": count})
 
-    # Cities with counts
+    # Cities ranked by real listing counts — top 6 only
     city_slugs = ["mumbai", "thane", "navi-mumbai", "dombivli", "kalyan"]
     cities = []
     for c in city_slugs:
@@ -1256,6 +1256,16 @@ async def homepage_bundle():
         count = await db.properties.count_documents({"city": c, "status": "active"})
         cities.append({"slug": c, "name": (loc or {}).get("name", c.title()),
                        "image": (loc or {}).get("hero_image"), "count": count})
+    cities = sorted(cities, key=lambda c: c["count"], reverse=True)[:6]
+
+    # Browse-by-category counts (all real DB counts)
+    browse_counts = {
+        "residential": await db.properties.count_documents({"property_category": "residential", "status": "active"}),
+        "commercial": await db.properties.count_documents({"property_category": "commercial", "status": "active"}),
+        "sale": await db.properties.count_documents({"listing_type": "sale", "status": "active"}),
+        "rent": await db.properties.count_documents({"listing_type": "rent", "status": "active"}),
+        "projects": await db.projects.count_documents({"status": "active"}),
+    }
 
     # Hero carousel — active projects flagged hero_project, deduped, with main image
     hero_projects = await db.projects.find(
@@ -1268,7 +1278,7 @@ async def homepage_bundle():
             "investor_properties": investor_properties, "best_resale": best_resale,
             "top_developers": top_developers, "testimonials": testimonials,
             "hero_projects": hero_projects,
-            "categories": categories, "cities": cities}
+            "categories": categories, "cities": cities, "browse_counts": browse_counts}
 
 
 # ---------------- Blogs ----------------

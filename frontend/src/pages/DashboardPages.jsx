@@ -5,6 +5,7 @@ import api from "@/lib/api";
 import PropertyCard from "@/components/PropertyCard";
 import { AccountPanel, MyListings } from "@/components/dashboard/AccountPanel";
 import { Heart, MagnifyingGlass, Plus, SquaresFour, UserGear } from "@phosphor-icons/react";
+import { DashNavToggle, DashSidebar } from "@/components/DashNav";
 
 export function UserDashboard() {
   const { user, ready } = useAuth();
@@ -12,6 +13,7 @@ export function UserDashboard() {
   const [saved, setSaved] = useState([]);
   const [mine, setMine] = useState([]);
   const [tab, setTab] = useState("overview");
+  const [navOpen, setNavOpen] = useState(false);
 
   const loadMine = () => { if (user) api.get(`/properties?owner_id=${user.id}&include_archived=true&page_size=50`).then(r => setMine(r.data.items || [])).catch(() => {}); };
 
@@ -40,11 +42,13 @@ export function UserDashboard() {
         </div>
       </div>
       <div className="max-w-7xl mx-auto px-6 lg:px-10 py-12 grid grid-cols-1 lg:grid-cols-[250px,1fr] gap-8 items-start">
+        <DashNavToggle open={navOpen} onToggle={() => setNavOpen(o => !o)} />
+        <DashSidebar open={navOpen} onClose={() => setNavOpen(false)} testid="user-sidebar">
         <aside className="card-premium p-4 h-fit lg:sticky lg:top-24">
           <div className="text-xs uppercase tracking-widest text-slate-500 font-semibold mb-2 px-2">Menu</div>
           <nav className="space-y-1 text-sm">
             {MENU.map(([v, l, Icon]) => (
-              <button key={v} onClick={() => setTab(v)} data-testid={`dash-tab-${v}`} className={`w-full flex items-center gap-2 px-3 py-2.5 rounded-lg font-medium transition-colors ${tab === v ? "bg-blue-600 text-white" : "text-slate-700 hover:bg-blue-50 hover:text-blue-600"}`}>
+              <button key={v} onClick={() => { setTab(v); setNavOpen(false); }} data-testid={`dash-tab-${v}`} className={`w-full flex items-center gap-2 px-3 py-2.5 rounded-lg font-medium transition-colors ${tab === v ? "bg-blue-600 text-white" : "text-slate-700 hover:bg-blue-50 hover:text-blue-600"}`}>
                 <Icon size={16} /> {l}
               </button>
             ))}
@@ -55,6 +59,7 @@ export function UserDashboard() {
             {(user.role === "admin" || user.role === "super_admin") && <Link to="/admin" className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-blue-600 font-semibold">Admin Panel →</Link>}
           </nav>
         </aside>
+        </DashSidebar>
 
         <div className="min-w-0">
           {tab === "overview" && (

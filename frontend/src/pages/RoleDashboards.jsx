@@ -7,6 +7,7 @@ import { Plus, House, Buildings, ChatCircle, Heart, MagnifyingGlass, UserGear, U
 import { AccountPanel, MyListings } from "@/components/dashboard/AccountPanel";
 import LeadsChart from "@/components/LeadsChart";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { DashNavToggle, DashSidebar } from "@/components/DashNav";
 import { Input } from "@/components/ui/input";
 import { formatINR } from "@/lib/format";
 
@@ -246,6 +247,7 @@ export function ClientDashboard() {
 }
 
 function DashShell({ user, title, menu, actions = [], extraActions = null, tab, setTab, children }) {
+  const [navOpen, setNavOpen] = useState(false);
   return (
     <div className="min-h-screen">
       <div className="section-blue py-12">
@@ -265,16 +267,19 @@ function DashShell({ user, title, menu, actions = [], extraActions = null, tab, 
         </div>
       </div>
       <div className="max-w-7xl mx-auto px-6 lg:px-10 py-10 grid grid-cols-1 lg:grid-cols-[250px,1fr] gap-8 items-start">
+        <DashNavToggle open={navOpen} onToggle={() => setNavOpen(o => !o)} />
+        <DashSidebar open={navOpen} onClose={() => setNavOpen(false)} testid="role-sidebar">
         <aside className="card-premium p-4 h-fit lg:sticky lg:top-24">
           <div className="text-xs uppercase tracking-widest text-slate-500 font-semibold mb-2 px-2">Menu</div>
           <nav className="space-y-1 text-sm">
             {menu.map(([v, l, Icon]) => (
-              <button key={v} onClick={() => setTab(v)} data-testid={`role-tab-${v}`} className={`w-full flex items-center gap-2 px-3 py-2.5 rounded-lg font-medium transition-colors ${tab === v ? "bg-blue-600 text-white" : "text-slate-700 hover:bg-blue-50 hover:text-blue-600"}`}>
+              <button key={v} onClick={() => { setTab(v); setNavOpen(false); }} data-testid={`role-tab-${v}`} className={`w-full flex items-center gap-2 px-3 py-2.5 rounded-lg font-medium transition-colors ${tab === v ? "bg-blue-600 text-white" : "text-slate-700 hover:bg-blue-50 hover:text-blue-600"}`}>
                 <Icon size={16} /> {l}
               </button>
             ))}
           </nav>
         </aside>
+        </DashSidebar>
         <div className="min-w-0 space-y-8">{children}</div>
       </div>
     </div>

@@ -88,6 +88,7 @@ export default function Footer() {
             <li><Link to="/about" data-testid="footer-link-about" className="hover:text-blue-600">About Us</Link></li>
             <li><Link to="/contact" data-testid="footer-link-contact" className="hover:text-blue-600">Contact</Link></li>
             <li><Link to="/faqs" data-testid="footer-link-faqs" className="hover:text-blue-600">FAQs</Link></li>
+            <li><Link to="/testimonials" data-testid="footer-link-testimonials" className="hover:text-blue-600">Testimonials</Link></li>
             {pages.map(pg => (
               <li key={pg.id}><Link to={`/page/${pg.slug}`} data-testid={`footer-page-${pg.slug}`} className="hover:text-blue-600">{pg.title}</Link></li>
             ))}

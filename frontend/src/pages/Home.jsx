@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, Star, Buildings, Sparkle, House, Storefront, Briefcase, TreePalm, Bed, PaperPlaneTilt } from "@phosphor-icons/react";
+import { ArrowRight, Sparkle, House, Buildings, Key, CurrencyCircleDollar, City, Bank, PaperPlaneTilt } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import SearchBar from "@/components/SearchBar";
 import PropertyCard from "@/components/PropertyCard";
@@ -11,7 +11,7 @@ import { formatINR } from "@/lib/format";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 
-const CATEGORY_ICONS = { apartment: Bed, villa: House, shop: Storefront, office: Briefcase, plot: TreePalm };
+
 
 export default function Home() {
   const [hp, setHp] = useState(null);
@@ -157,21 +157,29 @@ export default function Home() {
         <SearchBar />
       </div>
 
-      {/* Browse by Categories */}
+      {/* Browse by Categories — exactly 6 entry points with real DB counts */}
       <Section title="Browse by Categories" eyebrow="Explore" more="/properties">
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-          {hp.categories.map(c => {
-            const Icon = CATEGORY_ICONS[c.slug] || House;
-            return (
-              <Link key={c.slug} to={`/properties?property_type=${c.slug}`} data-testid={`cat-${c.slug}`} className="card-premium p-6 text-center group">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          {(() => {
+            const bc = hp.browse_counts || {};
+            const cards = [
+              { to: "/properties?category=residential", label: "Residential", count: bc.residential, Icon: House, tid: "residential" },
+              { to: "/properties?category=commercial", label: "Commercial", count: bc.commercial, Icon: Buildings, tid: "commercial" },
+              { to: "/properties?listing_type=sale", label: "Buy", count: bc.sale, Icon: CurrencyCircleDollar, tid: "buy" },
+              { to: "/properties?listing_type=rent", label: "Rent", count: bc.rent, Icon: Key, tid: "rent" },
+              { to: "/projects", label: "Projects", count: bc.projects, Icon: City, tid: "projects" },
+              { to: "/home-loan", label: "Home Loan", sub: "EMI & eligibility", Icon: Bank, tid: "home-loan" },
+            ];
+            return cards.map(c => (
+              <Link key={c.tid} to={c.to} data-testid={`cat-${c.tid}`} className="card-premium p-6 text-center group">
                 <div className="w-14 h-14 rounded-2xl bg-blue-100 flex items-center justify-center mx-auto mb-4 group-hover:bg-blue-600 group-hover:text-white transition-colors text-blue-600">
-                  <Icon size={26} weight="bold" />
+                  <c.Icon size={26} weight="bold" />
                 </div>
                 <div className="font-semibold text-slate-900">{c.label}</div>
-                <div className="text-xs text-slate-500 mt-1">{c.count} {c.count === 1 ? "listing" : "listings"}</div>
+                <div className="text-xs text-slate-500 mt-1">{c.count != null ? `${c.count} ${c.count === 1 ? "listing" : "listings"}` : c.sub}</div>
               </Link>
-            );
-          })}
+            ));
+          })()}
         </div>
       </Section>
 
@@ -227,37 +235,16 @@ export default function Home() {
         </Section>
       )}
 
-      {/* Landmark Developers */}
+      {/* Landmark Developers — top 6 with logo fallback */}
       {hp.top_developers.length > 0 && (
         <Section title="Landmark Developers" eyebrow="Trusted names" more="/developers" testid="landmark-developers">
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
             {hp.top_developers.map(d => (
               <Link key={d.id} to={`/developer/${d.slug}`} data-testid={`developer-${d.slug}`} className="card-premium p-4 text-center group">
-                <img src={d.logo} alt={d.name} className="w-full aspect-square object-cover rounded-lg mb-3" />
+                <DevLogo d={d} />
                 <div className="font-medium text-sm text-slate-900 group-hover:text-blue-600 transition-colors line-clamp-1">{d.name}</div>
                 <div className="text-xs text-slate-500 mt-1">{d.total_projects} projects</div>
               </Link>
-            ))}
-          </div>
-        </Section>
-      )}
-
-      {/* Testimonials */}
-      {hp.testimonials.length > 0 && (
-        <Section title="What families say about us" eyebrow="Loved by clients" bg="section-blue">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {hp.testimonials.map(t => (
-              <div key={t.id} className="card-premium p-6">
-                <div className="flex gap-1 text-amber-400 mb-4">{Array.from({ length: Math.round(t.rating) }).map((_, i) => <Star key={i} size={16} weight="fill" />)}</div>
-                <p className="text-slate-700 leading-relaxed mb-6">"{t.review}"</p>
-                <div className="flex items-center gap-3 pt-4 border-t border-slate-200/60">
-                  {t.photo && <img src={t.photo} alt={t.name} className="w-11 h-11 rounded-full object-cover" />}
-                  <div>
-                    <div className="text-sm font-semibold text-slate-900">{t.name}</div>
-                    <div className="text-xs text-slate-500">{t.role}</div>
-                  </div>
-                </div>
-              </div>
             ))}
           </div>
         </Section>
@@ -316,6 +303,19 @@ export default function Home() {
     </div>
   );
 }
+
+function DevLogo({ d }) {
+  const [err, setErr] = useState(false);
+  if (!d.logo || err) {
+    return (
+      <div className="w-full aspect-square rounded-lg mb-3 bg-blue-100 text-blue-600 flex items-center justify-center text-3xl font-bold" aria-hidden="true">
+        {(d.name || "D").trim()[0].toUpperCase()}
+      </div>
+    );
+  }
+  return <img src={d.logo} alt={d.name} loading="lazy" onError={() => setErr(true)} className="w-full aspect-square object-cover rounded-lg mb-3" />;
+}
+
 
 function Section({ eyebrow, title, more, bg = "", testid, children }) {
   return (

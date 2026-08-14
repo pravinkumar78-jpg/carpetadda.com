@@ -18,6 +18,7 @@ import AdminEmailLogs from "@/pages/admin/AdminEmailLogs";
 import LeadsChart from "@/components/LeadsChart";
 import AdminArchive from "@/pages/admin/AdminArchive";
 import AdminPages from "@/pages/admin/AdminPages";
+import { DashNavToggle, DashSidebar } from "@/components/DashNav";
 
 const TABS = [
   ["overview", "Overview", ChartBar],
@@ -42,6 +43,7 @@ export default function AdminPanel() {
   const [tab, setTab] = useState("overview");
   const [seoOpen, setSeoOpen] = useState(false);
   const [seoPage, setSeoPage] = useState(null);
+  const [navOpen, setNavOpen] = useState(false);
 
   const openSeoPage = (p) => { setSeoPage(p); setTab("seo"); setSeoOpen(true); };
 
@@ -68,11 +70,13 @@ export default function AdminPanel() {
       </div>
 
       <div className="max-w-7xl mx-auto px-6 lg:px-10 py-8">
-        <Tabs value={tab} onValueChange={setTab} className="grid grid-cols-1 lg:grid-cols-[230px,1fr] gap-8 items-start">
-          {/* Left-side navigation */}
-          <TabsList className="flex flex-row lg:flex-col flex-wrap h-auto bg-white card-premium p-3 gap-1 lg:sticky lg:top-24 w-full items-stretch justify-start" data-testid="admin-left-nav">
+        <Tabs value={tab} onValueChange={(v) => { setTab(v); setNavOpen(false); }} className="grid grid-cols-1 lg:grid-cols-[230px,1fr] gap-8 items-start">
+          {/* Left-side navigation — collapsible drawer on mobile via DashSidebar */}
+          <DashNavToggle open={navOpen} onToggle={() => setNavOpen(o => !o)} />
+          <DashSidebar open={navOpen} onClose={() => setNavOpen(false)} testid="admin-sidebar">
+          <TabsList className="flex flex-col h-auto bg-white card-premium p-3 gap-1 lg:sticky lg:top-24 w-full items-stretch justify-start" data-testid="admin-left-nav">
             {TABS.map(([v, l, Icon]) => (
-              <TabsTrigger key={v} value={v} data-testid={`admin-tab-${v}`} className="justify-start rounded-lg px-4 py-2.5 text-sm font-medium data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-sm text-slate-600 flex items-center gap-2.5 w-auto lg:w-full">
+              <TabsTrigger key={v} value={v} data-testid={`admin-tab-${v}`} className="justify-start rounded-lg px-4 py-2.5 text-sm font-medium data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-sm text-slate-600 flex items-center gap-2.5 w-full">
                 <Icon size={16} weight="bold" /> {l}
               </TabsTrigger>
             ))}
@@ -81,25 +85,26 @@ export default function AdminPanel() {
               type="button"
               data-testid="admin-tab-seo"
               onClick={() => setSeoOpen(o => !o)}
-              className={`justify-start rounded-lg px-4 py-2.5 text-sm font-medium text-slate-600 flex items-center gap-2.5 w-auto lg:w-full hover:bg-blue-50 hover:text-blue-600 transition-colors ${tab.startsWith("seo") ? "text-blue-600" : ""}`}
+              className={`justify-start rounded-lg px-4 py-2.5 text-sm font-medium text-slate-600 flex items-center gap-2.5 w-full hover:bg-blue-50 hover:text-blue-600 transition-colors ${tab.startsWith("seo") ? "text-blue-600" : ""}`}
             >
               <MagnifyingGlass size={16} weight="bold" /> SEO
               <CaretDown size={12} weight="bold" className={`ml-auto transition-transform ${seoOpen ? "rotate-180" : ""}`} />
             </button>
             {seoOpen && (
-              <div className="lg:pl-8 flex flex-row lg:flex-col gap-1 w-full">
-                <TabsTrigger value="seo" data-testid="admin-tab-seo-pages" onClick={() => setSeoPage(null)} className="justify-start rounded-lg px-4 py-2 text-sm font-medium data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-sm text-slate-500 flex items-center gap-2.5 w-auto lg:w-full">
+              <div className="pl-5 lg:pl-8 flex flex-col gap-1 w-full">
+                <TabsTrigger value="seo" data-testid="admin-tab-seo-pages" onClick={() => setSeoPage(null)} className="justify-start rounded-lg px-4 py-2 text-sm font-medium data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-sm text-slate-500 flex items-center gap-2.5 w-full">
                   <Article size={14} /> Pages
                 </TabsTrigger>
                 {tab === "seo" && MAJOR_PAGES.map(([v, l]) => (
                   <button key={v} type="button" onClick={() => openSeoPage(v)} data-testid={`seo-nav-${v.replace(/\//g, "_") || "_home"}`}
-                    className={`justify-start rounded-lg px-4 py-1.5 lg:ml-4 text-xs font-medium flex items-center gap-2 w-auto lg:w-full transition-colors ${seoPage === v ? "bg-blue-50 text-blue-700" : "text-slate-400 hover:text-blue-600 hover:bg-blue-50/60"}`}>
+                    className={`justify-start rounded-lg px-4 py-1.5 lg:ml-4 text-xs font-medium flex items-center gap-2 w-full transition-colors ${seoPage === v ? "bg-blue-50 text-blue-700" : "text-slate-400 hover:text-blue-600 hover:bg-blue-50/60"}`}>
                     <span className={`w-1.5 h-1.5 rounded-full ${seoPage === v ? "bg-blue-600" : "bg-slate-300"}`} /> {l}
                   </button>
                 ))}
               </div>
             )}
           </TabsList>
+          </DashSidebar>
 
           <div className="min-w-0">
             <TabsContent value="overview"><Overview stats={stats} go={setTab} nav={nav} /></TabsContent>
