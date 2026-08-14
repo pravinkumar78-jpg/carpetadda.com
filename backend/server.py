@@ -33,7 +33,7 @@ from auth import (  # noqa: E402
     verify_password,
 )
 import email_service  # noqa: E402
-from email_service import send_lead_notification, send_lead_notification_report, send_account_email, record_email_log, smtp_self_test  # noqa: E402
+from email_service import send_lead_notification, send_lead_notification_report, send_account_email, send_client_auto_reply, record_email_log, smtp_self_test, resend_email_log  # noqa: E402
 from storage import ROOT as UPLOAD_ROOT, build_upload_path, get_object, guess_content_type, init_storage, put_object  # noqa: E402
 from models import (  # noqa: E402
     Agent,
@@ -656,6 +656,7 @@ async def list_projects(city: Optional[str] = None, location: Optional[str] = No
                         developer_id: Optional[str] = None, featured: Optional[bool] = None,
                         category: Optional[str] = None,
                         bhk: Optional[int] = None,
+                        hero: Optional[bool] = None,
                         price_min: Optional[float] = None, price_max: Optional[float] = None,
                         q: Optional[str] = None, sort: str = "newest",
                         page: int = 1, page_size: int = 12):
@@ -664,6 +665,7 @@ async def list_projects(city: Optional[str] = None, location: Optional[str] = No
     if location: query["location"] = location
     if developer_id: query["developer_id"] = developer_id
     if featured is not None: query["featured"] = featured
+    if hero is not None: query["hero_project"] = hero
     if category: query["property_category"] = category
     if bhk: query["configurations"] = {"$regex": f"^{bhk}\\s*BHK", "$options": "i"}
     if price_min is not None: query["price_to"] = {"$gte": price_min}
@@ -1226,9 +1228,17 @@ async def homepage_bundle():
         cities.append({"slug": c, "name": (loc or {}).get("name", c.title()),
                        "image": (loc or {}).get("hero_image"), "count": count})
 
+    # Hero carousel — active projects flagged hero_project, deduped, with main image
+    hero_projects = await db.projects.find(
+        {"hero_project": True, "status": "active", "main_image": {"$nin": [None, ""]}}, PROJ
+    ).sort("created_at", -1).limit(10).to_list(10)
+    seen_hero = set()
+    hero_projects = [p for p in hero_projects if not (p["id"] in seen_hero or seen_hero.add(p["id"]))]
+
     return {"featured_projects": featured_projects, "commercial_projects": commercial_projects,
             "investor_properties": investor_properties, "best_resale": best_resale,
             "top_developers": top_developers, "testimonials": testimonials,
+            "hero_projects": hero_projects,
             "categories": categories, "cities": cities}
 
 
@@ -1389,6 +1399,30 @@ async def admin_email_test():
     if not ok:
         raise HTTPException(502, f"Test email failed: {err}")
     return {"ok": True, "message": f"Test email sent successfully to {to}"}
+
+
+@api.get("/admin/email/logs", dependencies=[Depends(require_roles("admin"))])
+async def admin_email_logs(limit: int = 100):
+    rows = await db.email_log.find({}, {"payload": 0}).sort("at", -1).limit(min(limit, 500)).to_list(min(limit, 500))
+    resendable = {str(d["_id"]) for d in await db.email_log.find({"payload.html": {"$exists": True}}, {"_id": 1}).to_list(500)}
+    out = []
+    for r in rows:
+        r.pop("_id", None)
+        r["resendable"] = str(r.get("_id", "")) in resendable or bool(r.get("id"))
+        out.append(r)
+    # mark resendable via a separate lookup on the uuid id
+    id_map = {d["id"]: True for d in await db.email_log.find({"payload.html": {"$exists": True}}, {"_id": 0, "id": 1}).to_list(500)}
+    for r in out:
+        r["resendable"] = r.get("id") in id_map
+    return out
+
+
+@api.post("/admin/email/resend/{log_id}", dependencies=[Depends(require_roles("admin"))])
+async def admin_email_resend(log_id: str):
+    ok, err = await resend_email_log(log_id)
+    if not ok:
+        raise HTTPException(502, f"Resend failed: {err}")
+    return {"ok": True, "message": "Email resent successfully"}
 
 
 # ---------------- Admin: Users ----------------
@@ -1686,8 +1720,12 @@ async def create_lead(body: Lead, background: BackgroundTasks):
 
 
 async def _notify_lead(doc_id: str, collection: str, lead: dict, kind: str, ctx: dict):
-    """Background: send enquiry email, then record real delivery status on the doc."""
+    """Background: business email → agent/developer CC → client auto-reply; record status."""
     ok, err = await send_lead_notification_report(lead, kind, ctx)
+    try:
+        await send_client_auto_reply(lead, kind, ctx)
+    except Exception as e:
+        log.error("Auto-reply failed: %s", e)
     try:
         await db[collection].update_one({"id": doc_id}, {"$set": {
             "email_status": "sent" if ok else "failed",

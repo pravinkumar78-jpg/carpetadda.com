@@ -23,6 +23,9 @@ log = logging.getLogger("carpetadda.email")
 # Emergent managed email proxy — constant by design (survives deployment)
 EMAIL_BASE_URL = "https://integrations.emergentagent.com"
 
+# Demo/test domains — never CC confidential leads to these
+DEMO_EMAIL_DOMAINS = {"estatehub.in", "example.com", "example.in", "example.org", "test.com"}
+
 _db = None
 
 
@@ -51,15 +54,19 @@ def smtp_configured() -> bool:
 
 
 # ---------------------------------------------------------------- logging ----
-async def record_email_log(kind: str, to, subject: str, status: str, error: Optional[str] = None, provider: Optional[str] = None):
-    """Persist every send attempt so admins can see real delivery status."""
+async def record_email_log(kind: str, to, subject: str, status: str, error: Optional[str] = None,
+                           provider: Optional[str] = None, payload: Optional[dict] = None,
+                           meta: Optional[dict] = None, resend_of: Optional[str] = None):
+    """Persist every send attempt so admins can see real delivery status and resend failures."""
     if _db is None:
         return
     try:
         await _db.email_log.insert_one({
+            "id": __import__("uuid").uuid4().hex,
             "kind": kind, "to": to if isinstance(to, list) else [to],
             "subject": subject[:200], "status": status, "error": error,
             "provider": provider, "at": datetime.now(timezone.utc).isoformat(),
+            "payload": payload, "meta": meta or {}, "resend_of": resend_of,
         })
     except Exception as e:
         log.error("email_log write failed: %s", e)
@@ -376,16 +383,26 @@ async def send_lead_notification_report(lead: dict, kind: str = "Property", ctx:
     subject = subject_map.get(kind, f"New {kind} Enquiry — {prop_name or 'CarpetAdda'}")
     html = _absolutize(_lead_html(lead, kind, ctx))
     reply_to = lead.get("email") if lead.get("email") and "@" in str(lead.get("email")) else None
-    cc = [e for e in (ctx.get("extra_recipients") or []) if e and e != cfg["to"]]
+    raw_cc = [e for e in (ctx.get("extra_recipients") or []) if e and e != cfg["to"]]
+    # Never send confidential leads to demo/test addresses — admin must set a real email first
+    demo_cc = [e for e in raw_cc if e.lower().split("@")[-1] in DEMO_EMAIL_DOMAINS]
+    cc = [e for e in raw_cc if e not in demo_cc]
+    for d in demo_cc:
+        await record_email_log(f"lead:{kind.lower()}:cc", [d], subject, "skipped",
+                               "Demo address — set a real Agent/Developer email to enable CC delivery",
+                               meta={"lead_id": lead.get("id"), "listing": prop_name})
+    meta = {"lead_id": lead.get("id"), "listing": prop_name, "client": lead.get("name")}
 
     # STEP 1: primary business email — never blocked by CC issues
+    payload = {"to": [cfg["to"]], "subject": subject, "html": html, "reply_to": reply_to}
     if smtp_configured():
         ok, err = await _send_smtp(cfg["to"], subject, html, cc=None, reply_to=reply_to)
         provider = "smtp"
     else:
         ok, err = await _send_proxy(cfg["to"], subject, html, cc=None, reply_to=reply_to)
         provider = "emergent-proxy"
-    await record_email_log(f"lead:{kind.lower()}", [cfg["to"]], subject, "sent" if ok else "failed", None if ok else err, provider)
+    await record_email_log(f"lead:{kind.lower()}", [cfg["to"]], subject, "sent" if ok else "failed",
+                           None if ok else err, provider, payload=payload, meta=meta)
     if not ok:
         log.error("Primary enquiry email failed (%s): %s", kind, err)
 
@@ -395,7 +412,9 @@ async def send_lead_notification_report(lead: dict, kind: str = "Property", ctx:
             cc_ok, cc_err = await _send_smtp(cc[0], subject, html, cc=cc[1:] or None, reply_to=reply_to)
         else:
             cc_ok, cc_err = await _send_proxy(cc[0], subject, html, cc=cc[1:] or None, reply_to=reply_to)
-        await record_email_log(f"lead:{kind.lower()}:cc", cc, subject, "sent" if cc_ok else "failed", None if cc_ok else cc_err, provider)
+        await record_email_log(f"lead:{kind.lower()}:cc", cc, subject, "sent" if cc_ok else "failed",
+                               None if cc_ok else cc_err, provider,
+                               payload={**payload, "to": cc}, meta=meta)
         if not cc_ok:
             log.warning("Agent/Developer CC failed (%s): %s", kind, cc_err)
             err = (err + " | " if err else "") + f"CC failed: {cc_err}"
@@ -404,3 +423,73 @@ async def send_lead_notification_report(lead: dict, kind: str = "Property", ctx:
 
 async def send_account_email(to: str, subject: str, html: str, kind: str = "account") -> bool:
     return await _deliver(to, subject, html, kind=kind)
+
+
+_VALID_EMAIL = re.compile(r"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$")
+
+
+async def send_client_auto_reply(lead: dict, kind: str, ctx: dict | None = None) -> tuple:
+    """Auto-confirm receipt to the client. Only when a valid client email exists."""
+    ctx = ctx or {}
+    client_email = (lead.get("email") or "").strip()
+    if not _VALID_EMAIL.match(client_email):
+        return False, "no valid client email"
+    listing = ctx.get("prop_name") or ctx.get("project_name")
+    name = escape(str(lead.get("name") or "there"))
+    rows = "".join([
+        _fmt_row("Enquiry Type", kind),
+        _fmt_row("Property / Project", listing),
+        _fmt_row("Reference ID", lead.get("id")),
+    ])
+    html = _absolutize(
+        f'<div style="font-family:Poppins,Arial,sans-serif;max-width:640px;margin:0 auto">'
+        f'<div style="background:#708DE6;color:#fff;padding:16px 20px;border-radius:12px 12px 0 0">'
+        f'<div style="font-size:18px;font-weight:600">We received your enquiry</div>'
+        f'<div style="font-size:12px;opacity:.85">CarpetAdda.com</div></div>'
+        f'<div style="border:1px solid #e2e8f0;border-top:none;border-radius:0 0 12px 12px;padding:20px">'
+        f'<p style="color:#0f172a;font-size:14px">Hello {name},</p>'
+        f'<p style="color:#475569;font-size:14px;line-height:1.7">Thank you for reaching out to CarpetAdda. '
+        f'We have received your enquiry and our team will get back to you shortly.</p>'
+        f'<table style="width:100%;border-collapse:collapse;margin-top:12px">{rows}</table>'
+        f'<p style="color:#475569;font-size:14px;line-height:1.7;margin-top:16px">Need anything sooner? '
+        f'Reply to this email or WhatsApp us at +91 88288 30707.</p>'
+        f'<p style="font-size:11px;color:#94a3b8;margin-top:16px">CarpetAdda.com — we never ask for passwords or card details by email.</p>'
+        f'</div></div>'
+    )
+    if smtp_configured():
+        ok, err = await _send_smtp(client_email, "We received your enquiry — CarpetAdda", html)
+        provider = "smtp"
+    else:
+        ok, err = await _send_proxy(client_email, "We received your enquiry — CarpetAdda", html)
+        provider = "emergent-proxy"
+    await record_email_log("auto_reply", [client_email], "We received your enquiry — CarpetAdda",
+                           "sent" if ok else "failed", None if ok else err, provider,
+                           payload={"to": [client_email], "subject": "We received your enquiry — CarpetAdda", "html": html},
+                           meta={"lead_id": lead.get("id"), "listing": listing, "client": lead.get("name")})
+    return ok, err
+
+
+async def resend_email_log(log_id: str) -> tuple:
+    """Admin resend: re-deliver a stored payload; records a new attempt."""
+    if _db is None:
+        return False, "database unavailable"
+    doc = await _db.email_log.find_one({"id": log_id}, {"_id": 0})
+    if not doc:
+        return False, "Email log entry not found"
+    payload = doc.get("payload") or {}
+    to = (payload.get("to") or doc.get("to") or [])
+    to = to if isinstance(to, list) else [to]
+    if not payload.get("html") or not to:
+        return False, "This log entry has no stored email content to resend (only entries logged after this update carry resend data)"
+    if smtp_configured():
+        ok, err = await _send_smtp(to[0], payload.get("subject", doc.get("subject", "CarpetAdda")),
+                                   payload["html"], cc=to[1:] or None, reply_to=payload.get("reply_to"))
+        provider = "smtp"
+    else:
+        ok, err = await _send_proxy(to[0], payload.get("subject", doc.get("subject", "CarpetAdda")),
+                                    payload["html"], cc=to[1:] or None, reply_to=payload.get("reply_to"))
+        provider = "emergent-proxy"
+    await record_email_log(doc.get("kind", "resend"), to, payload.get("subject", doc.get("subject", "")),
+                           "sent" if ok else "failed", None if ok else err, provider,
+                           payload=payload, meta=doc.get("meta") or {}, resend_of=log_id)
+    return ok, err

@@ -17,6 +17,14 @@ export default function Home() {
   const settings = useSettings();
   const [req, setReq] = useState({ name: "", phone: "", email: "", message: "" });
   const [sending, setSending] = useState(false);
+  const [heroIdx, setHeroIdx] = useState(0);
+  const heroSlides = hp?.hero_projects || [];
+
+  useEffect(() => {
+    if (heroSlides.length < 2) return;
+    const t = setInterval(() => setHeroIdx(i => (i + 1) % heroSlides.length), 5000);
+    return () => clearInterval(t);
+  }, [heroSlides.length]);
 
   useEffect(() => {
     let cancelled = false;
@@ -58,13 +66,43 @@ export default function Home() {
     <div>
       {/* Hero */}
       <section className="relative overflow-hidden bg-slate-50" data-testid="hero-section">
-        <img src={settings?.hero_image || "/hero-carpetadda.png"} alt="CarpetAdda real estate" className="hero-img-light absolute inset-0 w-full h-full object-cover" />
-        <img src="/hero-dark.webp" alt="CarpetAdda real estate — night skyline" className="hero-img-dark absolute inset-0 w-full h-full object-cover" />
-        <div className="hero-overlay-light absolute inset-0 bg-gradient-to-r from-white/90 via-white/45 to-transparent" />
-        <div className="hero-overlay-dark absolute inset-0 bg-gradient-to-r from-[#162E2A]/90 via-[#162E2A]/50 to-[#162E2A]/20" />
-        <div className="hero-overlay-light absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-white/70 to-transparent" />
-        <div className="relative max-w-7xl mx-auto px-6 lg:px-10 pt-16 pb-20 lg:pt-24 lg:pb-28">
-          <div className="max-w-3xl mb-10">
+        {heroSlides.length > 0 ? (
+          <div className="absolute inset-0" data-testid="hero-carousel">
+            {heroSlides.map((proj, i) => (
+              <Link
+                key={proj.id}
+                to={`/project/${proj.slug}`}
+                data-testid={`hero-slide-${proj.slug}`}
+                aria-label={`View ${proj.name}`}
+                className="absolute inset-0 transition-opacity duration-1000 ease-in-out"
+                style={{ opacity: i === heroIdx % heroSlides.length ? 1 : 0, pointerEvents: i === heroIdx % heroSlides.length ? "auto" : "none" }}
+              >
+                <img src={proj.main_image} alt={proj.name} className="w-full h-full object-cover object-center" loading={i === 0 ? "eager" : "lazy"} />
+                <span className="absolute bottom-8 left-6 lg:left-10 z-10 bg-white/90 backdrop-blur px-4 py-2 rounded-lg text-sm font-semibold text-slate-900 shadow-md border border-slate-200">
+                  {proj.name} <span className="text-blue-600 font-medium">→ View Project</span>
+                </span>
+              </Link>
+            ))}
+            {heroSlides.length > 1 && (
+              <div className="absolute bottom-8 right-6 z-10 flex gap-1.5" data-testid="hero-dots">
+                {heroSlides.map((proj, i) => (
+                  <button key={proj.id} type="button" onClick={() => setHeroIdx(i)} aria-label={`Go to slide ${i + 1}`} data-testid={`hero-dot-${i}`}
+                    className={`h-1.5 rounded-full transition-all duration-300 ${i === heroIdx % heroSlides.length ? "w-6 bg-blue-600" : "w-1.5 bg-slate-400/60 hover:bg-slate-500"}`} />
+                ))}
+              </div>
+            )}
+          </div>
+        ) : (
+          <>
+            <img src={settings?.hero_image || "/hero-carpetadda.png"} alt="CarpetAdda real estate" className="hero-img-light absolute inset-0 w-full h-full object-cover" />
+            <img src="/hero-dark.webp" alt="CarpetAdda real estate — night skyline" className="hero-img-dark absolute inset-0 w-full h-full object-cover" />
+          </>
+        )}
+        <div className="hero-overlay-light absolute inset-0 bg-gradient-to-r from-white/90 via-white/45 to-transparent pointer-events-none" />
+        <div className="hero-overlay-dark absolute inset-0 bg-gradient-to-r from-[#162E2A]/90 via-[#162E2A]/50 to-[#162E2A]/20 pointer-events-none" />
+        <div className="hero-overlay-light absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-white/70 to-transparent pointer-events-none" />
+        <div className="relative max-w-7xl mx-auto px-6 lg:px-10 pt-16 pb-24 lg:pt-24 lg:pb-32">
+          <div className="max-w-3xl">
             <h1 data-testid="hero-title" className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.08] text-slate-900 mb-6">
               Every Dream <span className="text-blue-600">Deserves</span> an Address
             </h1>
@@ -72,9 +110,13 @@ export default function Home() {
               {settings?.hero_subtitle || "Discover residential and commercial properties, new projects, resale homes and rentals — verified listings from India's most trusted developers."}
             </p>
           </div>
-          <SearchBar />
         </div>
       </section>
+
+      {/* Search bar — pulled down to sit between the hero and the next strip */}
+      <div className="relative z-10 -mt-12 mb-4 max-w-7xl mx-auto px-6 lg:px-10" data-testid="hero-search-wrap">
+        <SearchBar />
+      </div>
 
       {/* Browse by Categories */}
       <Section title="Browse by Categories" eyebrow="Explore" more="/properties">

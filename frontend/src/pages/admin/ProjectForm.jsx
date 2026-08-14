@@ -28,7 +28,7 @@ const empty = () => ({
   total_towers: 3, total_units: 200, total_floors: 22,
   amenities: [], specifications: [], images: [], videos: [], brochure_url: "",
   payment_plan: "20:80 with bank finance", floor_plans: [],
-  featured: false, verified: true, status: "draft",
+  featured: false, verified: true, status: "draft", hero_project: false,
   show_featured_residential: false, show_commercial_homepage: false, flags: [],
   import_source_url: "",
   seo: { title: "", description: "", slug: "", focus_keyword: "", canonical: "", og_title: "", og_description: "", og_image: "" },
@@ -50,6 +50,7 @@ export default function ProjectForm() {
   const [fetching, setFetching] = useState(false);
   const [fetchingNearby, setFetchingNearby] = useState(false);
   const inAdmin = window.location.pathname.startsWith("/admin");
+  const isAdmin = inAdmin && (user?.role === "admin" || user?.role === "super_admin");
   const backTo = inAdmin ? "/admin" : "/developer";
 
   const loadDevelopers = () => api.get("/developers?limit=200").then(r => setDevelopers(r.data || [])).catch(() => {});
@@ -404,6 +405,18 @@ export default function ProjectForm() {
                 </div>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {isAdmin && (
+                  <div className="md:col-span-2 rounded-xl border border-blue-200 bg-blue-50/60 p-4 flex items-center justify-between gap-4" data-testid="hero-project-field">
+                    <div>
+                      <div className="text-sm font-semibold text-slate-900">Hero Project</div>
+                      <div className="text-xs text-slate-500 mt-0.5">Show this project's main image in the homepage hero carousel. Only approved (active) projects appear publicly.</div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-semibold text-slate-500">{f.hero_project ? "Yes" : "No"}</span>
+                      <Switch checked={!!f.hero_project} onCheckedChange={v => set("hero_project", v)} data-testid="hero-project-toggle" />
+                    </div>
+                  </div>
+                )}
                 <Flag_ label="Show in Featured Residential (homepage, max 6)" v={f.show_featured_residential} onChange={v => set("show_featured_residential", v)} />
                 <Flag_ label="Show in Commercial Projects (homepage, max 3)" v={f.show_commercial_homepage} onChange={v => set("show_commercial_homepage", v)} />
                 <Flag_ label="Featured badge on cards" v={f.featured} onChange={v => set("featured", v)} />

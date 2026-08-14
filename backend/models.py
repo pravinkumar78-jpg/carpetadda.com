@@ -245,6 +245,7 @@ class Project(BaseDoc):
 
     featured: bool = False
     verified: bool = True
+    hero_project: bool = False
     status: str = "active"
     owner_id: Optional[str] = None
     import_source_url: Optional[str] = None

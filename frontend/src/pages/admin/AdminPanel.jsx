@@ -3,7 +3,7 @@ import { Navigate, Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import api from "@/lib/api";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Buildings, ChartBar, UserCircle, ChatCircle, House, Package, ListChecks, Question, Star, Article, Users, Gear, MagnifyingGlass, Archive, CaretDown } from "@phosphor-icons/react";
+import { Buildings, ChartBar, UserCircle, ChatCircle, House, Package, ListChecks, Question, Star, Article, Users, Gear, MagnifyingGlass, Archive, CaretDown, EnvelopeSimple } from "@phosphor-icons/react";
 import AdminProperties from "@/pages/admin/AdminProperties";
 import AdminProjects from "@/pages/admin/AdminProjects";
 import AdminLeads from "@/pages/admin/AdminLeads";
@@ -14,6 +14,7 @@ import AdminTestimonials from "@/pages/admin/AdminTestimonials";
 import AdminBlogs from "@/pages/admin/AdminBlogs";
 import AdminSettings from "@/pages/admin/AdminSettings";
 import AdminSeo, { MAJOR_PAGES } from "@/pages/admin/AdminSeo";
+import AdminEmailLogs from "@/pages/admin/AdminEmailLogs";
 import LeadsChart from "@/components/LeadsChart";
 import AdminArchive from "@/pages/admin/AdminArchive";
 import AdminPages from "@/pages/admin/AdminPages";
@@ -24,6 +25,7 @@ const TABS = [
   ["projects", "Projects", Buildings],
   ["leads", "Leads", ChatCircle],
   ["site-visits", "Site Visits", ListChecks],
+  ["email-logs", "Email Logs", EnvelopeSimple],
   ["blogs", "Blog", Article],
   ["testimonials", "Testimonials", Star],
   ["faqs", "FAQs", Question],
@@ -105,6 +107,7 @@ export default function AdminPanel() {
             <TabsContent value="projects"><AdminProjects /></TabsContent>
             <TabsContent value="leads"><AdminLeads /></TabsContent>
             <TabsContent value="site-visits"><AdminSiteVisits /></TabsContent>
+            <TabsContent value="email-logs"><AdminEmailLogs /></TabsContent>
             <TabsContent value="blogs"><AdminBlogs /></TabsContent>
             <TabsContent value="testimonials"><AdminTestimonials /></TabsContent>
             <TabsContent value="faqs"><AdminFAQs /></TabsContent>
