@@ -16,9 +16,10 @@ export default function PostProperty() {
     city: "dombivli", location: "dombivli-east", address: "",
   });
 
-  // List Property flow: not logged in → Register page (registration lands on the
-  // user dashboard, which links to List Property). Logged in → the form directly.
-  if (ready && !user) return <Navigate to="/register" replace />;
+  // List Property flow: not logged in → Register page preserving the intended
+  // destination (registration authenticates, then returns here to the form).
+  // Logged in → the form renders directly.
+  if (ready && !user) return <Navigate to="/register?next=/post-property" replace />;
 
   const submit = async (e) => {
     e.preventDefault();

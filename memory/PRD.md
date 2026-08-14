@@ -223,3 +223,8 @@
 
 ## Fix (2026-08-14 — hero chip invisible text in dark mode)
 - Root cause: dark-mode CSS forces .text-slate-900→white, but chip bg used bg-white/90 which had no dark override → white text on white chip. Fixed at root in index.css: .dark .bg-white\/90 → rgba(28,56,51,0.92) and .bg-white\/95 → 0.95 (also fixes gallery carousel arrow buttons in dark mode). Verified: chip bg rgb(28,56,51), name #FFF, readable in dark; light mode unchanged.
+
+## Fix (2026-08-14 — List Property redirect flow)
+- /post-property now redirects logged-out visitors to /register?next=/post-property (intended destination preserved; was plain /register). Register/Login already honor next → after authentication user returns straight to the Property Listing form.
+- Header List Property now visible for logged-in users too (desktop + mobile) — logged-in click opens the form directly, logged-out click starts the register flow. Guards intact: /post-property + /dashboard/list-property both redirect unauthenticated visitors.
+- Verified all 3 cases in browser: A) new visitor → register → authenticated → form (account really created); B) existing user via Sign-in link (next carried over) → form; C) logged-in → form directly. Full submit e2e: property saved as pending_review owned by the new account. No loops/404/blank/auth errors. QA artifacts cleaned from DB.
