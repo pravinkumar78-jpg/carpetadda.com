@@ -220,3 +220,6 @@
 - Hero bottom padding bumped (pb-36 / lg:pb-44) so the taller chip never touches hero text; chip stays bottom-8 xl:bottom-16 above the search straddle band; mobile alignment from iteration-14 fix preserved
 - Verified: admin toggle/reorder UI, API save/public read, rotation opacity advance, fallback state, chip click-through → correct project page, geometry 320–1920 (zero overlap/overflow/errors), dark mode, 31/31 pytest, yarn build clean (Hostinger-safe)
 - Demo note: two generated dusk-skyline test images currently active as hero backgrounds — replace anytime via Admin → Settings → Hero Settings
+
+## Fix (2026-08-14 — hero chip invisible text in dark mode)
+- Root cause: dark-mode CSS forces .text-slate-900→white, but chip bg used bg-white/90 which had no dark override → white text on white chip. Fixed at root in index.css: .dark .bg-white\/90 → rgba(28,56,51,0.92) and .bg-white\/95 → 0.95 (also fixes gallery carousel arrow buttons in dark mode). Verified: chip bg rgb(28,56,51), name #FFF, readable in dark; light mode unchanged.
