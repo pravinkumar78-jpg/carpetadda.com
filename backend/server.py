@@ -686,6 +686,7 @@ async def list_projects(city: Optional[str] = None, location: Optional[str] = No
                         category: Optional[str] = None,
                         bhk: Optional[int] = None,
                         config: Optional[str] = None,
+                        construction_status: Optional[str] = None,
                         hero: Optional[bool] = None,
                         price_min: Optional[float] = None, price_max: Optional[float] = None,
                         q: Optional[str] = None, sort: str = "newest",
@@ -697,6 +698,7 @@ async def list_projects(city: Optional[str] = None, location: Optional[str] = No
     if featured is not None: query["featured"] = featured
     if hero is not None: query["hero_project"] = hero
     if category: query["property_category"] = category
+    if construction_status: query["construction_status"] = construction_status
     if bhk: query["configurations"] = {"$regex": f"^{bhk}\\s*BHK", "$options": "i"}
     if config: query["configurations"] = {"$regex": f"^{re.escape(config)}", "$options": "i"}  # commercial sub-category
     if price_min is not None: query["price_to"] = {"$gte": price_min}
@@ -1276,10 +1278,14 @@ async def homepage_bundle():
     seen_hero = set()
     hero_projects = [p for p in hero_projects if not (p["id"] in seen_hero or seen_hero.add(p["id"]))]
 
+    # RTMI — ready-to-move-in projects (construction_status "ready"), max 6
+    rtmi_projects = await db.projects.find(
+        {"status": "active", "construction_status": "ready"}, PROJ).limit(6).to_list(6)
+
     return {"featured_projects": featured_projects, "commercial_projects": commercial_projects,
             "investor_properties": investor_properties, "best_resale": best_resale,
             "top_developers": top_developers, "testimonials": testimonials,
-            "hero_projects": hero_projects,
+            "hero_projects": hero_projects, "rtmi_projects": rtmi_projects,
             "categories": categories, "cities": cities, "browse_counts": browse_counts}
 
 
@@ -1626,11 +1632,18 @@ async def fetch_nearby(body: dict = Body(...), u: dict = Depends(current_user)):
         q = ", ".join(str(x).replace("-", " ") for x in [body.get("address"), body.get("location"), body.get("city")] if x)
         if not q:
             raise HTTPException(400, "Enter the address/location or latitude & longitude first")
+        results = []
         try:
             async with httpx.AsyncClient(timeout=15, headers={"User-Agent": "CarpetAdda/1.0 (contact@carpetadda.com)"}) as client:
                 r = await client.get("https://nominatim.openstreetmap.org/search",
                                      params={"q": q + ", India", "format": "json", "limit": 1})
-            results = r.json()
+                if r.status_code == 200:
+                    results = r.json()
+                if not results:
+                    # Nominatim rate-limits shared IPs (429) — Photon is a compatible fallback
+                    rp = await client.get("https://photon.komoot.io/api/", params={"q": q + ", India", "limit": 1})
+                    feats = rp.json().get("features", [])
+                    results = [{"lat": f["geometry"]["coordinates"][1], "lon": f["geometry"]["coordinates"][0]} for f in feats]
         except Exception:
             raise HTTPException(400, "Location service unreachable — please try again or enter places manually")
         if not results:

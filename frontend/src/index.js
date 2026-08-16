@@ -7,22 +7,9 @@ import App from "@/App";
 // ─── ResizeObserver loop fix (root cause) ─────────────────────────────
 // Radix popovers/selects measure layout inside ResizeObserver callbacks, which can
 // produce the benign "ResizeObserver loop completed" notification storm. The CRA dev
-// overlay escalates this to a full-screen error. Two layers of defense:
-// 1) Defer RO callbacks to the next animation frame (eliminates the loop entirely).
-// 2) Capture-phase error interception so the message never reaches the dev overlay.
-if (typeof window !== "undefined" && window.ResizeObserver) {
-  const NativeRO = window.ResizeObserver;
-  window.ResizeObserver = class extends NativeRO {
-    constructor(callback) {
-      let frame = 0;
-      super((entries, observer) => {
-        cancelAnimationFrame(frame);
-        frame = requestAnimationFrame(() => callback(entries, observer));
-      });
-    }
-  };
-}
-
+// overlay escalates this to a full-screen error. Capture-phase interception keeps the
+// message from reaching the dev overlay. (An earlier rAF-deferral patch here caused the
+// Radix dropdown's autoUpdate to re-observe every frame and hard-freeze the page — removed.)
 const isResizeObserverError = (msg) =>
   typeof msg === "string" && (msg.includes("ResizeObserver loop completed") || msg.includes("ResizeObserver loop limit exceeded"));
 

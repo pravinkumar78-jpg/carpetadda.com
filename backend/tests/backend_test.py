@@ -361,3 +361,84 @@ class TestLeadAndSiteVisitCreation:
         response = requests.get(f"{BASE_URL}/api/{endpoint}", timeout=20)
         assert response.status_code in {401, 403}
         assert "detail" in response.json()
+
+
+
+# Properties-navigation regression coverage: public sale grid, search, category filters, and sorting.
+class TestPropertiesNavigationRegression:
+    """Validate API contracts exercised by header Buy navigation and listing filters."""
+
+    def test_sale_listing_grid_contract(self):
+        response = requests.get(
+            f"{BASE_URL}/api/properties",
+            params={"listing_type": "sale", "page": 1, "page_size": 12, "sort": "newest"},
+            timeout=20,
+        )
+        assert response.status_code == 200, response.text
+        body = response.json()
+        assert set(body) >= {"items", "total", "page", "page_size", "total_pages"}
+        assert body["page"] == 1 and body["page_size"] == 12
+        assert isinstance(body["total"], int) and body["total"] > 0
+        assert isinstance(body["items"], list) and body["items"]
+        for item in body["items"]:
+            assert item["status"] == "active"
+            assert item["listing_type"] == "sale"
+            assert isinstance(item["id"], str) and item["id"]
+            assert isinstance(item["slug"], str) and item["slug"]
+
+    def test_search_contract_uses_real_listing_title(self):
+        seed = requests.get(
+            f"{BASE_URL}/api/properties", params={"listing_type": "sale", "page_size": 1}, timeout=20
+        )
+        assert seed.status_code == 200, seed.text
+        seed_items = seed.json()["items"]
+        assert seed_items
+        title = seed_items[0]["title"]
+        searched = requests.get(
+            f"{BASE_URL}/api/properties", params={"q": title, "page_size": 60}, timeout=20
+        )
+        assert searched.status_code == 200, searched.text
+        body = searched.json()
+        assert body["items"] and body["total"] >= 1
+        assert any(item["id"] == seed_items[0]["id"] for item in body["items"])
+        for item in body["items"]:
+            searchable = " ".join(str(item.get(key) or "") for key in ("title", "description", "address"))
+            assert title.casefold() in searchable.casefold()
+
+    @pytest.mark.parametrize("params,expected_category,expected_type", [
+        ({"category": "residential"}, "residential", None),
+        ({"category": "commercial", "property_type": "office"}, "commercial", "office"),
+    ])
+    def test_category_filter_contract(self, params, expected_category, expected_type):
+        response = requests.get(
+            f"{BASE_URL}/api/properties", params={**params, "page_size": 60}, timeout=20
+        )
+        assert response.status_code == 200, response.text
+        body = response.json()
+        assert isinstance(body["items"], list)
+        for item in body["items"]:
+            assert item["property_category"] == expected_category
+            if expected_type:
+                assert item["property_type"] == expected_type
+
+    @pytest.mark.parametrize("sort_key,reverse", [("price_low", False), ("price_high", True)])
+    def test_price_sort_contract(self, sort_key, reverse):
+        response = requests.get(
+            f"{BASE_URL}/api/properties",
+            params={"listing_type": "sale", "sort": sort_key, "page_size": 60},
+            timeout=20,
+        )
+        assert response.status_code == 200, response.text
+        body = response.json()
+        prices = [item["price"] for item in body["items"]]
+        assert prices == sorted(prices, reverse=reverse)
+
+    def test_projects_public_contract(self):
+        response = requests.get(f"{BASE_URL}/api/projects", params={"page_size": 60}, timeout=20)
+        assert response.status_code == 200, response.text
+        body = response.json()
+        assert isinstance(body["items"], list)
+        assert isinstance(body["total"], int)
+        for item in body["items"]:
+            assert item["status"] == "active"
+            assert isinstance(item["id"], str) and item["id"]

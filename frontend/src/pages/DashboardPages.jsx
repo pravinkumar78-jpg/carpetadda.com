@@ -69,7 +69,7 @@ export function UserDashboard() {
                   <div className="font-bold text-slate-900 text-lg">Have a property to sell or rent?</div>
                   <p className="text-sm text-slate-600 mt-1">List it free — reach thousands of verified buyers on CarpetAdda.</p>
                 </div>
-                <Link to="/dashboard/list-property" data-testid="dash-list-property" className="inline-flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2.5 rounded-lg shadow-md shadow-blue-500/20 whitespace-nowrap">
+                <Link to="/dashboard/list-property" data-testid="dash-list-property" className="inline-flex items-center gap-1.5 bg-blue-800 hover:bg-blue-900 text-white text-sm font-medium px-4 py-2.5 rounded-lg shadow-md shadow-blue-500/20 whitespace-nowrap">
                   <Plus size={15} weight="bold" /> List Property
                 </Link>
               </div>
@@ -92,7 +92,7 @@ export function UserDashboard() {
             <div className="space-y-5">
               <div className="flex items-center justify-between flex-wrap gap-3">
                 <h2 className="text-2xl font-bold text-slate-900">My Listings</h2>
-                <Link to="/dashboard/list-property" data-testid="dash-list-property" className="inline-flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2.5 rounded-lg shadow-md shadow-blue-500/20">
+                <Link to="/dashboard/list-property" data-testid="dash-list-property" className="inline-flex items-center gap-1.5 bg-blue-800 hover:bg-blue-900 text-white text-sm font-medium px-4 py-2.5 rounded-lg shadow-md shadow-blue-500/20">
                   <Plus size={15} weight="bold" /> List Property
                 </Link>
               </div>

@@ -288,6 +288,8 @@ html.dark body { background: #162E2A; color: #ffffff; }
 .dark .bg-slate-50 { background-color: #1A332E; }
 .dark .bg-slate-100 { background-color: #22413B; }
 .dark .bg-blue-50 { background-color: rgba(112, 141, 230, 0.14); }
+.dark .from-blue-50 { --tw-gradient-from: rgba(112, 141, 230, 0.14) var(--tw-gradient-from-position); --tw-gradient-to: rgba(112, 141, 230, 0) var(--tw-gradient-to-position); --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to); }
+.dark .to-white { --tw-gradient-to: #1C3833 var(--tw-gradient-to-position); }
 .dark .bg-blue-100 { background-color: rgba(112, 141, 230, 0.22); }
 .dark .text-slate-900, .dark .text-slate-800, .dark .text-slate-700 { color: #ffffff; }
 .dark .text-slate-600 { color: #C4D6D0; }

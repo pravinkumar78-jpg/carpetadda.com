@@ -167,6 +167,7 @@ class Property(BaseDoc):
     features: List[str] = Field(default_factory=list)
     images: List[str] = Field(default_factory=list)
     video_url: Optional[str] = None
+    youtube_url: Optional[str] = None
     virtual_tour_url: Optional[str] = None
     brochure_url: Optional[str] = None
     floor_plan: Optional[str] = None
@@ -257,6 +258,12 @@ class Project(BaseDoc):
 
     # RERA additions
     rera_qr_url: Optional[str] = None
+    # Multiple RERA entries: [{number, description, url, qr_url, certificate_url}]
+    rera_entries: List[dict] = Field(default_factory=list)
+    # Dedicated uploads
+    master_plan: Optional[str] = None
+    youtube_url: Optional[str] = None
+    land_size: Optional[str] = None
 
     # Media + location additions
     main_image: Optional[str] = None
@@ -301,6 +308,7 @@ class Lead(BaseDoc):
     property_finalised: Optional[bool] = None
     property_cost: Optional[float] = None
     loan_amount: Optional[float] = None
+    loan_type: Optional[str] = None
     property_id: Optional[str] = None
     project_id: Optional[str] = None
     agent_id: Optional[str] = None

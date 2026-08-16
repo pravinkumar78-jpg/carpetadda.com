@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/input";
 import api from "@/lib/api";
 import { formatINR } from "@/lib/format";
 
-const EMPTY = { name: "", phone: "", email: "", profession: "", designation: "", company_name: "", property_finalised: "", property_cost: "", loan_amount: "" };
+const EMPTY = { name: "", phone: "", email: "", profession: "", designation: "", company_name: "", property_finalised: "", property_cost: "", loan_amount: "", loan_type: "" };
+const LOAN_TYPES = ["Home Loan", "Loan Against Property", "Mortgage Loan", "Balance Transfer", "Top-up Loan", "Other"];
 
 export default function HomeLoan() {
   const [sp] = useSearchParams();
@@ -32,11 +33,13 @@ export default function HomeLoan() {
     e.preventDefault();
     if (!form.name.trim()) { toast.error("Please enter your full name"); return; }
     if (form.phone.replace(/\D/g, "").length < 10) { toast.error("Please enter a valid 10-digit mobile number"); return; }
+    if (!form.loan_type) { toast.error("Please select a loan type"); return; }
     setBusy(true);
     try {
       await api.post("/leads", {
         name: form.name.trim(),
         phone: form.phone.trim(),
+        loan_type: form.loan_type,
         email: form.email.trim() || undefined,
         profession: form.profession.trim() || undefined,
         designation: form.designation.trim() || undefined,
@@ -46,7 +49,7 @@ export default function HomeLoan() {
         loan_amount: Number(form.loan_amount) || undefined,
         property_id: refInfo.propertyId || undefined,
         project_id: refInfo.projectId || undefined,
-        message: `Home loan application${refInfo.propertyName ? ` for ${refInfo.propertyName}` : ""} — Profession: ${form.profession || "—"}, Designation: ${form.designation || "—"}, Company: ${form.company_name || "—"}`,
+        message: `${form.loan_type} application${refInfo.propertyName ? ` for ${refInfo.propertyName}` : ""} — Profession: ${form.profession || "—"}, Designation: ${form.designation || "—"}, Company: ${form.company_name || "—"}`,
         source: "home_loan",
         landing_page: "/home-loan",
         source_url: window.location.href,
@@ -111,6 +114,14 @@ export default function HomeLoan() {
                 </Select>
               </Fl>
               <Fl label="Property Cost (₹)"><Input data-testid="hl-property-cost" type="number" min="0" value={form.property_cost} onChange={e => set("property_cost", e.target.value)} placeholder="8500000" className="h-11 rounded-lg border-slate-200" /></Fl>
+              <Fl label="Loan Type / Loan Category *">
+                <Select value={form.loan_type} onValueChange={v => set("loan_type", v)}>
+                  <SelectTrigger data-testid="hl-loan-type" className="h-11 rounded-lg border-slate-200"><SelectValue placeholder="Select loan type" /></SelectTrigger>
+                  <SelectContent>
+                    {LOAN_TYPES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </Fl>
               <Fl label="Loan Amount (₹)"><Input data-testid="hl-loan-amount" type="number" min="0" value={form.loan_amount} onChange={e => set("loan_amount", e.target.value)} placeholder="6000000" className="h-11 rounded-lg border-slate-200" /></Fl>
             </div>
             <button type="submit" disabled={busy} data-testid="hl-submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3.5 rounded-lg font-semibold shadow-md shadow-blue-500/20 disabled:opacity-60 transition-colors">

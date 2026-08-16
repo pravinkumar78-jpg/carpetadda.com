@@ -5,7 +5,8 @@ import PropertyMap from "@/components/PropertyMap";
 import ProjectCard from "@/components/ProjectCard";
 import { formatINR, formatArea } from "@/lib/format";
 import { waProjectMsg } from "@/lib/whatsapp";
-import { MapPin, Download, PhoneCall, WhatsappLogo, CalendarBlank, Check, Compass, Car, Bed, Bank } from "@phosphor-icons/react";
+import { MapPin, Download, PhoneCall, WhatsappLogo, CalendarBlank, Check, Compass, Car, Bed, Bank, SquaresFour, List, QrCode, FileText, ArrowSquareOut } from "@phosphor-icons/react";
+import { ytEmbedId } from "@/lib/utils";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -21,6 +22,7 @@ export default function ProjectDetail() {
   const [inventory, setInventory] = useState(null);
   const [form, setForm] = useState({ name: "", phone: "", email: "", message: "" });
   const [visitOpen, setVisitOpen] = useState(false);
+  const [similarView, setSimilarView] = useState("grid");
 
   useEffect(() => {
     api.get(`/projects/${slug}`).then(r => {
@@ -47,10 +49,19 @@ export default function ProjectDetail() {
   const allImages = [
     { src: p.main_image, label: "Main Image" },
     ...(p.images || []).map(src => ({ src, label: "Gallery" })),
+    { src: p.master_plan, label: "Master Plan" },
     ...(p.floor_plans || []).map(fp => ({ src: fp.image, label: fp.title ? `Floor Plan · ${fp.title}` : "Floor Plan" })),
     ...(p.units || []).map(u => ({ src: u.unit_plan, label: `Unit Plan · ${u.typology || u.unit_no || "Unit"}` })),
     { src: p.rera_qr_url, label: "RERA QR" },
+    ...(p.rera_entries || []).map(r => ({ src: r.qr_url, label: `RERA QR · ${r.number || ""}` })),
   ];
+  // RERA blocks: new multi-entry list wins; fall back to the legacy single fields
+  const reraBlocks = (Array.isArray(p.rera_entries) && p.rera_entries.length
+    ? p.rera_entries.filter(r => r && (r.number || r.qr_url || r.certificate_url || r.url))
+    : (p.rera_number || p.rera_qr_url || p.rera_link
+      ? [{ number: p.rera_number, description: null, url: p.rera_link, qr_url: p.rera_qr_url, certificate_url: null }]
+      : []));
+  const ytId = ytEmbedId(p.youtube_url);
   const hasHtml = (p.description || "").includes("<");
 
   const submit = async (e) => {
@@ -286,7 +297,54 @@ export default function ProjectDetail() {
             </section>
           )}
 
-          {p.developer && (
+          {/* 7b. YouTube Video — rendered only when a valid link exists */}
+          {ytId && (
+            <section data-testid="section-youtube">
+              <h2 className="text-2xl font-bold text-slate-900 mb-5">YouTube Video</h2>
+              <div className="card-premium overflow-hidden">
+                <div className="relative w-full aspect-video">
+                  <iframe src={`https://www.youtube-nocookie.com/embed/${ytId}`} title={`${p.name} — video`}
+                    className="absolute inset-0 w-full h-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen loading="lazy" />
+                </div>
+              </div>
+            </section>
+          )}
+
+          {/* 7c. RERA Details — one block per RERA registration */}
+          {reraBlocks.length > 0 && (
+            <section data-testid="section-rera-details">
+              <h2 className="text-2xl font-bold text-slate-900 mb-5">RERA Details</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {reraBlocks.map((r, i) => (
+                  <div key={i} data-testid={`rera-block-${i}`} className="card-premium p-5">
+                    <div className="text-xs uppercase tracking-widest text-blue-600 font-semibold mb-3">RERA Registration</div>
+                    {r.number && <div className="text-base font-bold text-slate-900 font-mono tracking-wide mb-2">RERA No: {r.number}</div>}
+                    {r.description && <p className="text-sm text-slate-600 leading-relaxed mb-4">{r.description}</p>}
+                    <div className="flex items-end gap-4 flex-wrap">
+                      {r.qr_url && (
+                        <a href={r.url || r.qr_url} target="_blank" rel="noopener" data-testid={`rera-qr-${i}`} className="block" title={r.url ? "Open official RERA page" : "View QR"}>
+                          <img src={r.qr_url} alt={`RERA QR ${r.number || i + 1}`} className="w-20 h-20 rounded-lg border border-slate-200 object-contain bg-white" loading="lazy" />
+                        </a>
+                      )}
+                      <div className="flex flex-col gap-2 text-sm">
+                        {r.certificate_url && (
+                          <a href={r.certificate_url} target="_blank" rel="noopener" data-testid={`rera-cert-${i}`} className="inline-flex items-center gap-1.5 text-blue-600 font-medium hover:text-blue-700">
+                            <FileText size={15} /> View RERA Certificate
+                          </a>
+                        )}
+                        {r.url && (
+                          <a href={r.url} target="_blank" rel="noopener" data-testid={`rera-link-${i}`} className="inline-flex items-center gap-1.5 text-blue-600 font-medium hover:text-blue-700">
+                            <ArrowSquareOut size={15} /> Open Official RERA Page
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
             <div className="card-premium p-6">
               <div className="text-xs uppercase tracking-widest text-blue-600 font-semibold mb-3">About the Developer</div>
               <Link to={`/developer/${p.developer.slug}`} className="flex items-center gap-4">
@@ -311,13 +369,39 @@ export default function ProjectDetail() {
             </button>
           </section>
 
-          {/* 9. Similar Projects */}
+          {/* 9. Similar Projects — grid/list toggle */}
           {p.similar?.length > 0 && (
             <section data-testid="section-similar">
-              <h2 className="text-2xl font-bold text-slate-900 mb-6">Similar Projects</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {p.similar.map(s => <ProjectCard key={s.id} p={s} />)}
+              <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
+                <h2 className="text-2xl font-bold text-slate-900">Similar Projects</h2>
+                <div className="flex bg-white border border-slate-300 rounded-lg overflow-hidden" data-testid="similar-view-toggle">
+                  {[["grid", SquaresFour], ["list", List]].map(([k, Icon]) => (
+                    <button key={k} type="button" data-testid={`similar-view-${k}`} onClick={() => setSimilarView(k)}
+                      className={`p-2.5 ${similarView === k ? "bg-blue-600 text-white" : "text-slate-600 hover:bg-blue-50 hover:text-blue-600"} transition-colors`} aria-label={`${k} view`}>
+                      <Icon size={17} />
+                    </button>
+                  ))}
+                </div>
               </div>
+              {similarView === "grid" ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {p.similar.map(s => <ProjectCard key={s.id} p={s} />)}
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {p.similar.map(s => (
+                    <Link key={s.id} to={`/project/${s.slug}`} data-testid={`similar-list-${s.slug}`} className="card-premium p-3 flex items-center gap-4 group">
+                      <img src={s.main_image} alt={s.name} loading="lazy" className="w-28 sm:w-36 aspect-[4/3] object-cover rounded-lg flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <div className="font-semibold text-slate-900 group-hover:text-blue-600 transition-colors truncate">{s.name}</div>
+                        <div className="text-xs text-slate-500 flex items-center gap-1 mt-1 capitalize"><MapPin size={12} /> {(s.location || "").replace(/-/g, " ")}, {s.city}</div>
+                        {(s.configurations || []).length > 0 && <div className="text-xs text-slate-500 mt-1">{(s.configurations || []).join(" · ")}</div>}
+                      </div>
+                      {s.price_from && <div className="text-sm font-bold text-blue-600 rupee whitespace-nowrap">{formatINR(s.price_from)}+</div>}
+                    </Link>
+                  ))}
+                </div>
+              )}
             </section>
           )}
         </div>

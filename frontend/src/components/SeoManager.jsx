@@ -18,10 +18,17 @@ function setMeta(selector, attrs, content) {
 }
 
 export function applySeo(seo, page) {
-  document.title = seo?.meta_title || DEFAULT_TITLE;
-  setMeta('meta[name="description"]', { name: "description" }, seo?.meta_description);
-  setMeta('meta[name="keywords"]', { name: "keywords" }, seo?.meta_keywords);
-  setMeta('meta[property="og:title"]', { property: "og:title" }, seo?.og_title || seo?.meta_title);
+  // Commercial projects listing gets commercial terminology
+  const commercial = page === "/projects" && typeof window !== "undefined" &&
+    new URLSearchParams(window.location.search).get("category") === "commercial";
+  document.title = commercial ? "Commercial Projects | CarpetAdda" : (seo?.meta_title || DEFAULT_TITLE);
+  setMeta('meta[name="description"]', { name: "description" }, commercial
+    ? "Explore premium commercial projects, business spaces and investment opportunities across prime locations on CarpetAdda."
+    : seo?.meta_description);
+  setMeta('meta[name="keywords"]', { name: "keywords" }, commercial
+    ? "commercial projects, commercial real estate, business spaces, office spaces, retail shops, commercial investment"
+    : seo?.meta_keywords);
+  setMeta('meta[property="og:title"]', { property: "og:title" }, commercial ? "Commercial Projects | CarpetAdda" : (seo?.og_title || seo?.meta_title));
   setMeta('meta[property="og:description"]', { property: "og:description" }, seo?.og_description || seo?.meta_description);
   setMeta('meta[property="og:image"]', { property: "og:image" }, seo?.og_image);
   setMeta('link[rel="canonical"]', { rel: "canonical" }, seo?.canonical_url);
@@ -29,7 +36,7 @@ export function applySeo(seo, page) {
 }
 
 export default function SeoManager() {
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
   useEffect(() => {
     if (!STATIC_PAGES.includes(pathname)) return;
     let cancelled = false;
@@ -37,6 +44,6 @@ export default function SeoManager() {
       .then(r => { if (!cancelled) applySeo(r.data, pathname); })
       .catch(() => {});
     return () => { cancelled = true; };
-  }, [pathname]);
+  }, [pathname, search]); // search included: query-only navigation (e.g. ?category=commercial) must reapply SEO
   return null;
 }

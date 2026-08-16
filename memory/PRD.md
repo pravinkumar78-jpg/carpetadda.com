@@ -268,3 +268,27 @@
 - Projects page: BHK filter hidden when category=commercial; a Commercial Sub-Category select (Shop/Office Space/Showroom) takes its place via new additive `config` param on GET /projects (matches configurations prefix, case-insensitive); bhk stripped from API call when commercial. Properties page already had the correct swap (verified). SearchBar/NewLaunch have no BHK (verified).
 - "Commercial Projects" display text → "Signature Projects" on homepage section, header nav, footer link (URLs + DB category + filtering unchanged). Note: 0 commercial projects exist in seed data — commercial project pages legitimately show empty.
 - Verified in browser: both categories on /projects + /properties, sub-category select filters, footer link navigation, no console errors, 31/31 pytest, build clean.
+
+## Implemented (2026-08-14, iteration 18 — RTMI, RERA, gallery zoom, YouTube)
+- RTMI: /rtmi page (projects with construction_status="ready") + RTMI in header nav (desktop+mobile) + homepage "RTMI Projects" section (max 6, hidden when empty, "View All RTMI Projects" link); GET /projects accepts construction_status; /homepage returns rtmi_projects. Demo: skyline-marina + aksh-boulevard marked ready (admin-editable via existing Construction Status select)
+- Similar Properties/Projects: Grid↔List toggle on both detail pages (no reload, list rows link to correct detail)
+- RERA: Project.rera_entries[] (number/description/url/qr_url/certificate_url) with legacy-field back-compat (first entry synced to rera_number/rera_link/rera_qr_url on save; detail falls back to legacy fields); Admin RERA tab = multi-entry editor (add/remove/reorder/QR+certificate upload via existing storage); detail page "RERA Details" renders one professional block per entry (mono number, description, QR→official link, certificate + official links); empty → section hidden
+- Master Plan: dedicated Project.master_plan field + admin upload (Media tab); appears as labeled "Master Plan" entry in All Images (deduped by URL)
+- Lightbox zoom: click/double-tap toggle, wheel, +/- buttons, drag pan (clamped), pinch (2-pointer), swipe disabled while zoomed, zoom resets on nav/close, zoomed image clipped so it never covers controls, body scroll restored on close
+- YouTube: youtube_url on Project + Property (admin forms, media sections), ytEmbedId parser (watch/youtu.be/embed/shorts) in lib/utils.js, responsive aspect-video nocookie embed section on both detail pages — fully hidden when absent
+- Cleanup: leftover TEST_QA property set back to pending_review (was wrongly active); demo youtube on lodha-premier
+- Verified: all flows above in browser (desktop+mobile), admin RERA editor add/remove/reorder/load, zero console errors, no h-overflow, 31/31 pytest, yarn build clean
+
+## Fix (2026-08-16 — invisible dashboard CTA text in dark mode)
+- Root cause: dark-mode CSS turns .text-slate-900/600 white, but the CTA card gradient (bg-gradient-to-r from-blue-50 to-white) uses Tailwind gradient CSS variables that had no dark override → white text on near-white gradient in dark mode (DashboardPages.jsx dash-list-property-cta; same latent bug on RoleDashboards.jsx dev-listing-banner)
+- Fix (global, index.css): .dark .from-blue-50 → translucent brand-blue gradient stop; .dark .to-white → #1C3833 — covers both affected cards and any future use of the pattern; light mode untouched
+- Accessibility: dashboard primary CTA buttons moved from bg-blue-600 (#708DE6, 3.16:1) → bg-blue-800 (#4A5FA8, ~6:1, WCAG AA pass), hover bg-blue-900 — DashboardPages (2 buttons) + RoleDashboards (dev banner + shared RoleShell primary action)
+- Deployment package refreshed: rebuilt with REACT_APP_BACKEND_URL="" (same-origin /api for Hostinger; api.js supports empty URL); production-hostinger-ready.zip regenerated — verified 0 preview-domain refs in packaged JS, dark gradient rules present in packaged CSS, no .env/node_modules/caches included
+- Verified: testing agent iteration_8.json (dark/light card contrast PASS on user + developer dashboards, tab switching, sidebar, empty states, homepage sanity) + iteration_9.json (button color computed styles PASS); self-verified final blue-800 computed rgb(74,95,168) + final zip integrity
+
+## Backlog (updated 2026-08-16)
+- P1: React Hook dependency warnings in build (non-breaking)
+- P1: ProjectForm data-testids on key fields/tabs/developer select/publish controls
+- P2: SMTP creds for live email on Hostinger (backend/.env per .env.example; preview uses Emergent managed email)
+- P2: hero image rotation via settings CMS (done — Hero Settings); AI Search restyle
+- P2: consider site-wide primary button (btn-primary #708DE6) contrast alignment with the new darker dashboard CTAs

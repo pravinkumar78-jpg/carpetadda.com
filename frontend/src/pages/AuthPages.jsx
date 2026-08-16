@@ -3,7 +3,6 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { House } from "@phosphor-icons/react";
 import api from "@/lib/api";
 
 export function Login() {
@@ -25,8 +24,7 @@ export function Login() {
     <div className="min-h-[70vh] flex items-center justify-center px-6 py-12 section-blue">
       <div className="w-full max-w-md card-premium p-8">
         <div className="flex items-center gap-2 mb-6">
-          <div className="w-9 h-9 rounded-lg bg-blue-600 flex items-center justify-center"><House size={20} weight="fill" className="text-white" /></div>
-          <span className="text-lg font-bold text-slate-900">CarpetAdda</span>
+          <img src="https://customer-assets-jt897jd0.emergentagent.net/job_dombivli-properties-1/artifacts/doh3cm7v_CarpetAdda%20Dark%20Logo.png" alt="CarpetAdda.com" className="h-10 w-auto select-none" draggable="false" />
         </div>
         <h1 className="text-3xl font-bold text-slate-900 mb-2">Welcome back</h1>
         <p className="text-sm text-slate-500 mb-6">Sign in to continue your property journey.</p>
@@ -58,8 +56,7 @@ export function Register() {
     <div className="min-h-[70vh] flex items-center justify-center px-6 py-12 section-blue">
       <div className="w-full max-w-md card-premium p-8">
         <div className="flex items-center gap-2 mb-6">
-          <div className="w-9 h-9 rounded-lg bg-blue-600 flex items-center justify-center"><House size={20} weight="fill" className="text-white" /></div>
-          <span className="text-lg font-bold text-slate-900">CarpetAdda</span>
+          <img src="https://customer-assets-jt897jd0.emergentagent.net/job_dombivli-properties-1/artifacts/doh3cm7v_CarpetAdda%20Dark%20Logo.png" alt="CarpetAdda.com" className="h-10 w-auto select-none" draggable="false" />
         </div>
         <h1 className="text-3xl font-bold text-slate-900 mb-2">Create your account</h1>
         <p className="text-sm text-slate-500 mb-6">Save favourites, get alerts, book visits.</p>

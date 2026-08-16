@@ -39,7 +39,7 @@ export default function Home() {
     let cancelled = false;
     api.get("/homepage")
       .then(r => { if (!cancelled) setHp(r.data); })
-      .catch(() => { if (!cancelled) setHp({ categories: [], cities: [], featured_projects: [], commercial_projects: [], investor_properties: [], best_resale: [], top_developers: [], testimonials: [] }); });
+      .catch(() => { if (!cancelled) setHp({ categories: [], cities: [], featured_projects: [], commercial_projects: [], investor_properties: [], best_resale: [], top_developers: [], testimonials: [], rtmi_projects: [] }); });
     return () => { cancelled = true; };
   }, []);
 
@@ -210,9 +210,18 @@ export default function Home() {
 
       {/* Commercial Projects */}
       {hp.commercial_projects.length > 0 && (
-        <Section title="Signature Projects" eyebrow="Business & Retail" more="/projects?category=commercial" bg="section-blue">
+        <Section title="Commercial Projects" eyebrow="Business & Retail" more="/projects?category=commercial" bg="section-blue">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {hp.commercial_projects.map(p => <ProjectCard key={p.id} p={p} />)}
+          </div>
+        </Section>
+      )}
+
+      {/* RTMI — Ready to Move In projects (max 6) */}
+      {(hp.rtmi_projects || []).length > 0 && (
+        <Section title="RTMI Projects" eyebrow="Ready to Move In" more="/rtmi" moreLabel="View All RTMI Projects" testid="rtmi-projects">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {(hp.rtmi_projects || []).slice(0, 6).map(p => <ProjectCard key={p.id} p={p} />)}
           </div>
         </Section>
       )}
@@ -317,7 +326,7 @@ function DevLogo({ d }) {
 }
 
 
-function Section({ eyebrow, title, more, bg = "", testid, children }) {
+function Section({ eyebrow, title, more, moreLabel = "Check more", bg = "", testid, children }) {
   return (
     <section className={`${bg} py-16 lg:py-20`} data-testid={testid}>
       <div className="max-w-7xl mx-auto px-6 lg:px-10">
@@ -326,7 +335,7 @@ function Section({ eyebrow, title, more, bg = "", testid, children }) {
             <div className="text-xs uppercase tracking-widest text-blue-600 font-semibold mb-2">{eyebrow}</div>
             <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-slate-900">{title}</h2>
           </div>
-          {more && <Link to={more} className="text-sm text-blue-600 font-medium hover:text-blue-700 flex items-center gap-1">Check more <ArrowRight size={14} /></Link>}
+          {more && <Link to={more} className="text-sm text-blue-600 font-medium hover:text-blue-700 flex items-center gap-1">{moreLabel} <ArrowRight size={14} /></Link>}
         </div>
         {children}
       </div>

@@ -33,7 +33,7 @@ const empty = () => ({
   carpet_area: 800, builtup_area: 960,
   city: "dombivli", location: "dombivli-east", address: "", lat: null, lng: null,
   amenities: [], features: [], images: [], main_image: "",
-  unit_plan: "", video_url: "", google_map_link: "", nearby_locations: [], verification: {},
+  unit_plan: "", video_url: "", youtube_url: "", google_map_link: "", nearby_locations: [], verification: {},
   rera_number: "", status: "draft", verified: true, featured: false,
   investor_property: false, best_resale: false, flags: [],
   seo: { title: "", description: "", slug: "", focus_keyword: "", canonical: "", og_title: "", og_description: "", og_image: "" },
@@ -150,7 +150,26 @@ export default function PropertyForm() {
       }
       toast.success(id ? "Property updated" : publish ? (inAdmin ? "Property published" : "Submitted for admin review") : "Draft saved");
       nav(backTo);
-    } catch (err) { toast.error(err.response?.data?.detail || "Save failed"); }
+    } catch (err) {
+      // Transient server/network failure while publishing → preserve data as a draft
+      if (publish && (!err.response || err.response.status >= 500)) {
+        try {
+          const draftPayload = { ...f };
+          if (!draftPayload.slug) draftPayload.slug = draftPayload.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 60);
+          draftPayload.status = "draft";
+          if (id) {
+            const pid = draftPayload.id; ["id", "created_at", "updated_at", "views", "developer", "agent", "project", "similar"].forEach(k => delete draftPayload[k]);
+            await api.put(`/properties/${pid}`, draftPayload);
+          } else {
+            await api.post("/properties", draftPayload);
+          }
+          toast.error("Unable to publish. Your information has been saved as a draft.");
+          nav(backTo);
+          return;
+        } catch { /* fall through to the real error */ }
+      }
+      toast.error(err.response?.data?.detail || "Save failed");
+    }
     finally { setSaving(false); }
   };
 
@@ -205,7 +224,7 @@ export default function PropertyForm() {
             <div className="space-y-4">
               <h2 className="text-xl font-semibold text-slate-900 mb-1">Basic Information</h2>
               <p className="text-sm text-slate-500 mb-4">Core details buyers see first.</p>
-              <F label="Property Title *"><Input value={f.title} onChange={e => set("title", e.target.value)} placeholder="Luxurious 3 BHK …" /></F>
+              <F label="Property Title *"><Input data-testid="property-title" value={f.title} onChange={e => set("title", e.target.value)} placeholder="Luxurious 3 BHK …" /></F>
               <F label="Description"><RichTextEditor value={f.description || ""} onChange={v => set("description", v)} dataTestid="property-description-editor" /></F>
               <div className="grid grid-cols-2 gap-4">
                 <F label="Sell / Rent"><Sel value={f.listing_type} onChange={v => set("listing_type", v)} options={[["sale","Sell"],["rent","Rent"]]} /></F>
@@ -389,6 +408,7 @@ export default function PropertyForm() {
               </F>
               <F label="Upload Unit Plan"><ImageUpload value={f.unit_plan || ""} onChange={v => set("unit_plan", v)} kind="properties" dataTestid="property-unit-plan-upload" allowUrl={false} /></F>
               <F label="Video URL"><Input value={f.video_url || ""} onChange={e => set("video_url", e.target.value)} placeholder="YouTube / Vimeo" /></F>
+              <F label="YouTube Video Link"><Input data-testid="property-youtube-url" value={f.youtube_url || ""} onChange={e => set("youtube_url", e.target.value)} placeholder="https://www.youtube.com/watch?v=…" /></F>
               <F label="Brochure URL"><Input value={f.brochure_url || ""} onChange={e => set("brochure_url", e.target.value)} /></F>
             </div>
           )}

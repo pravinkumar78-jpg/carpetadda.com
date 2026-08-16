@@ -60,10 +60,6 @@ export default function RegisterDeveloper({ open, onClose, onRegistered }) {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <L>RERA Number</L>
-              <Input data-testid="dev-reg-rera" value={f.rera_number} onChange={e => set("rera_number", e.target.value)} placeholder="e.g. A51700012345" className="h-11 rounded-lg border-slate-300" />
-            </div>
-            <div>
               <L>Experience (years)</L>
               <Input data-testid="dev-reg-experience" type="number" min="0" value={f.experience_years} onChange={e => set("experience_years", e.target.value)} placeholder="0" className="h-11 rounded-lg border-slate-300" />
             </div>

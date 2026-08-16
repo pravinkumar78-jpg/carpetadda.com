@@ -35,6 +35,7 @@ import HomeLoan from "@/pages/HomeLoan";
 import CmsPage from "@/pages/CmsPage";
 import { NotFound, About, Contact, FAQs, VerifyEmail } from "@/pages/StaticPages";
 import Testimonials from "@/pages/Testimonials";
+import Rtmi from "@/pages/Rtmi";
 
 export default function App() {
   useEffect(() => {
@@ -93,6 +94,7 @@ export default function App() {
               <Route path="/contact" element={<Contact />} />
               <Route path="/faqs" element={<FAQs />} />
               <Route path="/testimonials" element={<Testimonials />} />
+              <Route path="/rtmi" element={<Rtmi />} />
               <Route path="/home-loan" element={<HomeLoan />} />
               <Route path="*" element={<NotFound />} />
             </Routes>

@@ -11,7 +11,7 @@ const PROPERTY_MENU = [
   { to: "/properties?listing_type=sale", label: "Buy", tid: "nav-prop-buy" },
   { to: "/properties?listing_type=rent", label: "Rent", tid: "nav-prop-rent" },
   { to: "/projects?category=residential", label: "Residential Projects", tid: "nav-prop-residential" },
-  { to: "/projects?category=commercial", label: "Signature Projects", tid: "nav-prop-commercial" },
+  { to: "/projects?category=commercial", label: "Commercial Projects", tid: "nav-prop-commercial" },
 ];
 
 const linkCls = ({ isActive }) =>
@@ -47,8 +47,9 @@ export default function Header() {
             </DropdownMenuContent>
           </DropdownMenu>
 
-          <NavLink to="/home-loan" data-testid="nav-home-loan" className={linkCls}>Home Loan</NavLink>
+          <NavLink to="/home-loan" data-testid="nav-home-loan" className={linkCls}>Loans</NavLink>
           <NavLink to="/projects" data-testid="nav-new-launch" className={linkCls}>New Launch</NavLink>
+          <NavLink to="/rtmi" data-testid="nav-rtmi" className={linkCls}>RTMI</NavLink>
           <NavLink to="/blog" data-testid="nav-blog" className={linkCls}>Blog</NavLink>
         </nav>
 
@@ -94,8 +95,9 @@ export default function Header() {
                 )}
               </div>
 
-              <Link to="/home-loan" onClick={() => setOpen(false)} data-testid="mobile-nav-home-loan" className="text-base font-medium py-3 px-3 rounded-md hover:bg-blue-50 hover:text-blue-600 text-slate-800">Home Loan</Link>
+              <Link to="/home-loan" onClick={() => setOpen(false)} data-testid="mobile-nav-home-loan" className="text-base font-medium py-3 px-3 rounded-md hover:bg-blue-50 hover:text-blue-600 text-slate-800">Loans</Link>
               <Link to="/projects" onClick={() => setOpen(false)} data-testid="mobile-nav-new-launch" className="text-base font-medium py-3 px-3 rounded-md hover:bg-blue-50 hover:text-blue-600 text-slate-800">New Launch</Link>
+              <Link to="/rtmi" onClick={() => setOpen(false)} data-testid="mobile-nav-rtmi" className="text-base font-medium py-3 px-3 rounded-md hover:bg-blue-50 hover:text-blue-600 text-slate-800">RTMI</Link>
               <Link to="/blog" onClick={() => setOpen(false)} data-testid="mobile-nav-blog" className="text-base font-medium py-3 px-3 rounded-md hover:bg-blue-50 hover:text-blue-600 text-slate-800">Blog</Link>
               <div className="h-px bg-slate-200 my-2" />
               <Link to="/emi-calculator" onClick={() => setOpen(false)} className="text-base py-3 px-3 rounded-md hover:bg-blue-50 hover:text-blue-600 text-slate-800">EMI Calculator</Link>

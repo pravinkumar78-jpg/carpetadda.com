@@ -56,9 +56,19 @@ export default function Projects() {
       <div className="section-blue py-14">
         <div className="max-w-7xl mx-auto px-6 lg:px-10 flex items-end justify-between flex-wrap gap-4">
           <div>
-            <div className="text-xs uppercase tracking-widest text-blue-600 font-semibold mb-3">New Launches</div>
-            <h1 className="text-4xl sm:text-5xl font-bold text-slate-900 tracking-tight mb-3">Commercial Projects</h1>
-            <p className="text-slate-600 max-w-2xl">Handpicked new-launch developments from India's most trusted builders — RERA verified, on-time delivery.</p>
+            {params.category === "commercial" ? (
+              <>
+                <div className="text-xs uppercase tracking-widest text-blue-600 font-semibold mb-3">Premium Commercial Real Estate Opportunities</div>
+                <h1 className="text-4xl sm:text-5xl font-bold text-slate-900 tracking-tight mb-3">Commercial Projects</h1>
+                <p className="text-slate-600 max-w-2xl">Explore premium commercial projects, business spaces and investment opportunities across prime locations, carefully selected for businesses and investors.</p>
+              </>
+            ) : (
+              <>
+                <div className="text-xs uppercase tracking-widest text-blue-600 font-semibold mb-3">New Launches</div>
+                <h1 className="text-4xl sm:text-5xl font-bold text-slate-900 tracking-tight mb-3">New Launch Projects</h1>
+                <p className="text-slate-600 max-w-2xl">Handpicked new-launch developments from India's most trusted builders — RERA verified, on-time delivery.</p>
+              </>
+            )}
           </div>
           <div className="flex bg-white border border-slate-300 rounded-lg overflow-hidden" data-testid="project-layout-toggle">
             {[["grid", SquaresFour, ""], ["list", List, "hidden md:inline-flex"]].map(([k, Icon, extra]) => (

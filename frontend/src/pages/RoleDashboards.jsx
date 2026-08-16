@@ -3,7 +3,7 @@ import { Navigate, Link } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import api from "@/lib/api";
 import { toast } from "sonner";
-import { Plus, House, Buildings, ChatCircle, Heart, MagnifyingGlass, UserGear, Users, Archive, ArrowCounterClockwise, PencilSimple, GlobeHemisphereWest, CircleNotch, ChartBar } from "@phosphor-icons/react";
+import { Plus, House, Buildings, ChatCircle, Heart, MagnifyingGlass, UserGear, Users, Archive, ArrowCounterClockwise, PencilSimple, GlobeHemisphereWest, CircleNotch, ChartBar, PaperPlaneTilt } from "@phosphor-icons/react";
 import { AccountPanel, MyListings } from "@/components/dashboard/AccountPanel";
 import LeadsChart from "@/components/LeadsChart";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -181,7 +181,7 @@ export function DeveloperDashboard() {
               <p className="text-sm text-slate-600 mt-1 max-w-xl">Add a project manually, or import it straight from your existing developer website / landing page. Imports are saved as drafts and go live only after admin approval.</p>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Link to="/developer/projects/new" data-testid="dev-banner-add" className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold bg-blue-600 text-white hover:bg-blue-700 shadow-sm transition-colors"><Plus size={14} weight="bold" /> Project Listing</Link>
+              <Link to="/developer/projects/new" data-testid="dev-banner-add" className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold bg-blue-800 text-white hover:bg-blue-900 shadow-sm transition-colors"><Plus size={14} weight="bold" /> Project Listing</Link>
               <button onClick={() => setImportOpen(true)} data-testid="dev-banner-import" className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold border border-blue-300 bg-white text-blue-700 hover:bg-blue-50 transition-colors"><GlobeHemisphereWest size={14} weight="bold" /> Import from Website</button>
             </div>
           </div>
@@ -203,6 +203,10 @@ export function DeveloperDashboard() {
                         <div className="flex items-center justify-end gap-1">
                           <Link to={`/developer/projects/${p.id}/units`} data-testid={`dev-units-${p.id}`} title="Manage units" className="p-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"><Buildings size={14} /></Link>
                           <Link to={`/developer/projects/${p.id}/edit`} data-testid={`dev-edit-${p.id}`} title="Edit" className="p-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"><PencilSimple size={14} /></Link>
+                          {p.status === "draft" && (
+                            <button onClick={async () => { try { await api.put(`/projects/${p.id}`, { status: "pending_review" }); toast.success("Submitted for admin review"); loadProjects(); } catch (err) { toast.error(err?.response?.data?.detail || "Submit failed"); } }}
+                              data-testid={`dev-publish-${p.id}`} title="Submit for admin review" className="p-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"><PaperPlaneTilt size={14} /></button>
+                          )}
                           {p.status === "archived"
                             ? <button onClick={() => act(p, "restore")} data-testid={`dev-restore-${p.id}`} title="Restore" className="p-2 text-slate-600 hover:text-emerald-600 hover:bg-emerald-50 rounded transition-colors"><ArrowCounterClockwise size={14} /></button>
                             : <button onClick={() => act(p, "archive")} data-testid={`dev-archive-${p.id}`} title="Archive" className="p-2 text-slate-600 hover:text-amber-600 hover:bg-amber-50 rounded transition-colors"><Archive size={14} /></button>}
@@ -258,7 +262,7 @@ function DashShell({ user, title, menu, actions = [], extraActions = null, tab, 
           </div>
           <div className="flex flex-wrap gap-2">
             {actions.map((a) => (
-              <Link key={a.tid} to={a.to} data-testid={a.tid} className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${a.primary ? "bg-blue-600 text-white hover:bg-blue-700 shadow-sm" : "border border-slate-200 bg-white text-slate-700 hover:bg-blue-50 hover:text-blue-600"}`}>
+              <Link key={a.tid} to={a.to} data-testid={a.tid} className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${a.primary ? "bg-blue-800 text-white hover:bg-blue-900 shadow-sm" : "border border-slate-200 bg-white text-slate-700 hover:bg-blue-50 hover:text-blue-600"}`}>
                 <Plus size={14} weight="bold" /> {a.label}
               </Link>
             ))}

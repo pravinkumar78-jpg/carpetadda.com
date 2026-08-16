@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { ArrowLeft, FloppyDisk, Upload, Eye, Info, House, MapPin, Sparkle, Image as ImageIcon, MagnifyingGlass, Flag, Globe, CircleNotch } from "@phosphor-icons/react";
+import { ArrowLeft, FloppyDisk, Upload, Eye, Info, House, MapPin, Sparkle, Image as ImageIcon, MagnifyingGlass, Flag, Globe, CircleNotch, CaretUp, CaretDown, Trash } from "@phosphor-icons/react";
 import ImageUpload from "@/components/ImageUpload";
 import RichTextEditor from "@/components/RichTextEditor";
 import AddAmenity from "@/components/AddAmenity";
@@ -24,8 +24,9 @@ const empty = () => ({
   price_from: 5000000, price_to: 15000000, configurations: ["1 BHK", "2 BHK", "3 BHK"],
   area_from: 450, area_to: 1450,
   launch_date: "", possession_date: "Dec 2026", construction_status: "under_construction",
-  rera_number: "", rera_link: "", rera_qr_url: "",
-  total_towers: 3, total_units: 200, total_floors: 22,
+  rera_number: "", rera_link: "", rera_qr_url: "", rera_entries: [],
+  master_plan: "", youtube_url: "",
+  total_towers: 3, total_units: 200, total_floors: 22, land_size: "",
   amenities: [], specifications: [], images: [], videos: [], brochure_url: "",
   payment_plan: "20:80 with bank finance", floor_plans: [],
   featured: false, verified: true, status: "draft", hero_project: false,
@@ -46,6 +47,8 @@ export default function ProjectForm() {
   const [amenityOptions, setAmenityOptions] = useState(AMENITIES);
   const [newAmenity, setNewAmenity] = useState("");
   const [devModal, setDevModal] = useState(false);
+  const [devName, setDevName] = useState("");
+  const [configText, setConfigText] = useState(null); // null = derive from f.configurations
   const [fetchUrl, setFetchUrl] = useState("");
   const [fetching, setFetching] = useState(false);
   const [fetchingNearby, setFetchingNearby] = useState(false);
@@ -55,6 +58,13 @@ export default function ProjectForm() {
 
   const loadDevelopers = () => api.get("/developers?limit=200").then(r => setDevelopers(r.data || [])).catch(() => {});
   useEffect(() => { loadDevelopers(); }, []);
+  // Keep the developer text input in sync when editing an existing project
+  useEffect(() => {
+    if (!devName && f.developer_id && developers.length) {
+      const d = developers.find(x => x.id === f.developer_id);
+      if (d) setDevName(d.name);
+    }
+  }, [developers, f.developer_id]);
   useEffect(() => {
     api.get("/amenities").then(r => {
       const names = (r.data || []).map(a => a.name);
@@ -80,12 +90,19 @@ export default function ProjectForm() {
 
   useEffect(() => {
     if (id) {
+      const withLegacyRera = (d) => {
+        // Migrate legacy single RERA fields into the multi-entry editor (non-destructive)
+        if ((!d.rera_entries || d.rera_entries.length === 0) && (d.rera_number || d.rera_qr_url || d.rera_link)) {
+          d.rera_entries = [{ number: d.rera_number || "", description: "", url: d.rera_link || "", qr_url: d.rera_qr_url || "", certificate_url: "" }];
+        }
+        return { ...empty(), ...d, seo: { ...empty().seo, ...(d.seo || {}) } };
+      };
       api.get(`/my/projects/${id}`).then(r => {
-        setF({ ...empty(), ...r.data, seo: { ...empty().seo, ...(r.data.seo || {}) } });
+        setF(withLegacyRera(r.data));
         setLoaded(true);
       }).catch(() => {
         api.get(`/projects/${id}`).then(r => {
-          setF({ ...empty(), ...r.data, seo: { ...empty().seo, ...(r.data.seo || {}) } });
+          setF(withLegacyRera(r.data));
           setLoaded(true);
         }).catch(() => { toast.error("Project not found"); nav(backTo); });
       });
@@ -178,10 +195,21 @@ export default function ProjectForm() {
 
   const save = async (publish) => {
     if (!f.name.trim()) { toast.error("Project name required"); setTab("basic"); return; }
-    if (!f.developer_id) { toast.error("Please select a developer"); setTab("basic"); return; }
+    // Developer is typed as free text — resolve the name to the existing developer record
+    const match = developers.find(d => (d.name || "").trim().toLowerCase() === devName.trim().toLowerCase());
+    if (!match) { toast.error("Developer not found — pick an existing developer or register a new one"); setTab("basic"); return; }
     setSaving(true);
     try {
-      const payload = { ...f };
+      const payload = { ...f, developer_id: match.id };
+      // keep legacy single RERA fields in sync with the first entry (back-compat)
+      const firstRera = (payload.rera_entries || [])[0];
+      if (firstRera) {
+        payload.rera_number = firstRera.number || "";
+        payload.rera_link = firstRera.url || "";
+        payload.rera_qr_url = firstRera.qr_url || "";
+      }
+      if (typeof payload.configurations === "string") payload.configurations = payload.configurations.split(",").map(s => s.trim()).filter(Boolean);
+      payload.configurations = String(configText ?? (payload.configurations || []).join(", ")).split(",").map(s => s.trim()).filter(Boolean);
       if (!payload.slug) payload.slug = payload.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 60);
       if (!payload.main_image && payload.images?.[0]) payload.main_image = payload.images[0];
       payload.status = publish ? "active" : "draft";
@@ -193,7 +221,27 @@ export default function ProjectForm() {
       }
       toast.success(id ? "Project updated" : publish ? (inAdmin ? "Project published" : "Submitted for admin review") : "Draft saved");
       nav(backTo);
-    } catch (err) { toast.error(err.response?.data?.detail || "Save failed"); }
+    } catch (err) {
+      // Transient server/network failure while publishing → preserve data as a draft
+      if (publish && (!err.response || err.response.status >= 500)) {
+        try {
+          const draftPayload = { ...f, developer_id: match.id };
+          if (typeof draftPayload.configurations === "string") draftPayload.configurations = draftPayload.configurations.split(",").map(s => s.trim()).filter(Boolean);
+          if (!draftPayload.slug) draftPayload.slug = draftPayload.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 60);
+          draftPayload.status = "draft";
+          if (id) {
+            const pid = draftPayload.id; ["id","created_at","updated_at","developer","properties","similar"].forEach(k => delete draftPayload[k]);
+            await api.put(`/projects/${pid}`, draftPayload);
+          } else {
+            await api.post("/projects", draftPayload);
+          }
+          toast.error("Unable to publish. Your information has been saved as a draft.");
+          nav(backTo);
+          return;
+        } catch { /* fall through to the real error */ }
+      }
+      toast.error(err.response?.data?.detail || "Save failed");
+    }
     finally { setSaving(false); }
   };
 
@@ -222,8 +270,8 @@ export default function ProjectForm() {
           <div className="flex items-center gap-2">
             {id && <Link to={`/admin/projects/${id}/units`} data-testid="manage-units-btn" className="px-4 py-2 border border-slate-200 rounded-lg text-sm text-slate-700 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-1.5">Manage Units</Link>}
             {id && f.status === "active" && <Link to={`/project/${f.slug}`} target="_blank" className="px-4 py-2 border border-slate-200 rounded-lg text-sm text-slate-700 hover:bg-blue-50 flex items-center gap-1.5"><Eye size={14} /> View Live</Link>}
-            <button onClick={() => save(false)} disabled={saving} className="px-4 py-2 border border-blue-200 bg-blue-50 text-blue-700 rounded-lg text-sm font-medium hover:bg-blue-100 flex items-center gap-1.5 disabled:opacity-50"><FloppyDisk size={14} /> Save Draft</button>
-            <button onClick={() => save(true)} disabled={saving} className="px-5 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 shadow-sm flex items-center gap-1.5 disabled:opacity-50">
+            <button data-testid="project-save-draft" onClick={() => save(false)} disabled={saving} className="px-4 py-2 border border-blue-200 bg-blue-50 text-blue-700 rounded-lg text-sm font-medium hover:bg-blue-100 flex items-center gap-1.5 disabled:opacity-50"><FloppyDisk size={14} /> Save Draft</button>
+            <button data-testid="project-publish" onClick={() => save(true)} disabled={saving} className="px-5 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 shadow-sm flex items-center gap-1.5 disabled:opacity-50">
               <Upload size={14} weight="bold" /> {saving ? "Saving…" : (inAdmin ? "Publish" : "Submit for Admin Review")}
             </button>
           </div>
@@ -234,7 +282,7 @@ export default function ProjectForm() {
         <aside className="lg:sticky lg:top-24 h-fit">
           <nav className="card-premium p-3 space-y-1">
             {sections.map(s => (
-              <button key={s.k} onClick={() => setTab(s.k)} className={`w-full flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium ${tab === s.k ? "bg-blue-600 text-white" : "text-slate-700 hover:bg-slate-100"}`}>
+              <button key={s.k} data-testid={`project-tab-${s.k}`} onClick={() => setTab(s.k)} className={`w-full flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium ${tab === s.k ? "bg-blue-600 text-white" : "text-slate-700 hover:bg-slate-100"}`}>
                 <s.icon size={16} weight={tab === s.k ? "bold" : "regular"} /> {s.label}
               </button>
             ))}
@@ -262,12 +310,12 @@ export default function ProjectForm() {
                 </div>
                 {f.import_source_url && <div className="text-xs text-slate-500 mt-2">Imported from: <span className="font-medium text-slate-700">{f.import_source_url}</span></div>}
               </div>
-              <F label="Project Title *"><Input value={f.name} onChange={e => set("name", e.target.value)} /></F>
+              <F label="Project Title *"><Input data-testid="project-title" value={f.name} onChange={e => set("name", e.target.value)} /></F>
               <F label="Description"><RichTextEditor value={f.description || ""} onChange={v => set("description", v)} dataTestid="project-description-editor" /></F>
               <div className="grid grid-cols-2 gap-4">
                 <F label="Developer *">
-                  <Sel value={f.developer_id} onChange={v => { if (v === "__register_new__") { setDevModal(true); } else { set("developer_id", v); } }}
-                    options={[...developers.map(d => [d.id, d.name]), ["__register_new__", "+ Register New Developer"]]} placeholder="Select developer" />
+                  <Input list="developer-options" data-testid="project-developer" value={devName} onChange={e => setDevName(e.target.value)} placeholder="Type developer name" className="h-11 rounded-lg border-slate-300" />
+                  <datalist id="developer-options">{developers.map(d => <option key={d.id} value={d.name} />)}</datalist>
                   <button type="button" onClick={() => setDevModal(true)} data-testid="register-developer-btn" className="mt-1.5 text-xs text-blue-600 hover:text-blue-700 font-semibold">Developer not listed? Register New Developer →</button>
                 </F>
                 <F label="Category"><Sel value={f.property_category} onChange={v => set("property_category", v)} options={[["residential","Residential"],["commercial","Commercial"]]} /></F>
@@ -276,7 +324,7 @@ export default function ProjectForm() {
                 <F label="Price From (₹)"><Input type="number" value={f.price_from ?? 0} onChange={e => set("price_from", Number(e.target.value))} /></F>
                 <F label="Price To (₹)"><Input type="number" value={f.price_to ?? 0} onChange={e => set("price_to", Number(e.target.value))} /></F>
               </div>
-              <F label="Configurations (comma-separated)"><Input value={(f.configurations || []).join(", ")} onChange={e => set("configurations", e.target.value.split(",").map(s => s.trim()).filter(Boolean))} placeholder="1 BHK, 2 BHK, 3 BHK" /></F>
+              <F label="Configurations (comma-separated)"><Input data-testid="project-configurations" value={configText ?? (f.configurations || []).join(", ")} onChange={e => setConfigText(e.target.value)} onBlur={() => set("configurations", String(configText ?? "").split(",").map(s => s.trim()).filter(Boolean))} placeholder="1 BHK, 2 BHK, 3 BHK" /></F>
               <F label="Payment Plan"><Input value={f.payment_plan || ""} onChange={e => set("payment_plan", e.target.value)} /></F>
             </div>
           )}
@@ -285,14 +333,14 @@ export default function ProjectForm() {
             <div className="space-y-4">
               <h2 className="text-xl font-semibold text-slate-900 mb-4">Project Details</h2>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                <F label="Total Units"><Input type="number" value={f.total_units ?? 0} onChange={e => set("total_units", Number(e.target.value))} /></F>
+                <F label="Land Size"><Input data-testid="project-land-size" value={f.land_size || ""} onChange={e => set("land_size", e.target.value)} placeholder="e.g. 2.5 Acres" /></F>
                 <F label="Total Towers"><Input type="number" value={f.total_towers ?? 0} onChange={e => set("total_towers", Number(e.target.value))} /></F>
                 <F label="Total Floors"><Input type="number" value={f.total_floors ?? ""} onChange={e => set("total_floors", Number(e.target.value) || null)} /></F>
                 <F label="Area From (sq.ft.)"><Input type="number" value={f.area_from ?? ""} onChange={e => set("area_from", Number(e.target.value) || null)} /></F>
                 <F label="Area To (sq.ft.)"><Input type="number" value={f.area_to ?? ""} onChange={e => set("area_to", Number(e.target.value) || null)} /></F>
                 <F label="Construction Status"><Sel value={f.construction_status} onChange={v => set("construction_status", v)} options={[["new_launch","New Launch"],["under_construction","Under Construction"],["ready","Ready to Move"]]} /></F>
                 <F label="Launch Date"><Input value={f.launch_date || ""} onChange={e => set("launch_date", e.target.value)} placeholder="Q1 2026" /></F>
-                <F label="Possession Date"><Input value={f.possession_date || ""} onChange={e => set("possession_date", e.target.value)} /></F>
+                <F label="Early Possession Date"><Input value={f.possession_date || ""} onChange={e => set("possession_date", e.target.value)} /></F>
               </div>
             </div>
           )}
@@ -304,7 +352,7 @@ export default function ProjectForm() {
                 <F label="City"><Sel value={f.city} onChange={v => set("city", v)} options={CITIES.map(c => [c, c.replace("-", " ").replace(/\b\w/g, x => x.toUpperCase())])} /></F>
                 <F label="Locality slug"><Input value={f.location} onChange={e => set("location", e.target.value)} /></F>
               </div>
-              <F label="Address"><Input value={f.address || ""} onChange={e => set("address", e.target.value)} /></F>
+              <F label="Address"><Input data-testid="project-address" value={f.address || ""} onChange={e => set("address", e.target.value)} /></F>
               <div className="grid grid-cols-2 gap-4">
                 <F label="Latitude"><Input type="number" step="0.0001" value={f.lat ?? ""} onChange={e => set("lat", Number(e.target.value) || null)} /></F>
                 <F label="Longitude"><Input type="number" step="0.0001" value={f.lng ?? ""} onChange={e => set("lng", Number(e.target.value) || null)} /></F>
@@ -327,10 +375,33 @@ export default function ProjectForm() {
 
           {tab === "rera" && (
             <div className="space-y-4">
-              <h2 className="text-xl font-semibold text-slate-900 mb-4">RERA</h2>
-              <F label="RERA Number"><Input value={f.rera_number || ""} onChange={e => set("rera_number", e.target.value)} placeholder="P51700xxxxx" /></F>
-              <F label="RERA Website Link"><Input value={f.rera_link || ""} onChange={e => set("rera_link", e.target.value)} placeholder="https://maharera.mahaonline.gov.in/…" /></F>
-              <F label="Upload RERA QR"><ImageUpload value={f.rera_qr_url || ""} onChange={v => set("rera_qr_url", v)} kind="projects" dataTestid="project-rera-qr-upload" allowUrl={false} /></F>
+              <h2 className="text-xl font-semibold text-slate-900 mb-1">RERA</h2>
+              <p className="text-xs text-slate-500 mb-4">Add one block per RERA registration (e.g. per tower/phase). The first entry also fills the legacy RERA fields used elsewhere on the site.</p>
+              {(f.rera_entries || []).map((r, i) => (
+                <div key={i} data-testid={`rera-entry-${i}`} className="border border-slate-200 rounded-xl p-4 space-y-4 bg-slate-50/50">
+                  <div className="flex items-center justify-between">
+                    <div className="text-sm font-semibold text-slate-800">RERA Entry {i + 1}</div>
+                    <div className="flex items-center gap-1">
+                      <button type="button" aria-label="Move up" disabled={i === 0} onClick={() => { const a = [...f.rera_entries]; [a[i - 1], a[i]] = [a[i], a[i - 1]]; set("rera_entries", a); }} className="p-1.5 rounded-md text-slate-500 hover:bg-blue-50 hover:text-blue-600 disabled:opacity-30"><CaretUp size={14} weight="bold" /></button>
+                      <button type="button" aria-label="Move down" disabled={i === f.rera_entries.length - 1} onClick={() => { const a = [...f.rera_entries]; [a[i + 1], a[i]] = [a[i], a[i + 1]]; set("rera_entries", a); }} className="p-1.5 rounded-md text-slate-500 hover:bg-blue-50 hover:text-blue-600 disabled:opacity-30"><CaretDown size={14} weight="bold" /></button>
+                      <button type="button" data-testid={`rera-remove-${i}`} aria-label="Remove" onClick={() => set("rera_entries", f.rera_entries.filter((_, j) => j !== i))} className="p-1.5 rounded-md text-slate-500 hover:bg-rose-50 hover:text-rose-600"><Trash size={14} weight="bold" /></button>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <F label="RERA Number"><Input data-testid={`rera-number-${i}`} value={r.number || ""} onChange={e => set("rera_entries", f.rera_entries.map((x, j) => j === i ? { ...x, number: e.target.value } : x))} placeholder="A51700xxxxx" /></F>
+                    <F label="Official RERA URL"><Input data-testid={`rera-url-${i}`} value={r.url || ""} onChange={e => set("rera_entries", f.rera_entries.map((x, j) => j === i ? { ...x, url: e.target.value } : x))} placeholder="https://maharera.mahaonline.gov.in/…" /></F>
+                  </div>
+                  <F label="Description"><Textarea rows={2} data-testid={`rera-desc-${i}`} value={r.description || ""} onChange={e => set("rera_entries", f.rera_entries.map((x, j) => j === i ? { ...x, description: e.target.value } : x))} placeholder="e.g. Tower A & B — registered under MahaRERA" /></F>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <F label="Upload RERA QR"><ImageUpload value={r.qr_url || ""} onChange={v => set("rera_entries", f.rera_entries.map((x, j) => j === i ? { ...x, qr_url: v } : x))} kind="projects" dataTestid={`rera-qr-upload-${i}`} allowUrl={false} /></F>
+                    <F label="Upload RERA Certificate"><ImageUpload value={r.certificate_url || ""} onChange={v => set("rera_entries", f.rera_entries.map((x, j) => j === i ? { ...x, certificate_url: v } : x))} kind="projects" dataTestid={`rera-cert-upload-${i}`} allowUrl={false} /></F>
+                  </div>
+                </div>
+              ))}
+              <button type="button" data-testid="rera-add" onClick={() => set("rera_entries", [...(f.rera_entries || []), { number: "", description: "", url: "", qr_url: "", certificate_url: "" }])}
+                className="inline-flex items-center gap-2 px-4 py-2.5 border border-blue-300 bg-blue-50 text-blue-700 rounded-lg text-sm font-semibold hover:bg-blue-100 transition-colors">
+                + Add RERA Number
+              </button>
             </div>
           )}
 
@@ -365,7 +436,9 @@ export default function ProjectForm() {
                   <ImageUpload value="" onChange={v => v && set("images", [...(f.images || []), v])} kind="projects" dataTestid="project-add-image-upload" allowUrl={false} />
                 </div>
               </F>
+              <F label="Upload Master Plan"><ImageUpload value={f.master_plan || ""} onChange={v => set("master_plan", v)} kind="projects" dataTestid="project-master-plan-upload" allowUrl={false} /></F>
               <F label="Brochure URL"><Input value={f.brochure_url || ""} onChange={e => set("brochure_url", e.target.value)} /></F>
+              <F label="YouTube Video Link"><Input data-testid="project-youtube-url" value={f.youtube_url || ""} onChange={e => set("youtube_url", e.target.value)} placeholder="https://www.youtube.com/watch?v=…" /></F>
               <F label="Video URLs (one per line)"><Textarea rows={2} value={(f.videos || []).join("\n")} onChange={e => set("videos", e.target.value.split("\n").map(s => s.trim()).filter(Boolean))} /></F>
               <F label="Virtual Tour URL"><Input value={f.virtual_tour_url || ""} onChange={e => set("virtual_tour_url", e.target.value)} /></F>
             </div>
@@ -433,6 +506,7 @@ export default function ProjectForm() {
         onRegistered={(d) => {
           setDevelopers(prev => prev.some(x => x.id === d.id) ? prev : [...prev, d]);
           set("developer_id", d.id);
+          setDevName(d.name);
         }}
       />
     </div>

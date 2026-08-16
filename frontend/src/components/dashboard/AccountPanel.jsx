@@ -6,7 +6,7 @@ import { useAuth } from "@/lib/auth";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import ImageUpload from "@/components/ImageUpload";
-import { Archive, ArrowCounterClockwise, PencilSimple, CheckCircle, WarningCircle } from "@phosphor-icons/react";
+import { Archive, ArrowCounterClockwise, PencilSimple, CheckCircle, WarningCircle, PaperPlaneTilt } from "@phosphor-icons/react";
 import { formatINR } from "@/lib/format";
 
 export function AccountPanel({ user }) {
@@ -193,6 +193,10 @@ export function MyListings({ items, onChanged, editBase = "/dashboard/list-prope
                 <td className="px-4 py-3">
                   <div className="flex items-center justify-end gap-1">
                     <Link to={`${editBase}/${p.id}/edit`} data-testid={`mylist-edit-${p.id}`} title="Edit" className="p-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"><PencilSimple size={14} /></Link>
+                    {p.status === "draft" && (
+                      <button onClick={async () => { try { await api.put(`/properties/${p.id}`, { status: "pending_review" }); toast.success("Submitted for review"); onChanged(); } catch (err) { toast.error(err?.response?.data?.detail || "Submit failed"); } }}
+                        data-testid={`mylist-publish-${p.id}`} title="Submit for review" className="p-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"><PaperPlaneTilt size={14} /></button>
+                    )}
                     {p.status === "archived"
                       ? <button onClick={() => act(p, "restore")} data-testid={`mylist-restore-${p.id}`} title="Restore" className="p-2 text-slate-600 hover:text-emerald-600 hover:bg-emerald-50 rounded transition-colors"><ArrowCounterClockwise size={14} /></button>
                       : <button onClick={() => act(p, "archive")} data-testid={`mylist-archive-${p.id}`} title="Archive" className="p-2 text-slate-600 hover:text-amber-600 hover:bg-amber-50 rounded transition-colors"><Archive size={14} /></button>}

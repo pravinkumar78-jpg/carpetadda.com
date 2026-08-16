@@ -5,7 +5,8 @@ import PropertyMap from "@/components/PropertyMap";
 import PropertyCard from "@/components/PropertyCard";
 import { formatINR, formatArea } from "@/lib/format";
 import { waPropertyMsg } from "@/lib/whatsapp";
-import { MapPin, Bed, Bathtub, ArrowsOutSimple, Car, Buildings, Calendar, ShieldCheck, PhoneCall, WhatsappLogo, Heart, ShareNetwork, Download, CaretRight, CalendarBlank, Compass, FileText, Sparkle, SwimmingPool, Barbell, WifiHigh, Tree, Lightning, Elevator, Drop, GameController, Flower, SoccerBall, ShoppingBag, Bank } from "@phosphor-icons/react";
+import { MapPin, Bed, Bathtub, ArrowsOutSimple, Car, Buildings, Calendar, ShieldCheck, PhoneCall, WhatsappLogo, Heart, ShareNetwork, Download, CaretRight, CalendarBlank, Compass, FileText, Sparkle, SwimmingPool, Barbell, WifiHigh, Tree, Lightning, Elevator, Drop, GameController, Flower, SoccerBall, ShoppingBag, Bank, SquaresFour, List } from "@phosphor-icons/react";
+import { ytEmbedId } from "@/lib/utils";
 import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext } from "@/components/ui/carousel";
 
 const AMENITY_ICONS = [
@@ -80,6 +81,7 @@ export default function PropertyDetail() {
   const [p, setP] = useState(null);
   const [form, setForm] = useState({ name: "", phone: "", email: "", message: "" });
   const [visitOpen, setVisitOpen] = useState(false);
+  const [similarView, setSimilarView] = useState("grid");
 
   useEffect(() => {
     api.get(`/properties/${slug}`).then(r => setP(r.data)).catch(() => setP(false));
@@ -102,6 +104,7 @@ export default function PropertyDetail() {
   const price = p.listing_type === "rent" ? `${formatINR(p.rent)}/mo` : formatINR(p.price);
   const waMsg = waPropertyMsg(p);
   const hasHtml = (p.description || "").includes("<");
+  const ytId = ytEmbedId(p.youtube_url);
   const allImages = [
     { src: p.main_image, label: "Main Image" },
     ...(p.images || []).map(src => ({ src, label: "Gallery" })),
@@ -274,6 +277,19 @@ export default function PropertyDetail() {
           {/* 6b. All Images — every stored property image, deduped, with lightbox */}
           <AllImagesGallery items={allImages} testid="all-images" />
 
+          {/* 6c. YouTube Video — rendered only when a valid link exists */}
+          {ytId && (
+            <section data-testid="section-youtube">
+              <h2 className="text-2xl font-bold text-slate-900 mb-5">YouTube Video</h2>
+              <div className="card-premium overflow-hidden">
+                <div className="relative w-full aspect-video">
+                  <iframe src={`https://www.youtube-nocookie.com/embed/${ytId}`} title={`${p.title} — video`}
+                    className="absolute inset-0 w-full h-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen loading="lazy" />
+                </div>
+              </div>
+            </section>
+          )}
+
           {/* 7. Unit Plan */}
           {p.unit_plan && (
             <section data-testid="section-unit-plan">
@@ -296,13 +312,39 @@ export default function PropertyDetail() {
             </button>
           </section>
 
-          {/* 9. Similar Properties */}
+          {/* 9. Similar Properties — grid/list toggle */}
           {p.similar?.length > 0 && (
             <section data-testid="section-similar">
-              <h2 className="text-2xl font-bold text-slate-900 mb-6">Similar Properties</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                {p.similar.map(s => <PropertyCard key={s.id} p={s} />)}
+              <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
+                <h2 className="text-2xl font-bold text-slate-900">Similar Properties</h2>
+                <div className="flex bg-white border border-slate-300 rounded-lg overflow-hidden" data-testid="similar-view-toggle">
+                  {[["grid", SquaresFour], ["list", List]].map(([k, Icon]) => (
+                    <button key={k} type="button" data-testid={`similar-view-${k}`} onClick={() => setSimilarView(k)}
+                      className={`p-2.5 ${similarView === k ? "bg-blue-600 text-white" : "text-slate-600 hover:bg-blue-50 hover:text-blue-600"} transition-colors`} aria-label={`${k} view`}>
+                      <Icon size={17} />
+                    </button>
+                  ))}
+                </div>
               </div>
+              {similarView === "grid" ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                  {p.similar.map(s => <PropertyCard key={s.id} p={s} />)}
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {p.similar.map(s => (
+                    <Link key={s.id} to={`/property/${s.slug}`} data-testid={`similar-list-${s.slug}`} className="card-premium p-3 flex items-center gap-4 group">
+                      <img src={s.main_image} alt={s.title} loading="lazy" className="w-28 sm:w-36 aspect-[4/3] object-cover rounded-lg flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <div className="font-semibold text-slate-900 group-hover:text-blue-600 transition-colors line-clamp-1">{s.title}</div>
+                        <div className="text-xs text-slate-500 flex items-center gap-1 mt-1 capitalize"><MapPin size={12} /> {(s.location || "").replace(/-/g, " ")}, {s.city}</div>
+                        {s.bhk && <div className="text-xs text-slate-500 mt-1">{s.bhk} BHK{s.carpet_area ? ` · ${formatArea(s.carpet_area)}` : ""}</div>}
+                      </div>
+                      <div className="text-sm font-bold text-blue-600 rupee whitespace-nowrap">{s.listing_type === "rent" ? `${formatINR(s.rent)}/mo` : formatINR(s.price)}</div>
+                    </Link>
+                  ))}
+                </div>
+              )}
             </section>
           )}
         </div>
