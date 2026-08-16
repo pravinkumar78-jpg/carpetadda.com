@@ -1,0 +1,31 @@
+# ============================================================
+# CarpetAdda — Hostinger production .env
+# 1) Save the BACKEND block as:  backend/.env  (on your server)
+# 2) The frontend needs NO .env (the build already uses same-origin /api)
+# 3) server.js vars (PORT / BACKEND_URL) only needed for non-defaults
+# Replace every <...> placeholder with your own value. Never commit this file.
+# ============================================================
+
+# ---------- REQUIRED (site will not run without these) ----------
+MONGO_URL=mongodb+srv://<db-user>:<db-password>@<cluster-url>/carpetadda?retryWrites=true&w=majority
+DB_NAME=carpetadda
+JWT_SECRET=<generate-a-long-random-string-64-chars>
+CORS_ORIGINS=https://gold-mallard-777999.hostingersite.com
+FRONTEND_URL=https://gold-mallard-777999.hostingersite.com
+SITE_URL=https://gold-mallard-777999.hostingersite.com
+
+# ---------- EMAIL (optional — site runs without it; enquiries still save to admin) ----------
+LEAD_RECIPIENT_EMAIL=contact@carpetadda.com
+SMTP_HOST=<your-hostinger-smtp-host>
+SMTP_PORT=465
+SMTP_USER=<your-mailbox-address>
+SMTP_PASSWORD=<your-mailbox-password>
+SMTP_FROM_EMAIL=<your-mailbox-address>
+SMTP_FROM_NAME=CarpetAdda
+SMTP_SECURE=ssl
+EMAIL_FROM_NAME=CarpetAdda
+EMERGENT_EMAIL_KEY=
+
+# ---------- server.js (only if NOT using defaults) ----------
+# PORT=3000
+# BACKEND_URL=http://127.0.0.1:8001
