@@ -292,3 +292,9 @@
 - P2: SMTP creds for live email on Hostinger (backend/.env per .env.example; preview uses Emergent managed email)
 - P2: hero image rotation via settings CMS (done — Hero Settings); AI Search restyle
 - P2: consider site-wide primary button (btn-primary #708DE6) contrast alignment with the new darker dashboard CTAs
+
+## Implemented (2026-08-17 — dedicated New Launch Projects page)
+- New route `/new-launch` renders the existing Projects listing with a locked filter: `Projects` accepts optional `fixedStatus` prop which forces `construction_status=new_launch` on the existing GET /projects API (no new API, no duplicate data; `new_launch` boolean flag is unused in seed data — construction_status is the real marker, same pattern as /rtmi)
+- Header "New Launch" menu (desktop NavLink + mobile drawer link) now opens `/new-launch` directly; `/projects` remains the generic all-projects listing (Residential/Commercial dropdown links unaffected)
+- All existing filters (keyword, BHK/commercial sub-category, location, price slider), sort, grid/list toggle and project-detail links work on top of the locked filter; heading already read "New Launch Projects"
+- Verified: header click → /new-launch with 5 new-launch-only projects; keyword search narrows to 1; detail link → /project/hariyali-elysium; mobile 390px responsive with zero h-overflow; /projects still shows all 9; console/network clean (only platform Cloudflare RUM beacons aborted, not app code)

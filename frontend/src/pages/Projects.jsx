@@ -10,7 +10,7 @@ import { formatINR } from "@/lib/format";
 
 const PRICE_CAP = 100000000; // ₹10 Cr
 
-export default function Projects() {
+export default function Projects({ fixedStatus }) {
   const [sp, setSp] = useSearchParams();
   const [items, setItems] = useState([]);
   const [total, setTotal] = useState(0);
@@ -34,6 +34,7 @@ export default function Projects() {
     const qp = new URLSearchParams(sp);
     if (qp.get("category") === "commercial") qp.delete("bhk"); // BHK never applies to commercial
     else qp.delete("config");
+    if (fixedStatus) qp.set("construction_status", fixedStatus); // dedicated pages (e.g. New Launch) lock the status filter
     qp.set("page_size", "60");
     api.get(`/projects?${qp.toString()}`)
       .then(r => { setItems(r.data.items || []); setTotal(r.data.total || 0); })
