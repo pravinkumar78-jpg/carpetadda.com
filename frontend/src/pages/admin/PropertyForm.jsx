@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
@@ -95,6 +95,39 @@ export default function PropertyForm() {
     }
   }, [id, nav]);
 
+  // Auto-save unfinished work as a draft when the form is closed/interrupted
+  const fRef = useRef(f); fRef.current = f;
+  const dirtyRef = useRef(false);
+  const doneRef = useRef(false);
+  const skipRef = useRef(!!id);
+  useEffect(() => {
+    if (skipRef.current) { skipRef.current = false; return; }
+    dirtyRef.current = true;
+  }, [f]);
+  useEffect(() => {
+    const onHide = () => {
+      const cur = fRef.current;
+      if (!dirtyRef.current || doneRef.current || !(cur?.title || "").trim()) return;
+      if (id && cur.status !== "draft") return; // never unpublish a live/pending listing on exit
+      try {
+        const payload = { ...cur, status: "draft" };
+        if (!payload.slug) payload.slug = cur.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 60);
+        if (!payload.main_image && payload.images?.[0]) payload.main_image = payload.images[0];
+        ["id", "created_at", "updated_at", "views", "developer", "agent", "project", "similar"].forEach(k => delete payload[k]);
+        const token = localStorage.getItem("eh_token");
+        const base = (process.env.REACT_APP_BACKEND_URL || "").replace(/\/$/, "");
+        fetch(`${base}/api/properties${id ? `/${id}` : ""}`, {
+          method: id ? "PUT" : "POST",
+          headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+          body: JSON.stringify(payload),
+          keepalive: true,
+        });
+      } catch { /* best-effort draft autosave on exit */ }
+    };
+    window.addEventListener("pagehide", onHide);
+    return () => window.removeEventListener("pagehide", onHide);
+  }, [id]);
+
   if (!ready) return null;
   if (!user || !["admin", "super_admin", "agent", "developer", "owner", "user"].includes(user.role)) return <Navigate to="/login" />;
   if (!loaded) return <div className="p-20 text-center text-slate-500">Loading…</div>;
@@ -148,6 +181,7 @@ export default function PropertyForm() {
       } else {
         await api.post("/properties", payload);
       }
+      doneRef.current = true;
       toast.success(id ? "Property updated" : publish ? (inAdmin ? "Property published" : "Submitted for admin review") : "Draft saved");
       nav(backTo);
     } catch (err) {

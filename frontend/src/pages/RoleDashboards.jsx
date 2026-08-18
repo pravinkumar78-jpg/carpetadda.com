@@ -3,8 +3,9 @@ import { Navigate, Link } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import api from "@/lib/api";
 import { toast } from "sonner";
-import { Plus, House, Buildings, ChatCircle, Heart, MagnifyingGlass, UserGear, Users, Archive, ArrowCounterClockwise, PencilSimple, GlobeHemisphereWest, CircleNotch, ChartBar, PaperPlaneTilt } from "@phosphor-icons/react";
+import { Plus, House, Buildings, ChatCircle, Heart, MagnifyingGlass, UserGear, Users, Archive, ArrowCounterClockwise, PencilSimple, GlobeHemisphereWest, CircleNotch, ChartBar, PaperPlaneTilt, FileDashed } from "@phosphor-icons/react";
 import { AccountPanel, MyListings } from "@/components/dashboard/AccountPanel";
+import DraftsPanel from "@/components/dashboard/DraftsPanel";
 import LeadsChart from "@/components/LeadsChart";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DashNavToggle, DashSidebar } from "@/components/DashNav";
@@ -36,6 +37,7 @@ export function AgentDashboard() {
   return (
     <DashShell user={user} title="Agent Workspace" tab={tab} setTab={setTab} menu={[
       ["listings", `My Listings (${items.length})`, House],
+      ["drafts", "Drafts", FileDashed],
       ["leads", `Manage Leads (${leads.length})`, ChatCircle],
       ["clients", "Clients", Users],
       ["account", "Profile & Security", UserGear],
@@ -50,6 +52,8 @@ export function AgentDashboard() {
           <MyListings items={items} onChanged={loadListings} editBase="/agent/list-property" />
         </div>
       )}
+
+      {tab === "drafts" && <DraftsPanel editPropertyBase="/agent/list-property" />}
 
       {tab === "leads" && (
         <div className="space-y-5">
@@ -162,6 +166,7 @@ export function DeveloperDashboard() {
   return (
     <DashShell user={user} title="Developer Workspace" tab={tab} setTab={setTab} menu={[
       ["projects", `My Projects (${projects.length})`, Buildings],
+      ["drafts", "Drafts", FileDashed],
       ["performance", "Leads & Performance", ChartBar],
       ["account", "Profile & Security", UserGear],
     ]} actions={[
@@ -220,6 +225,8 @@ export function DeveloperDashboard() {
           </div>
         </div>
       )}
+
+      {tab === "drafts" && <DraftsPanel editProjectBase="/developer/projects" />}
 
       {tab === "performance" && (
         <LeadsChart stats={leadStats} title="My Project Leads" />

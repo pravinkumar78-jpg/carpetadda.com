@@ -3,7 +3,7 @@ import { Navigate, Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import api from "@/lib/api";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Buildings, ChartBar, UserCircle, ChatCircle, House, Package, ListChecks, Question, Star, Article, Users, Gear, MagnifyingGlass, Archive, CaretDown, EnvelopeSimple } from "@phosphor-icons/react";
+import { Buildings, ChartBar, UserCircle, ChatCircle, House, Package, ListChecks, Question, Star, Article, Users, Gear, MagnifyingGlass, Archive, CaretDown, EnvelopeSimple, FileDashed } from "@phosphor-icons/react";
 import AdminProperties from "@/pages/admin/AdminProperties";
 import AdminProjects from "@/pages/admin/AdminProjects";
 import AdminLeads from "@/pages/admin/AdminLeads";
@@ -18,12 +18,14 @@ import AdminEmailLogs from "@/pages/admin/AdminEmailLogs";
 import LeadsChart from "@/components/LeadsChart";
 import AdminArchive from "@/pages/admin/AdminArchive";
 import AdminPages from "@/pages/admin/AdminPages";
+import DraftsPanel from "@/components/dashboard/DraftsPanel";
 import { DashNavToggle, DashSidebar } from "@/components/DashNav";
 
 const TABS = [
   ["overview", "Overview", ChartBar],
   ["properties", "Properties", House],
   ["projects", "Projects", Buildings],
+  ["drafts", "Drafts", FileDashed],
   ["leads", "Leads", ChatCircle],
   ["site-visits", "Site Visits", ListChecks],
   ["email-logs", "Email Logs", EnvelopeSimple],
@@ -110,6 +112,7 @@ export default function AdminPanel() {
             <TabsContent value="overview"><Overview stats={stats} go={setTab} nav={nav} /></TabsContent>
             <TabsContent value="properties"><AdminProperties /></TabsContent>
             <TabsContent value="projects"><AdminProjects /></TabsContent>
+            <TabsContent value="drafts"><DraftsPanel editPropertyBase="/admin/properties" editProjectBase="/admin/projects" /></TabsContent>
             <TabsContent value="leads"><AdminLeads /></TabsContent>
             <TabsContent value="site-visits"><AdminSiteVisits /></TabsContent>
             <TabsContent value="email-logs"><AdminEmailLogs /></TabsContent>

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams, Link, Navigate } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import api from "@/lib/api";
@@ -108,6 +108,45 @@ export default function ProjectForm() {
       });
     }
   }, [id, nav]);
+
+  // Auto-save unfinished work as a draft when the form is closed/interrupted
+  const fRef = useRef(f); fRef.current = f;
+  const devRef = useRef(developers); devRef.current = developers;
+  const devNameRef = useRef(devName); devNameRef.current = devName;
+  const dirtyRef = useRef(false);
+  const doneRef = useRef(false);
+  const skipRef = useRef(!!id);
+  useEffect(() => {
+    if (skipRef.current) { skipRef.current = false; return; }
+    dirtyRef.current = true;
+  }, [f]);
+  useEffect(() => {
+    const onHide = () => {
+      const cur = fRef.current;
+      if (!dirtyRef.current || doneRef.current || !(cur?.name || "").trim()) return;
+      if (id && cur.status !== "draft") return; // never unpublish a live/pending project on exit
+      try {
+        const match = devRef.current.find(d => (d.name || "").trim().toLowerCase() === (devNameRef.current || "").trim().toLowerCase());
+        const payload = { ...cur, status: "draft" };
+        if (match) payload.developer_id = match.id;
+        if (!payload.developer_id) payload.developer_id = "";
+        if (typeof payload.configurations === "string") payload.configurations = payload.configurations.split(",").map(s => s.trim()).filter(Boolean);
+        if (!payload.slug) payload.slug = cur.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 60);
+        if (!payload.main_image && payload.images?.[0]) payload.main_image = payload.images[0];
+        ["id", "created_at", "updated_at", "developer", "properties", "similar"].forEach(k => delete payload[k]);
+        const token = localStorage.getItem("eh_token");
+        const base = (process.env.REACT_APP_BACKEND_URL || "").replace(/\/$/, "");
+        fetch(`${base}/api/projects${id ? `/${id}` : ""}`, {
+          method: id ? "PUT" : "POST",
+          headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+          body: JSON.stringify(payload),
+          keepalive: true,
+        });
+      } catch { /* best-effort draft autosave on exit */ }
+    };
+    window.addEventListener("pagehide", onHide);
+    return () => window.removeEventListener("pagehide", onHide);
+  }, [id]);
 
   if (!ready) return null;
   if (!user || !["admin", "super_admin", "developer"].includes(user.role)) return <Navigate to="/login" />;
@@ -219,6 +258,7 @@ export default function ProjectForm() {
       } else {
         await api.post("/projects", payload);
       }
+      doneRef.current = true;
       toast.success(id ? "Project updated" : publish ? (inAdmin ? "Project published" : "Submitted for admin review") : "Draft saved");
       nav(backTo);
     } catch (err) {

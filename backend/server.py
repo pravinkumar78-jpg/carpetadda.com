@@ -482,7 +482,7 @@ async def create_property(body: Property, u: dict = Depends(current_user)):
     if u["role"] in ("agent",) and not body.agent_id:
         body.agent_id = u["sub"]
     if u["role"] not in ("admin", "super_admin"):
-        body.status = "pending_review"
+        body.status = "draft" if body.status == "draft" else "pending_review"
         body.verified = False
         body.featured = False
     await db.properties.insert_one(body.model_dump())
@@ -510,6 +510,30 @@ async def get_my_project(pid: str, u: dict = Depends(current_user)):
     return doc
 
 
+# ---------------- Drafts (unfinished listings) ----------------
+@api.get("/drafts")
+async def list_drafts(u: dict = Depends(current_user)):
+    q: dict = {"status": "draft"}
+    if u["role"] not in ("admin", "super_admin"):
+        q["$or"] = [{"owner_id": u["sub"]}, {"agent_id": u["sub"]}]
+    props = await db.properties.find(dict(q), PROJ).sort([("updated_at", -1)]).limit(100).to_list(100)
+    projs = await db.projects.find(dict(q), PROJ).sort([("updated_at", -1)]).limit(100).to_list(100)
+    return {"properties": props, "projects": projs}
+
+
+@api.delete("/drafts/{kind}/{did}")
+async def delete_draft(kind: str, did: str, u: dict = Depends(current_user)):
+    if kind not in ("properties", "projects"):
+        raise HTTPException(400, "Invalid draft type")
+    doc = await db[kind].find_one({"id": did}, PROJ)
+    if not doc or doc.get("status") != "draft":
+        raise HTTPException(404, "Draft not found")
+    if u["role"] not in ("admin", "super_admin") and doc.get("owner_id") != u["sub"] and doc.get("agent_id") != u["sub"]:
+        raise HTTPException(403, "You can only delete your own drafts")
+    await db[kind].delete_one({"id": did})
+    return {"deleted": 1}
+
+
 @api.put("/properties/{pid}")
 async def update_property(pid: str, body: dict = Body(...), u: dict = Depends(current_user)):
     doc = await db.properties.find_one({"id": pid}, PROJ)
@@ -518,6 +542,7 @@ async def update_property(pid: str, body: dict = Body(...), u: dict = Depends(cu
     if u["role"] not in ("admin", "super_admin") and doc.get("owner_id") != u["sub"] and doc.get("agent_id") != u["sub"]:
         raise HTTPException(403, "You can only edit your own listings")
     body.pop("_id", None); body.pop("id", None); body.pop("owner_id", None)
+    body["updated_at"] = _now_iso_str()
     res = await db.properties.update_one({"id": pid}, {"$set": body})
     if not res.matched_count:
         raise HTTPException(404, "Not found")
@@ -745,7 +770,7 @@ async def create_project(body: Project, u: dict = Depends(current_user)):
         raise HTTPException(403, "Your account is blocked. Contact admin.")
     body.owner_id = u["sub"]
     if u["role"] not in ("admin", "super_admin"):
-        body.status = "pending_review"
+        body.status = "draft" if body.status == "draft" else "pending_review"
         body.verified = False
         body.featured = False
     await db.projects.insert_one(body.model_dump())
@@ -1020,6 +1045,7 @@ async def update_project(pid: str, body: dict = Body(...), u: dict = Depends(cur
     if u["role"] == "developer" and doc.get("owner_id") not in (None, u["sub"]):
         raise HTTPException(403, "You can only edit your own projects")
     body.pop("_id", None); body.pop("id", None); body.pop("owner_id", None)
+    body["updated_at"] = _now_iso_str()
     res = await db.projects.update_one({"id": pid}, {"$set": body})
     if not res.matched_count:
         raise HTTPException(404, "Not found")

@@ -1,0 +1,63 @@
+{
+  "summary": "Tested the Drafts feature end to end across user, agent, developer, and admin roles plus targeted API regression coverage. Manual save, edit persistence, delete, pagehide auto-save, role scoping, developer project drafts, admin all-user visibility/publish, public list filtering, and admin filters passed. Found two backend authorization/privacy defects and one frontend stale-state defect.",
+  "backend_issues": {
+    "critical": [
+      {
+        "endpoint": "/api/properties/{pid}",
+        "issue": "A normal user can PUT {status: 'active'} on their own draft. The API returns 200, persists active, and makes the property publicly readable, bypassing admin review.",
+        "priority": "CRITICAL"
+      },
+      {
+        "endpoint": "/api/developers/{slug}",
+        "issue": "Public developer profile response includes projects without status filtering. A developer-owned status=draft project was returned publicly in the profile projects array.",
+        "priority": "CRITICAL"
+      }
+    ],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {
+        "flow": "User publishes a draft, then opens My Listings",
+        "issue": "The publish API succeeds and the draft row disappears, but My Listings immediately shows the same listing as Draft instead of Pending Review until the dashboard is reloaded. DashboardPages keeps a stale mine state because DraftsPanel only reloads its own data and does not notify loadMine.",
+        "affected_selectors": [
+          "[data-testid^='draft-publish-']",
+          "[data-testid='dash-tab-listings']",
+          "[data-testid='my-listings']"
+        ]
+      }
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_drafts.py",
+    "/app/test_reports/pytest/drafts_results.xml"
+  ],
+  "action_items": [
+    "Enforce the status transition server-side in update_property and update_project: non-admin publish must become pending_review and must never accept active directly.",
+    "Filter nested projects/properties in public developer and agent profile endpoints to status=active.",
+    "Refresh parent dashboard listing state after DraftsPanel publish/delete, for example with an onChanged callback passed from UserDashboard/role dashboards.",
+    "Add status=active to /api/projects/featured; current runtime data passed, but the endpoint code does not prevent future draft leakage."
+  ],
+  "critical_code_review_comments": [
+    "update_property and update_project accept arbitrary request dictionaries and persist status without role-based transition validation. The property exploit was reproduced; update_project contains the same unchecked pattern.",
+    "get_developer and get_agent query related projects/properties without status=active. The developer draft leak was reproduced publicly.",
+    "featured_projects filters only featured=True, unlike featured_properties which also requires active. This is a latent public draft leak when a draft retains featured=true.",
+    "DraftsPanel catches GET failures by replacing results with empty arrays, making an API outage indistinguishable from a legitimate No drafts state. Render a retryable error state instead.",
+    "DraftsPanel owns its reload internally and has no parent invalidation hook, which is the root cause of stale My Listings after publishing."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_drafts.py",
+    "/app/test_reports/iteration_10.json"
+  ],
+  "success_rate": {
+    "backend": "75% (6/8 targeted draft API tests passed)",
+    "frontend": "90% (manual save/edit/delete/autosave and role/admin flows passed; immediate My Listings status refresh failed)"
+  },
+  "seed_data_creation": "Created uniquely named TEST_/QA property and project records for user, agent, developer, and admin workflows. All test-created records were deleted via draft delete or admin cleanup.",
+  "should_call_test_agent_after_fix": true,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Retest direct non-admin PUT status=active for both properties and projects, public developer/agent profile nested arrays, and immediate My Listings status after Drafts publish. User manual save/edit persisted 6,200,000 price; delete returned owner GET 404; pagehide keepalive autosave was reliable. Agent/Developer Drafts tabs rendered; developer project draft creation/edit prefill/delete passed. Admin listed a user-owned draft and publishing made it publicly readable. Public /properties and /projects APIs returned only active records; featured endpoint runtime records were active. Admin pending-review filter buttons remained actionable. Expected 404 console output occurred only when the test deliberately verified a deleted/non-public record.",
+  "rca_of_the_issue": "Authorization RCA: create endpoints normalize non-admin status, but update endpoints directly $set the caller-provided body, so status=active bypasses moderation. Privacy RCA: public developer detail assembles related projects with only developer_id and no active-status predicate. Frontend RCA: DraftsPanel reloads only its local drafts state after publish; UserDashboard's mine state is loaded once and is not invalidated, so My Listings renders the pre-publish Draft snapshot until reload."
+}

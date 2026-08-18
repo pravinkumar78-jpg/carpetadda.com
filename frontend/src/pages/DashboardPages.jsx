@@ -4,8 +4,9 @@ import { useAuth } from "@/lib/auth";
 import api from "@/lib/api";
 import PropertyCard from "@/components/PropertyCard";
 import { AccountPanel, MyListings } from "@/components/dashboard/AccountPanel";
-import { Heart, MagnifyingGlass, Plus, SquaresFour, UserGear } from "@phosphor-icons/react";
+import { Heart, MagnifyingGlass, Plus, SquaresFour, UserGear, FileDashed } from "@phosphor-icons/react";
 import { DashNavToggle, DashSidebar } from "@/components/DashNav";
+import DraftsPanel from "@/components/dashboard/DraftsPanel";
 
 export function UserDashboard() {
   const { user, ready } = useAuth();
@@ -30,6 +31,7 @@ export function UserDashboard() {
   const MENU = [
     ["overview", "Overview", SquaresFour],
     ["listings", `My Listings (${mine.length})`, Plus],
+    ["drafts", "Drafts", FileDashed],
     ["account", "Profile & Security", UserGear],
   ];
 
@@ -97,6 +99,13 @@ export function UserDashboard() {
                 </Link>
               </div>
               <MyListings items={mine} onChanged={loadMine} editBase="/dashboard/list-property" />
+            </div>
+          )}
+
+          {tab === "drafts" && (
+            <div className="space-y-5">
+              <h2 className="text-2xl font-bold text-slate-900">Drafts</h2>
+              <DraftsPanel editPropertyBase="/dashboard/list-property" />
             </div>
           )}
 
