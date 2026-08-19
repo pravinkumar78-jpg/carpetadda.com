@@ -40,6 +40,7 @@ class User(BaseDoc):
     office_address: Optional[str] = None
     dob: Optional[str] = None
     rera_number: Optional[str] = None
+    whatsapp: Optional[str] = None
     verified: bool = False
     active: bool = True
 
@@ -54,6 +55,7 @@ class UserOut(BaseModel):
     office_address: Optional[str] = None
     dob: Optional[str] = None
     rera_number: Optional[str] = None
+    whatsapp: Optional[str] = None
     verified: bool = False
 
 
@@ -329,6 +331,7 @@ class Lead(BaseDoc):
     status: str = "new"  # new | contacted | interested | site_visit | negotiation | booking | converted | lost
     priority: str = "warm"  # hot | warm | cold
     assigned_to: Optional[str] = None
+    next_follow_up: Optional[str] = None  # ISO date the agent plans to follow up
     notes: List[dict] = Field(default_factory=list)
 
 

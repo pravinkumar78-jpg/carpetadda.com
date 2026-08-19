@@ -13,6 +13,7 @@ export function AccountPanel({ user }) {
   const [profile, setProfile] = useState({
     name: user.name || "",
     phone: user.phone || "",
+    whatsapp: user.whatsapp || "",
     office_address: user.office_address || "",
     dob: user.dob || "",
     avatar: user.avatar || "",
@@ -27,6 +28,7 @@ export function AccountPanel({ user }) {
     setProfile({
       name: user.name || "",
       phone: user.phone || "",
+      whatsapp: user.whatsapp || "",
       office_address: user.office_address || "",
       dob: user.dob || "",
       avatar: user.avatar || "",
@@ -95,6 +97,11 @@ export function AccountPanel({ user }) {
           <div>
             <FL>Mobile Number</FL>
             <Input data-testid="profile-phone" type="tel" value={profile.phone} onChange={e => setProfile({ ...profile, phone: e.target.value })} className="h-11 rounded-lg border-slate-300" />
+          </div>
+          {/* 2b. WhatsApp Number */}
+          <div>
+            <FL>WhatsApp Number</FL>
+            <Input data-testid="profile-whatsapp" type="tel" value={profile.whatsapp} onChange={e => setProfile({ ...profile, whatsapp: e.target.value })} placeholder="e.g. 919876543210" className="h-11 rounded-lg border-slate-300" />
           </div>
           {/* 3. Email + 4. Verify status */}
           <div>

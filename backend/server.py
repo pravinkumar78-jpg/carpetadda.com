@@ -187,7 +187,7 @@ async def update_profile(body: dict = Body(...), user: dict = Depends(current_us
     if not name:
         raise HTTPException(400, "Name required")
     patch: dict[str, Any] = {"name": name, "phone": phone, "updated_at": _now_iso_str()}
-    for k in ("office_address", "dob", "avatar", "rera_number"):
+    for k in ("office_address", "dob", "avatar", "rera_number", "whatsapp"):
         if k in body:
             patch[k] = (body.get(k) or "").strip() if isinstance(body.get(k), str) else body.get(k)
     await db.users.update_one({"id": user["sub"]}, {"$set": patch})
@@ -1931,14 +1931,36 @@ async def _notify_lead(doc_id: str, collection: str, lead: dict, kind: str, ctx:
 
 
 @api.get("/leads", dependencies=[Depends(require_roles("admin", "agent"))])
-async def list_leads(status: Optional[str] = None, limit: int = 100):
-    query = {"status": status} if status else {}
+async def list_leads(status: Optional[str] = None, limit: int = 100, u: dict = Depends(current_user)):
+    query: dict[str, Any] = {"status": status} if status else {}
+    if u["role"] == "agent":
+        prop_ids = await _agent_property_ids(u["sub"])
+        scope = [{"agent_id": u["sub"]}] + ([{"property_id": {"$in": prop_ids}}] if prop_ids else [])
+        query = {"$and": [query, {"$or": scope}]} if query else {"$or": scope}
     return await db.leads.find(query, PROJ).sort([("created_at", -1)]).to_list(limit)
 
 
+async def _agent_property_ids(uid: str):
+    """Properties an agent owns, is linked to, or is assigned — used to scope their data."""
+    return [p["id"] for p in await db.properties.find(
+        {"$or": [{"owner_id": uid}, {"agent_id": uid}, {"assigned_to": uid}]}, {"_id": 0, "id": 1}).to_list(500)]
+
+
+async def _agent_can_access_lead(u: dict, lid: str):
+    lead = await db.leads.find_one({"id": lid}, PROJ)
+    if not lead:
+        raise HTTPException(404, "Lead not found")
+    if u["role"] == "agent":
+        prop_ids = await _agent_property_ids(u["sub"])
+        if lead.get("agent_id") != u["sub"] and lead.get("property_id") not in prop_ids:
+            raise HTTPException(403, "Not your lead")
+    return lead
+
+
 @api.put("/leads/{lid}", dependencies=[Depends(require_roles("admin", "agent"))])
-async def update_lead(lid: str, body: dict = Body(...)):
+async def update_lead(lid: str, body: dict = Body(...), u: dict = Depends(current_user)):
     body.pop("_id", None); body.pop("id", None)
+    await _agent_can_access_lead(u, lid)
     await db.leads.update_one({"id": lid}, {"$set": body})
     return await db.leads.find_one({"id": lid}, PROJ)
 
@@ -1986,8 +2008,13 @@ async def create_site_visit(body: SiteVisit, background: BackgroundTasks):
 
 
 @api.get("/site-visits", dependencies=[Depends(require_roles("admin", "agent"))])
-async def list_site_visits(limit: int = 100):
-    rows = await db.site_visits.find({}, PROJ).sort([("created_at", -1)]).to_list(limit)
+async def list_site_visits(limit: int = 100, u: dict = Depends(current_user)):
+    query: dict[str, Any] = {}
+    if u["role"] == "agent":
+        prop_ids = await _agent_property_ids(u["sub"])
+        proj_ids = [p["id"] for p in await db.projects.find({"assigned_to": u["sub"]}, {"_id": 0, "id": 1}).to_list(200)]
+        query = {"$or": [{"property_id": {"$in": prop_ids}}, {"project_id": {"$in": proj_ids}}]}
+    rows = await db.site_visits.find(query, PROJ).sort([("created_at", -1)]).to_list(limit)
     for r in rows:
         if r.get("property_id") and not r.get("property_title"):
             prop = await db.properties.find_one({"id": r["property_id"]}, {"_id": 0, "title": 1, "agent_id": 1})
@@ -2009,7 +2036,15 @@ async def list_site_visits(limit: int = 100):
 
 
 @api.put("/site-visits/{vid}", dependencies=[Depends(require_roles("admin", "agent"))])
-async def update_site_visit(vid: str, body: dict = Body(...)):
+async def update_site_visit(vid: str, body: dict = Body(...), u: dict = Depends(current_user)):
+    if u["role"] == "agent":
+        visit = await db.site_visits.find_one({"id": vid}, {"_id": 0, "property_id": 1, "project_id": 1})
+        if not visit:
+            raise HTTPException(404, "Site visit not found")
+        prop_ids = await _agent_property_ids(u["sub"])
+        proj_ids = [p["id"] for p in await db.projects.find({"assigned_to": u["sub"]}, {"_id": 0, "id": 1}).to_list(200)]
+        if visit.get("property_id") not in prop_ids and visit.get("project_id") not in proj_ids:
+            raise HTTPException(403, "Not your site visit")
     allowed = {"status", "notes", "visit_date", "visit_time", "name", "phone", "email"}
     patch = {k: v for k, v in body.items() if k in allowed}
     if "status" in patch and patch["status"] not in {"requested", "confirmed", "rescheduled", "completed", "cancelled", "no_show"}:

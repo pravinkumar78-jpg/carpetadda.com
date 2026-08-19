@@ -5,6 +5,13 @@ export const WA_NUMBER = "918828830707";
 export const waLink = (msg) =>
   `https://wa.me/${WA_NUMBER}${msg ? `?text=${encodeURIComponent(msg)}` : ""}`;
 
+// Direct 1:1 chat with a specific phone number (e.g. agent → lead/client)
+export const waTo = (phone, msg) => {
+  const digits = String(phone || "").replace(/\D/g, "");
+  const num = digits.length === 10 ? `91${digits}` : digits;
+  return `https://wa.me/${num || WA_NUMBER}${msg ? `?text=${encodeURIComponent(msg)}` : ""}`;
+};
+
 export const waPropertyMsg = (p) => waLink([
   `Hello, I am interested in your property listing: ${p.title}`,
   p.id ? `(ID: ${p.id})` : "",

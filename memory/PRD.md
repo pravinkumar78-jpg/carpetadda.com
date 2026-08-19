@@ -318,3 +318,10 @@
 - User/Agent/Developer dashboards: "Assigned to Me" tab (AssignedPanel) — assigned listings with status + "Pending Approval" badge + edit links; new route /dashboard/edit-project/:id/edit (ProjectForm allows role user, role-aware backTo); MyListings shows "Edits Pending Approval" badge
 - Backend-enforced: /my/assigned, /my/properties|projects/{id} and PUT guards include assigned_to; cross-user edits 403; admin-only assign/approve/reject/pending-changes
 - Verified full curl flow: assign → user sees → edit staged → live unchanged → admin approves → live updated (status active) → second edit → reject → live unchanged → 403s for cross-user/admin-endpoint attempts; seed restored
+
+## Implemented (2026-08-19 — Agent workspace)
+- /agent rebuilt into full workspace: Overview (7 stat cards: Total/New Leads, Follow-ups Due, Site Visits, Upcoming Visits, Assigned Listings, Pending Approvals + derived Recent Activity feed), Leads (status filter chips, call/WhatsApp per lead, next-follow-up date picker, notes with add-note), Follow-ups (Overdue-Due-Today ≤ today / Upcoming > today), Site Visits (Upcoming/Completed/Cancelled, notes on blur, status select, WhatsApp follow-up), Assigned (existing AssignedPanel), plus existing Listings/Drafts/Clients/Profile
+- SECURITY: GET/PUT /leads and /site-visits are agent-scoped (agent sees only own/agent-linked/assigned property leads + visits; 403 on out-of-scope updates; plain users 403)
+- Lead model +next_follow_up; User model +whatsapp; PUT /auth/profile accepts whatsapp; AccountPanel WhatsApp Number field
+- Fix pass 2 (reported "Agent Overview issue"): WhatsApp contact actions now target the CLIENT's phone (new waTo helper; previously opened the business number); follow-ups today counted as due/overdue; missing testids added; seeded demo data for agent account (2 assigned properties, 3 leads, 1 visit) since the account had zero data (root cause of the "empty overview")
+- Verified: overview shows real counts (3/1/2/2/1/2/0), lead WhatsApp href targets client number, follow-up sections split correctly, visits/assigned rows render, mobile no overflow, console clean
