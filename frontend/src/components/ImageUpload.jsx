@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { UploadSimple, X, Image as ImageIcon, LinkSimple } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import api from "@/lib/api";
@@ -53,6 +53,8 @@ export default function ImageUpload({ value, onChange, kind = "general", label, 
   };
 
   const preview = value ? (value.startsWith("/api/") ? value : value) : null;
+  const [broken, setBroken] = useState(false);
+  useEffect(() => setBroken(false), [value]); // retry preview when the URL changes (e.g. after Replace)
 
   return (
     <div data-testid={dataTestid}>
@@ -60,9 +62,16 @@ export default function ImageUpload({ value, onChange, kind = "general", label, 
 
       {preview ? (
         <div className="relative group card-premium overflow-hidden p-0">
-          <img src={preview} alt="" className="w-full h-40 object-cover bg-slate-100" onError={e => { e.currentTarget.style.display = "none"; }} />
+          {broken ? (
+            <div className="w-full h-40 bg-slate-100 flex flex-col items-center justify-center gap-1.5 text-slate-400" data-testid={`${dataTestid}-broken`}>
+              <ImageIcon size={22} />
+              <span className="text-xs font-medium">Preview unavailable — use Replace or remove</span>
+            </div>
+          ) : (
+            <img src={preview} alt="" className="w-full h-40 object-cover bg-slate-100" onError={() => setBroken(true)} />
+          )}
           <div className="absolute top-2 right-2 flex items-center gap-2">
-            <button type="button" onClick={() => inputRef.current?.click()} disabled={uploading} className="px-2.5 py-1.5 rounded-md bg-white/95 backdrop-blur text-xs font-medium text-slate-700 shadow hover:bg-white">
+            <button type="button" onClick={() => inputRef.current?.click()} disabled={uploading} data-testid={`${dataTestid}-replace`} className="px-2.5 py-1.5 rounded-md bg-white/95 backdrop-blur text-xs font-medium text-slate-700 shadow hover:bg-white">
               {uploading ? "Uploading…" : "Replace"}
             </button>
             <button type="button" onClick={() => onChange("")} data-testid={`${dataTestid}-clear`} className="w-7 h-7 rounded-md bg-white/95 backdrop-blur text-slate-700 shadow hover:bg-rose-50 hover:text-rose-600 flex items-center justify-center">

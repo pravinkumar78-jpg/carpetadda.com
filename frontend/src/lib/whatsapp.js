@@ -26,3 +26,19 @@ export const waProjectMsg = (p) => waLink([
 export const waAgentMsg = (a) => waLink(
   `Hello, I found ${a.name} on CarpetAdda and would like to enquire about their property listings. Please connect us.`
 );
+
+export const waUnitMsg = (p, u) => {
+  const planUrl = u.unit_plan ? (u.unit_plan.startsWith("http") ? u.unit_plan : `${window.location.origin}${u.unit_plan}`) : "";
+  return waLink([
+    `Hello, I would like to request the price for a unit in ${p.name}`,
+    [p.location, p.city].filter(Boolean).length ? `Location: ${[p.location, p.city].filter(Boolean).map(s => String(s).replace(/-/g, " ")).join(", ")}` : "",
+    u.typology ? `Configuration: ${u.typology}` : "",
+    u.carpet_area ? `Carpet Area: ${u.carpet_area} sq.ft.` : "",
+    u.builtup_area ? `Built-up Area: ${u.builtup_area} sq.ft.` : "",
+    u.balcony != null && u.balcony !== "" ? `Balcony: ${u.balcony}` : "",
+    u.status ? `Availability: ${String(u.status).replace(/_/g, " ")}` : "",
+    planUrl ? `Unit Plan: ${planUrl}` : "",
+    `Page: ${window.location.href}`,
+    "Please share the price and payment details.",
+  ].filter(Boolean).join(". ").replace(/\.\./g, "."));
+};

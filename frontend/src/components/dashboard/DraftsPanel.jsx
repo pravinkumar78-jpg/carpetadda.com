@@ -12,7 +12,7 @@ const fmtWhen = (iso) => {
   return d.toLocaleString("en-IN", { day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit" });
 };
 
-export default function DraftsPanel({ editPropertyBase = "/dashboard/list-property", editProjectBase = "/developer/projects" }) {
+export default function DraftsPanel({ editPropertyBase = "/dashboard/list-property", editProjectBase = "/developer/projects", onChanged }) {
   const { user } = useAuth();
   const isAdmin = user && (user.role === "admin" || user.role === "super_admin");
   const [drafts, setDrafts] = useState({ properties: [], projects: [] });
@@ -32,6 +32,7 @@ export default function DraftsPanel({ editPropertyBase = "/dashboard/list-proper
       await api.put(`/${kind}/${d.id}`, { status: isAdmin ? "active" : "pending_review" });
       toast.success(isAdmin ? "Published — now live" : "Submitted for admin review");
       load();
+      onChanged?.();
     } catch (err) { toast.error(err?.response?.data?.detail || "Publish failed"); }
   };
 
@@ -41,6 +42,7 @@ export default function DraftsPanel({ editPropertyBase = "/dashboard/list-proper
       await api.delete(`/drafts/${kind}/${d.id}`);
       toast.success("Draft deleted");
       load();
+      onChanged?.();
     } catch (err) { toast.error(err?.response?.data?.detail || "Delete failed"); }
   };
 

@@ -4,9 +4,10 @@ import api from "@/lib/api";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
-import { Pencil, Plus, MagnifyingGlass, Star, Package, Archive, Eye } from "@phosphor-icons/react";
+import { Pencil, Plus, MagnifyingGlass, Star, Package, Archive, Eye, UserPlus } from "@phosphor-icons/react";
 import { formatINR } from "@/lib/format";
 import RejectDialog from "@/pages/admin/RejectDialog";
+import AssignUserDialog from "@/components/admin/AssignUserDialog";
 import { Link } from "react-router-dom";
 
 const CITIES = ["mumbai", "thane", "navi-mumbai", "dombivli", "kalyan"];
@@ -19,6 +20,7 @@ export default function AdminProjects() {
   const [city, setCity] = useState("");
   const [page, setPage] = useState(1);
   const [rejecting, setRejecting] = useState(null);
+  const [assigning, setAssigning] = useState(null);
   const [status, setStatus] = useState("");
 
   const load = async () => {
@@ -118,6 +120,7 @@ export default function AdminProjects() {
                       r.status === "rejected" ? "bg-rose-50 text-rose-700 border border-rose-200" :
                       "bg-slate-100 text-slate-600 border border-slate-200"
                     }`}>{({ pending_review: "Pending Review", active: "Approved", rejected: "Rejected", draft: "Draft", archived: "Archived" })[r.status] || r.status}</span>
+                    {r.pending_approval && <span className="ml-1.5 text-xs px-2.5 py-1 rounded-full font-semibold bg-violet-50 text-violet-700 border border-violet-200" data-testid={`pending-changes-${r.id}`}>Edits Pending</span>}
                   </td>
                   <td className="px-4 py-3 text-center">
                     <button onClick={() => toggleFeatured(r)} className={`p-1.5 rounded ${r.featured ? "text-amber-500" : "text-slate-300 hover:text-slate-500"}`}>
@@ -135,6 +138,7 @@ export default function AdminProjects() {
                       <Link to={`/project/${r.slug}`} target="_blank" title="View listing" className="p-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"><Eye size={14} /></Link>
                       <button onClick={() => nav(`/admin/projects/${r.id}/units`)} data-testid={`units-proj-${r.id}`} title="Manage Units" className="p-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"><Package size={14} /></button>
                       <button onClick={() => nav(`/admin/projects/${r.id}/edit`)} data-testid={`edit-proj-${r.id}`} title="Edit" className="p-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"><Pencil size={14} /></button>
+                      <button onClick={() => setAssigning(r)} data-testid={`assign-proj-${r.id}`} title="Assign user" className="p-2 text-slate-600 hover:text-violet-600 hover:bg-violet-50 rounded transition-colors"><UserPlus size={14} /></button>
                       <button onClick={() => archive(r.id)} data-testid={`archive-proj-${r.id}`} title="Archive (restorable)" className="p-2 text-slate-600 hover:text-amber-600 hover:bg-amber-50 rounded transition-colors"><Archive size={14} /></button>
                     </div>
                   </td>
@@ -156,6 +160,7 @@ export default function AdminProjects() {
       </div>
 
       {rejecting && <RejectDialog row={rejecting} kind="projects" onClose={() => setRejecting(null)} onDone={load} />}
+      {assigning && <AssignUserDialog kind="projects" item={assigning} onClose={() => setAssigning(null)} onDone={load} />}
     </div>
   );
 }

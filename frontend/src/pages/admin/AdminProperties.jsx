@@ -4,9 +4,10 @@ import api from "@/lib/api";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
-import { Pencil, Copy, Plus, MagnifyingGlass, ShieldCheck, Star, Archive, Eye } from "@phosphor-icons/react";
+import { Pencil, Copy, Plus, MagnifyingGlass, ShieldCheck, Star, Archive, Eye, UserPlus } from "@phosphor-icons/react";
 import { formatINR } from "@/lib/format";
 import RejectDialog from "@/pages/admin/RejectDialog";
+import AssignUserDialog from "@/components/admin/AssignUserDialog";
 
 const CITIES = ["mumbai", "thane", "navi-mumbai", "dombivli", "kalyan"];
 const STATUSES = ["draft", "pending_review", "active", "rejected", "sold", "rented", "archived"];
@@ -22,6 +23,7 @@ export default function AdminProperties() {
   const [city, setCity] = useState("");
   const [page, setPage] = useState(1);
   const [rejecting, setRejecting] = useState(null);
+  const [assigning, setAssigning] = useState(null);
 
   const load = async () => {
     const params = new URLSearchParams({ page: String(page), page_size: "20" });
@@ -130,6 +132,7 @@ export default function AdminProperties() {
                       r.status === "rejected" ? "bg-rose-50 text-rose-700 border border-rose-200" :
                       "bg-slate-100 text-slate-600 border border-slate-200"
                     }`}>{STATUS_LABEL[r.status] || r.status}</span>
+                    {r.pending_approval && <span className="ml-1.5 text-xs px-2.5 py-1 rounded-full font-semibold bg-violet-50 text-violet-700 border border-violet-200" data-testid={`pending-changes-${r.id}`}>Edits Pending</span>}
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2 justify-center">
@@ -151,6 +154,7 @@ export default function AdminProperties() {
                       )}
                       <Link to={`/property/${r.slug}`} target="_blank" title="View listing" className="p-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"><Eye size={14} /></Link>
                       <button data-testid={`edit-${r.id}`} onClick={() => nav(`/admin/properties/${r.id}/edit`)} title="Edit" className="p-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"><Pencil size={14} /></button>
+                      <button data-testid={`assign-${r.id}`} onClick={() => setAssigning(r)} title="Assign user" className="p-2 text-slate-600 hover:text-violet-600 hover:bg-violet-50 rounded transition-colors"><UserPlus size={14} /></button>
                       <button data-testid={`dup-${r.id}`} onClick={() => duplicate(r.id)} title="Duplicate" className="p-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"><Copy size={14} /></button>
                       <button data-testid={`archive-${r.id}`} onClick={() => archive(r.id)} title="Archive (restorable)" className="p-2 text-slate-600 hover:text-amber-600 hover:bg-amber-50 rounded transition-colors"><Archive size={14} /></button>
                     </div>
@@ -173,6 +177,7 @@ export default function AdminProperties() {
       </div>
 
       {rejecting && <RejectDialog row={rejecting} kind="properties" onClose={() => setRejecting(null)} onDone={load} />}
+      {assigning && <AssignUserDialog kind="properties" item={assigning} onClose={() => setAssigning(null)} onDone={load} />}
     </div>
   );
 }

@@ -8,7 +8,7 @@ import { X, CaretLeft, CaretRight, MagnifyingGlassPlus, MagnifyingGlassMinus } f
  * (click/double-tap toggle, wheel, +/- buttons, drag pan, pinch on touch).
  * Pass pre-built items via `items` ([{src, label}]) — no fetching here.
  */
-export default function AllImagesGallery({ items = [], testid = "all-images" }) {
+export default function AllImagesGallery({ items = [], testid = "all-images", title = "All Images" }) {
   const [open, setOpen] = useState(null); // index | null
   const [scale, setScale] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
@@ -110,8 +110,8 @@ export default function AllImagesGallery({ items = [], testid = "all-images" }) 
   const current = open !== null ? images[open] : null;
 
   return (
-    <section data-testid={`${testid}-section`}>
-      <h2 className="text-2xl font-bold text-slate-900 mb-5">All Images <span className="text-sm font-normal text-slate-500">({images.length})</span></h2>
+    <section data-testid={`${testid}-section`} id={`${testid}-section`}>
+      <h2 className="text-2xl font-bold text-slate-900 mb-5">{title} <span className="text-sm font-normal text-slate-500">({images.length})</span></h2>
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
         {images.map((img, i) => (
           <button key={img.src} type="button" onClick={() => setOpen(i)} data-testid={`${testid}-img-${i}`}

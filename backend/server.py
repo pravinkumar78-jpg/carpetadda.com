@@ -323,8 +323,8 @@ async def get_developer(slug: str):
     doc = await db.developers.find_one({"slug": slug}, PROJ)
     if not doc:
         raise HTTPException(404, "Developer not found")
-    projects = await db.projects.find({"developer_id": doc["id"]}, PROJ).to_list(50)
-    properties = await db.properties.find({"developer_id": doc["id"]}, PROJ).to_list(30)
+    projects = await db.projects.find({"developer_id": doc["id"], "status": "active"}, PROJ).to_list(50)
+    properties = await db.properties.find({"developer_id": doc["id"], "status": "active"}, PROJ).to_list(30)
     return {**doc, "projects": projects, "properties": properties}
 
 
@@ -344,7 +344,7 @@ async def get_agent(slug: str):
     doc = await db.agents.find_one({"slug": slug}, PROJ)
     if not doc:
         raise HTTPException(404, "Agent not found")
-    properties = await db.properties.find({"agent_id": doc["id"]}, PROJ).to_list(30)
+    properties = await db.properties.find({"agent_id": doc["id"], "status": "active"}, PROJ).to_list(30)
     return {**doc, "properties": properties}
 
 
@@ -495,7 +495,7 @@ async def get_my_property(pid: str, u: dict = Depends(current_user)):
     doc = await db.properties.find_one({"id": pid}, PROJ)
     if not doc:
         raise HTTPException(404, "Not found")
-    if u["role"] not in ("admin", "super_admin") and doc.get("owner_id") != u["sub"] and doc.get("agent_id") != u["sub"]:
+    if u["role"] not in ("admin", "super_admin") and doc.get("owner_id") != u["sub"] and doc.get("agent_id") != u["sub"] and doc.get("assigned_to") != u["sub"]:
         raise HTTPException(403, "Not your listing")
     return doc
 
@@ -505,9 +505,92 @@ async def get_my_project(pid: str, u: dict = Depends(current_user)):
     doc = await db.projects.find_one({"id": pid}, PROJ)
     if not doc:
         raise HTTPException(404, "Not found")
-    if u["role"] not in ("admin", "super_admin") and doc.get("owner_id") != u["sub"]:
+    if u["role"] not in ("admin", "super_admin") and doc.get("owner_id") != u["sub"] and doc.get("assigned_to") != u["sub"]:
         raise HTTPException(403, "Not your project")
     return doc
+
+
+# ---------------- Assignment & change approval (super admin) ----------------
+@api.put("/admin/properties/{pid}/assign", dependencies=[Depends(require_roles("admin"))])
+async def assign_property(pid: str, body: dict = Body(...)):
+    return await _assign("properties", pid, (body or {}).get("user_id"))
+
+
+@api.put("/admin/projects/{pid}/assign", dependencies=[Depends(require_roles("admin"))])
+async def assign_project(pid: str, body: dict = Body(...)):
+    return await _assign("projects", pid, (body or {}).get("user_id"))
+
+
+async def _assign(kind: str, did: str, user_id):
+    if user_id:
+        usr = await db.users.find_one({"id": user_id}, {"_id": 0, "id": 1})
+        if not usr:
+            raise HTTPException(404, "User not found")
+    res = await db[kind].update_one({"id": did}, {"$set": {"assigned_to": user_id or None, "updated_at": _now_iso_str()}})
+    if not res.matched_count:
+        raise HTTPException(404, "Not found")
+    return {"ok": True, "assigned_to": user_id}
+
+
+@api.get("/my/assigned")
+async def my_assigned(u: dict = Depends(current_user)):
+    """Listings the super admin assigned to the current user."""
+    props = await db.properties.find({"assigned_to": u["sub"]}, PROJ).sort([("updated_at", -1)]).to_list(100)
+    projs = await db.projects.find({"assigned_to": u["sub"]}, PROJ).sort([("updated_at", -1)]).to_list(100)
+    return {"properties": props, "projects": projs}
+
+
+@api.get("/admin/pending-changes", dependencies=[Depends(require_roles("admin"))])
+async def admin_pending_changes():
+    props = await db.properties.find({"pending_approval": True}, PROJ).to_list(100)
+    projs = await db.projects.find({"pending_approval": True}, PROJ).to_list(100)
+    uids = {d.get("pending_by") for d in props + projs} | {d.get("assigned_to") for d in props + projs}
+    uids.discard(None)
+    users = {}
+    if uids:
+        async for usr in db.users.find({"id": {"$in": list(uids)}}, {"_id": 0, "id": 1, "name": 1, "email": 1}):
+            users[usr["id"]] = usr.get("name") or usr.get("email")
+    for d in props + projs:
+        d["pending_by_name"] = users.get(d.get("pending_by"))
+        d["assigned_to_name"] = users.get(d.get("assigned_to"))
+    return {"properties": props, "projects": projs}
+
+
+async def _review_changes(kind: str, did: str, approve: bool):
+    doc = await db[kind].find_one({"id": did}, PROJ)
+    if not doc or not doc.get("pending_approval"):
+        raise HTTPException(404, "No pending changes")
+    if approve:
+        changes = dict(doc.get("pending_changes") or {})
+        for k in ("id", "_id", "owner_id", "agent_id", "assigned_to", "status", "verified", "featured", "views",
+                  "created_at", "pending_changes", "pending_approval", "pending_by", "pending_at",
+                  "developer", "agent", "project", "similar", "properties", "units"):
+            changes.pop(k, None)
+        changes["updated_at"] = _now_iso_str()
+        await db[kind].update_one({"id": did}, {"$set": changes, "$unset": {"pending_changes": "", "pending_approval": "", "pending_by": "", "pending_at": ""}})
+    else:
+        await db[kind].update_one({"id": did}, {"$unset": {"pending_changes": "", "pending_approval": "", "pending_by": "", "pending_at": ""}, "$set": {"updated_at": _now_iso_str()}})
+    return {"ok": True, "approved": approve}
+
+
+@api.put("/admin/properties/{pid}/changes/approve", dependencies=[Depends(require_roles("admin"))])
+async def approve_property_changes(pid: str):
+    return await _review_changes("properties", pid, True)
+
+
+@api.put("/admin/properties/{pid}/changes/reject", dependencies=[Depends(require_roles("admin"))])
+async def reject_property_changes(pid: str):
+    return await _review_changes("properties", pid, False)
+
+
+@api.put("/admin/projects/{pid}/changes/approve", dependencies=[Depends(require_roles("admin"))])
+async def approve_project_changes(pid: str):
+    return await _review_changes("projects", pid, True)
+
+
+@api.put("/admin/projects/{pid}/changes/reject", dependencies=[Depends(require_roles("admin"))])
+async def reject_project_changes(pid: str):
+    return await _review_changes("projects", pid, False)
 
 
 # ---------------- Drafts (unfinished listings) ----------------
@@ -539,9 +622,22 @@ async def update_property(pid: str, body: dict = Body(...), u: dict = Depends(cu
     doc = await db.properties.find_one({"id": pid}, PROJ)
     if not doc:
         raise HTTPException(404, "Not found")
-    if u["role"] not in ("admin", "super_admin") and doc.get("owner_id") != u["sub"] and doc.get("agent_id") != u["sub"]:
+    if u["role"] not in ("admin", "super_admin") and doc.get("owner_id") != u["sub"] and doc.get("agent_id") != u["sub"] and doc.get("assigned_to") != u["sub"]:
         raise HTTPException(403, "You can only edit your own listings")
     body.pop("_id", None); body.pop("id", None); body.pop("owner_id", None)
+    if u["role"] not in ("admin", "super_admin"):
+        if doc.get("status") == "active":
+            # Live listing — stage edits for super-admin approval instead of changing the live version
+            for k in ("status", "verified", "featured", "views", "created_at", "agent_id", "assigned_to",
+                      "pending_changes", "pending_approval", "pending_by", "pending_at",
+                      "developer", "agent", "project", "similar"):
+                body.pop(k, None)
+            await db.properties.update_one({"id": pid}, {"$set": {"pending_changes": body, "pending_approval": True, "pending_by": u["sub"], "pending_at": _now_iso_str(), "updated_at": _now_iso_str()}})
+            return await db.properties.find_one({"id": pid}, PROJ)
+        if body.get("status") == "active":
+            body["status"] = "pending_review"  # non-admin publish always goes through review
+        body["verified"] = doc.get("verified", False)
+        body["featured"] = doc.get("featured", False)
     body["updated_at"] = _now_iso_str()
     res = await db.properties.update_one({"id": pid}, {"$set": body})
     if not res.matched_count:
@@ -747,7 +843,7 @@ async def list_projects(city: Optional[str] = None, location: Optional[str] = No
 
 @api.get("/projects/featured")
 async def featured_projects(limit: int = 6):
-    return await db.projects.find({"featured": True}, PROJ).limit(limit).to_list(limit)
+    return await db.projects.find({"featured": True, "status": "active"}, PROJ).limit(limit).to_list(limit)
 
 
 @api.get("/projects/{slug_or_id}")
@@ -1037,14 +1133,30 @@ async def fetch_project_details(body: ProjectImportInput):
 
 @api.put("/projects/{pid}")
 async def update_project(pid: str, body: dict = Body(...), u: dict = Depends(current_user)):
-    if u["role"] not in ("admin", "super_admin", "developer"):
-        raise HTTPException(403, "Not authorized")
     doc = await db.projects.find_one({"id": pid}, PROJ)
     if not doc:
         raise HTTPException(404, "Not found")
-    if u["role"] == "developer" and doc.get("owner_id") not in (None, u["sub"]):
+    allowed = (
+        u["role"] in ("admin", "super_admin")
+        or (u["role"] == "developer" and doc.get("owner_id") in (None, u["sub"]))
+        or doc.get("assigned_to") == u["sub"]
+    )
+    if not allowed:
         raise HTTPException(403, "You can only edit your own projects")
     body.pop("_id", None); body.pop("id", None); body.pop("owner_id", None)
+    if u["role"] not in ("admin", "super_admin"):
+        if doc.get("status") == "active":
+            # Live project — stage edits for super-admin approval instead of changing the live version
+            for k in ("status", "verified", "featured", "views", "created_at", "assigned_to",
+                      "pending_changes", "pending_approval", "pending_by", "pending_at",
+                      "developer", "properties", "similar", "units"):
+                body.pop(k, None)
+            await db.projects.update_one({"id": pid}, {"$set": {"pending_changes": body, "pending_approval": True, "pending_by": u["sub"], "pending_at": _now_iso_str(), "updated_at": _now_iso_str()}})
+            return await db.projects.find_one({"id": pid}, PROJ)
+        if body.get("status") == "active":
+            body["status"] = "pending_review"  # non-admin publish always goes through review
+        body["verified"] = doc.get("verified", False)
+        body["featured"] = doc.get("featured", False)
     body["updated_at"] = _now_iso_str()
     res = await db.projects.update_one({"id": pid}, {"$set": body})
     if not res.matched_count:

@@ -84,6 +84,7 @@ export default function App() {
               <Route path="/post-property" element={<PostProperty />} />
               <Route path="/dashboard/list-property" element={<PropertyForm />} />
               <Route path="/dashboard/list-property/:id/edit" element={<PropertyForm />} />
+              <Route path="/dashboard/edit-project/:id/edit" element={<ProjectForm />} />
               <Route path="/agent/list-property" element={<PropertyForm />} />
               <Route path="/agent/list-property/:id/edit" element={<PropertyForm />} />
               <Route path="/developer/projects/new" element={<ProjectForm />} />

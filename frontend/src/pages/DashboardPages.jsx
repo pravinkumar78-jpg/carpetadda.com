@@ -4,9 +4,10 @@ import { useAuth } from "@/lib/auth";
 import api from "@/lib/api";
 import PropertyCard from "@/components/PropertyCard";
 import { AccountPanel, MyListings } from "@/components/dashboard/AccountPanel";
-import { Heart, MagnifyingGlass, Plus, SquaresFour, UserGear, FileDashed } from "@phosphor-icons/react";
+import { Heart, MagnifyingGlass, Plus, SquaresFour, UserGear, FileDashed, UserCheck } from "@phosphor-icons/react";
 import { DashNavToggle, DashSidebar } from "@/components/DashNav";
 import DraftsPanel from "@/components/dashboard/DraftsPanel";
+import AssignedPanel from "@/components/dashboard/AssignedPanel";
 
 export function UserDashboard() {
   const { user, ready } = useAuth();
@@ -32,6 +33,7 @@ export function UserDashboard() {
     ["overview", "Overview", SquaresFour],
     ["listings", `My Listings (${mine.length})`, Plus],
     ["drafts", "Drafts", FileDashed],
+    ["assigned", "Assigned to Me", UserCheck],
     ["account", "Profile & Security", UserGear],
   ];
 
@@ -105,7 +107,14 @@ export function UserDashboard() {
           {tab === "drafts" && (
             <div className="space-y-5">
               <h2 className="text-2xl font-bold text-slate-900">Drafts</h2>
-              <DraftsPanel editPropertyBase="/dashboard/list-property" />
+              <DraftsPanel editPropertyBase="/dashboard/list-property" onChanged={loadMine} />
+            </div>
+          )}
+
+          {tab === "assigned" && (
+            <div className="space-y-5">
+              <h2 className="text-2xl font-bold text-slate-900">Assigned to Me</h2>
+              <AssignedPanel />
             </div>
           )}
 

@@ -4,8 +4,8 @@ import api from "@/lib/api";
 import PropertyMap from "@/components/PropertyMap";
 import ProjectCard from "@/components/ProjectCard";
 import { formatINR, formatArea } from "@/lib/format";
-import { waProjectMsg } from "@/lib/whatsapp";
-import { MapPin, Download, PhoneCall, WhatsappLogo, CalendarBlank, Check, Compass, Car, Bed, Bank, SquaresFour, List, QrCode, FileText, ArrowSquareOut } from "@phosphor-icons/react";
+import { waProjectMsg, waUnitMsg } from "@/lib/whatsapp";
+import { MapPin, Download, PhoneCall, WhatsappLogo, CalendarBlank, Check, Compass, Bed, Bank, SquaresFour, List, QrCode, FileText, ArrowSquareOut } from "@phosphor-icons/react";
 import { ytEmbedId } from "@/lib/utils";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
@@ -19,7 +19,6 @@ import AllImagesGallery from "@/components/AllImagesGallery";
 export default function ProjectDetail() {
   const { slug } = useParams();
   const [p, setP] = useState(null);
-  const [inventory, setInventory] = useState(null);
   const [form, setForm] = useState({ name: "", phone: "", email: "", message: "" });
   const [visitOpen, setVisitOpen] = useState(false);
   const [similarView, setSimilarView] = useState("grid");
@@ -27,7 +26,6 @@ export default function ProjectDetail() {
   useEffect(() => {
     api.get(`/projects/${slug}`).then(r => {
       setP(r.data);
-      api.get(`/projects/${r.data.id}/units/summary`).then(res => setInventory(res.data)).catch(() => setInventory(null));
     }).catch(() => setP(false));
     window.scrollTo(0, 0);
   }, [slug]);
@@ -45,16 +43,10 @@ export default function ProjectDetail() {
   if (p === false) return <div className="p-20 text-center"><h1 className="text-3xl font-bold text-slate-900">Project not found</h1><Link to="/projects" className="text-blue-600 mt-4 inline-block font-medium">Browse all projects →</Link></div>;
   if (!p) return <div className="p-20 text-center text-slate-500">Loading…</div>;
 
-  const gallery = Array.from(new Set([p.main_image, ...(p.images || [])].filter(Boolean)));
-  const allImages = [
-    { src: p.main_image, label: "Main Image" },
-    ...(p.images || []).map(src => ({ src, label: "Gallery" })),
-    { src: p.master_plan, label: "Master Plan" },
-    ...(p.floor_plans || []).map(fp => ({ src: fp.image, label: fp.title ? `Floor Plan · ${fp.title}` : "Floor Plan" })),
-    ...(p.units || []).map(u => ({ src: u.unit_plan, label: `Unit Plan · ${u.typology || u.unit_no || "Unit"}` })),
-    { src: p.rera_qr_url, label: "RERA QR" },
-    ...(p.rera_entries || []).map(r => ({ src: r.qr_url, label: `RERA QR · ${r.number || ""}` })),
-  ];
+  // Main image section shows ONLY the single main image
+  const gallery = [p.main_image].filter(Boolean);
+  // Image Gallery shows ONLY the Project Form → Gallery Images (main image, unit plans and RERA QR live in their own sections)
+  const allImages = (p.images || []).filter(src => src && src !== p.main_image).map(src => ({ src, label: "Gallery" }));
   // RERA blocks: new multi-entry list wins; fall back to the legacy single fields
   const reraBlocks = (Array.isArray(p.rera_entries) && p.rera_entries.length
     ? p.rera_entries.filter(r => r && (r.number || r.qr_url || r.certificate_url || r.url))
@@ -121,6 +113,13 @@ export default function ProjectDetail() {
             </div>
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight">{p.name}</h1>
             <div className="flex items-center gap-2 text-white/80 mt-3"><MapPin size={16} /> {p.location}, {p.city}</div>
+            {allImages.length > 0 && (
+              <button type="button" data-testid="view-gallery-btn"
+                onClick={() => document.getElementById("image-gallery-section")?.scrollIntoView({ behavior: "smooth" })}
+                className="pointer-events-auto mt-4 inline-flex items-center gap-1.5 text-xs font-semibold bg-white/15 backdrop-blur text-white px-4 py-2 rounded-full hover:bg-white/25 transition-colors">
+                <SquaresFour size={14} /> View Gallery ({allImages.length})
+              </button>
+            )}
           </div>
         </div>
       </section>
@@ -152,35 +151,6 @@ export default function ProjectDetail() {
               <Stat label="Floors" value={p.total_floors} />
               <Stat label="Possession" value={p.possession_date} />
             </div>
-
-            {inventory && inventory.total > 0 && (
-              <div data-testid="project-live-availability">
-                <div className="flex items-baseline justify-between mb-4">
-                  <h2 className="text-2xl font-bold text-slate-900">Live Availability</h2>
-                  <div className="text-sm text-slate-500">
-                    <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 mr-1.5 align-middle animate-pulse" />
-                    {inventory.by_status.available} of {inventory.total} units available
-                  </div>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {inventory.by_typology.map(t => (
-                    <div key={t.typology} className="card-premium p-5 flex items-center justify-between">
-                      <div>
-                        <div className="text-xs uppercase tracking-widest text-blue-600 font-semibold">{t.typology}</div>
-                        <div className="text-slate-500 text-sm mt-1">
-                          {t.carpet_min ? `${t.carpet_min}${t.carpet_max && t.carpet_max !== t.carpet_min ? `–${t.carpet_max}` : ""} sqft` : "Various sizes"}
-                          {t.price_min ? ` · from ${formatINR(t.price_min)}` : ""}
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <div className={`text-2xl font-bold ${t.available > 0 ? "text-emerald-600" : "text-rose-500"}`}>{t.available}</div>
-                        <div className="text-xs text-slate-500">of {t.total} available</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
           </section>
 
           {/* 3. Description */}
@@ -249,8 +219,8 @@ export default function ProjectDetail() {
             )}
           </section>
 
-          {/* 6b. All Images — every stored project image, deduped, with lightbox */}
-          <AllImagesGallery items={allImages} testid="all-images" />
+          {/* 6b. Image Gallery — only the Project Form gallery images, with lightbox */}
+          <AllImagesGallery items={allImages} testid="image-gallery" title="Image Gallery" />
 
           {/* 7. Unit Plan (collapsible) */}
           {(p.units?.length > 0 || p.floor_plans?.length > 0) && (
@@ -263,11 +233,11 @@ export default function ProjectDetail() {
                       <AccordionTrigger className="text-left">
                         <div className="flex items-center justify-between w-full pr-4 flex-wrap gap-2">
                           <span className="font-semibold text-slate-900">{u.typology || u.unit_no}</span>
-                          <span className="flex items-center gap-4 text-xs text-slate-500 font-normal">
-                            {u.carpet_area && <span className="inline-flex items-center gap-1"><Bed size={13} /> {formatArea(u.carpet_area)}</span>}
+                          <span className="flex items-center gap-4 text-xs text-slate-500 font-normal flex-wrap">
+                            {u.carpet_area && <span className="inline-flex items-center gap-1"><Bed size={13} /> Carpet {formatArea(u.carpet_area)}</span>}
+                            {u.builtup_area && <span>Built-up {formatArea(u.builtup_area)}</span>}
                             {u.balcony != null && <span>{u.balcony} balcony</span>}
-                            {u.parking != null && <span className="inline-flex items-center gap-1"><Car size={13} /> {u.parking}</span>}
-                            {u.price && <span className="font-semibold text-blue-600 rupee">{formatINR(u.price)}</span>}
+                            <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full capitalize ${(u.status || "available") === "available" ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-500"}`} data-testid={`unit-status-badge-${u.id}`}>{(u.status || "available").replace(/_/g, " ")}</span>
                           </span>
                         </div>
                       </AccordionTrigger>
@@ -279,6 +249,10 @@ export default function ProjectDetail() {
                         )}
                         {u.description && <p className="text-sm text-slate-600 leading-relaxed">{u.description}</p>}
                         {!u.unit_plan && !u.description && <p className="text-sm text-slate-400">Plan details coming soon.</p>}
+                        <a href={waUnitMsg(p, u)} target="_blank" rel="noopener" data-testid={`unit-request-price-${u.id}`}
+                          className="mt-3 inline-flex items-center gap-2 text-sm font-semibold px-4 py-2.5 border border-emerald-200 bg-emerald-50 text-emerald-700 rounded-lg hover:bg-emerald-100 transition-colors">
+                          <WhatsappLogo size={15} weight="bold" /> Request Price
+                        </a>
                       </AccordionContent>
                     </AccordionItem>
                   ))}
@@ -345,18 +319,7 @@ export default function ProjectDetail() {
             </section>
           )}
 
-            <div className="card-premium p-6">
-              <div className="text-xs uppercase tracking-widest text-blue-600 font-semibold mb-3">About the Developer</div>
-              <Link to={`/developer/${p.developer.slug}`} className="flex items-center gap-4">
-                <img src={p.developer.logo} alt="" className="w-16 h-16 rounded-lg object-cover" />
-                <div className="flex-1">
-                  <div className="text-xl font-semibold text-slate-900">{p.developer.name}</div>
-                  <div className="text-sm text-slate-500">{p.developer.experience_years}+ years • {p.developer.total_projects} projects</div>
-                </div>
-                <div className="text-blue-600 text-sm font-medium">View →</div>
-              </Link>
-            </div>
-          )}
+          {/* Developer profile intentionally hidden from public project detail (component/API/data preserved) */}
 
           {/* 8. Schedule Visit */}
           <section data-testid="section-schedule-visit" className="card-premium p-6 bg-gradient-to-r from-blue-600 to-blue-500 border-blue-500 text-white flex items-center justify-between flex-wrap gap-4">

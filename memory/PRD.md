@@ -298,3 +298,23 @@
 - Header "New Launch" menu (desktop NavLink + mobile drawer link) now opens `/new-launch` directly; `/projects` remains the generic all-projects listing (Residential/Commercial dropdown links unaffected)
 - All existing filters (keyword, BHK/commercial sub-category, location, price slider), sort, grid/list toggle and project-detail links work on top of the locked filter; heading already read "New Launch Projects"
 - Verified: header click → /new-launch with 5 new-launch-only projects; keyword search narrows to 1; detail link → /project/hariyali-elysium; mobile 390px responsive with zero h-overflow; /projects still shows all 9; console/network clean (only platform Cloudflare RUM beacons aborted, not app code)
+
+## Verified (2026-08-17 — List Property auth gate, no code change needed)
+- Confirmed the requested flow already exists and works end-to-end: header "List Property" → /post-property → logged-out visitors redirect to /login?next=/post-property → Sign In → returns to the listing form; "Create account" link carries ?next → Register → returns to the form; logged-in users go straight to the form. Verified all 5 paths in browser, zero errors.
+
+## Implemented (2026-08-17, iteration 11 — units/gallery/uploads/forms batch)
+- Project Units: public accordion shows Configuration/Carpet/Built-up/Balcony/status badge + "Request Price" WhatsApp (waUnitMsg: unit details + absolute unit-plan URL → configured business number); AdminUnits form trimmed to BHK/Config, Unit no, Carpet, Built-up (new field), Balcony, Status, Unit Plan, Description, Notes (internal), Availability(published)
+- Project Detail: Live Availability removed from public UI (API kept); "All Images" → "Image Gallery" showing ONLY gallery images (main image URL filtered out — fixes iteration-11 HIGH); hero slider = single main image + "View Gallery" scroll button; developer profile block removed (also fixed latent stray `)}` text + null-developer crash); developers pages/API untouched
+- Uploads: ImageUpload broken-image fallback (visible "Preview unavailable" instead of white card), Replace testid; PropertyForm gallery switched to per-image ImageUpload (Preview/Replace/Delete per image)
+- Multi-step forms: Save & Next per section with section validation toasts (property basic=title, location=city+locality; project basic=name+developer, location=city+locality); final section shows Save in Draft + Save & Publish; publish validation (name/title, price-or-rent/developer, city+location, main image) jumps to failing section; drafts allow incomplete data
+- Admin: Developers management tab (name-only create via existing POST /admin/developers); Properties menu hang investigated — no hang reproduced on preview (48 listings load, dropdown survives rapid toggles)
+- Drafts security fixes (iteration_10 criticals): non-admin PUT status=active → forced pending_review + verified/featured re-stamped from DB; developer/agent public profiles filter nested listings to active; /projects/featured requires active; DraftsPanel onChanged refreshes dashboard listings
+- Verified: backend pytest 8/8 (test_iteration11.py) + browser spot checks
+
+## Implemented (2026-08-19 — assignment & approval workflow)
+- Super admin "Assign User" (UserPlus icon) on Admin Properties/Projects rows → AssignUserDialog (select existing user or Unassigned) → PUT /admin/{kind}/{id}/assign (admin-only, validates user)
+- Edits by non-admins (owner/agent/assigned) to a LIVE listing are staged as pending_changes + pending_approval (live doc untouched; status/flags/ownership stripped from staged payload); non-live listings save directly as before
+- Admin → Approvals tab (AdminApprovals): listing, type, assigned user, field-level change summary (old → new), Approve (applies changes, keeps status active) / Reject (clears pending, live unchanged, user can resubmit)
+- User/Agent/Developer dashboards: "Assigned to Me" tab (AssignedPanel) — assigned listings with status + "Pending Approval" badge + edit links; new route /dashboard/edit-project/:id/edit (ProjectForm allows role user, role-aware backTo); MyListings shows "Edits Pending Approval" badge
+- Backend-enforced: /my/assigned, /my/properties|projects/{id} and PUT guards include assigned_to; cross-user edits 403; admin-only assign/approve/reject/pending-changes
+- Verified full curl flow: assign → user sees → edit staged → live unchanged → admin approves → live updated (status active) → second edit → reject → live unchanged → 403s for cross-user/admin-endpoint attempts; seed restored

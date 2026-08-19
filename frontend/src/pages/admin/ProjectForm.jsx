@@ -54,7 +54,7 @@ export default function ProjectForm() {
   const [fetchingNearby, setFetchingNearby] = useState(false);
   const inAdmin = window.location.pathname.startsWith("/admin");
   const isAdmin = inAdmin && (user?.role === "admin" || user?.role === "super_admin");
-  const backTo = inAdmin ? "/admin" : "/developer";
+  const backTo = inAdmin ? "/admin" : (user?.role === "developer" ? "/developer" : "/dashboard");
 
   const loadDevelopers = () => api.get("/developers?limit=200").then(r => setDevelopers(r.data || [])).catch(() => {});
   useEffect(() => { loadDevelopers(); }, []);
@@ -149,7 +149,7 @@ export default function ProjectForm() {
   }, [id]);
 
   if (!ready) return null;
-  if (!user || !["admin", "super_admin", "developer"].includes(user.role)) return <Navigate to="/login" />;
+  if (!user || !["admin", "super_admin", "developer", "user"].includes(user.role)) return <Navigate to="/login" />;
   if (!loaded) return <div className="p-20 text-center text-slate-500">Loading…</div>;
 
   const set = (k, v) => setF(p => ({ ...p, [k]: v }));
@@ -232,14 +232,25 @@ export default function ProjectForm() {
     set("flags", [...cur, fl]);
   };
 
-  const save = async (publish) => {
-    if (!f.name.trim()) { toast.error("Project name required"); setTab("basic"); return; }
+  const publishError = (match) => {
+    if (!f.name.trim()) return { msg: "Project name is required to publish", tab: "basic" };
+    if (!match) return { msg: "Developer is required to publish — pick an existing developer or register a new one", tab: "basic" };
+    if (!f.city || !(f.location || "").trim()) return { msg: "City and Locality are required to publish", tab: "location" };
+    if (!f.main_image && !(f.images || []).length) return { msg: "Add at least a main image to publish", tab: "media" };
+    return null;
+  };
+
+  const save = async (publish, { stay = false } = {}) => {
+    if (!f.name.trim()) { toast.error("Project name required"); setTab("basic"); return false; }
     // Developer is typed as free text — resolve the name to the existing developer record
     const match = developers.find(d => (d.name || "").trim().toLowerCase() === devName.trim().toLowerCase());
-    if (!match) { toast.error("Developer not found — pick an existing developer or register a new one"); setTab("basic"); return; }
+    if (publish) {
+      const pe = publishError(match);
+      if (pe) { toast.error(pe.msg); setTab(pe.tab); return false; }
+    }
     setSaving(true);
     try {
-      const payload = { ...f, developer_id: match.id };
+      const payload = { ...f, developer_id: match?.id || f.developer_id || "" };
       // keep legacy single RERA fields in sync with the first entry (back-compat)
       const firstRera = (payload.rera_entries || [])[0];
       if (firstRera) {
@@ -259,13 +270,14 @@ export default function ProjectForm() {
         await api.post("/projects", payload);
       }
       doneRef.current = true;
-      toast.success(id ? "Project updated" : publish ? (inAdmin ? "Project published" : "Submitted for admin review") : "Draft saved");
-      nav(backTo);
+      toast.success(stay ? "Progress saved" : id ? "Project updated" : publish ? (inAdmin ? "Project published" : "Submitted for admin review") : "Draft saved");
+      if (!stay) nav(backTo);
+      return true;
     } catch (err) {
       // Transient server/network failure while publishing → preserve data as a draft
       if (publish && (!err.response || err.response.status >= 500)) {
         try {
-          const draftPayload = { ...f, developer_id: match.id };
+          const draftPayload = { ...f, developer_id: match?.id || f.developer_id || "" };
           if (typeof draftPayload.configurations === "string") draftPayload.configurations = draftPayload.configurations.split(",").map(s => s.trim()).filter(Boolean);
           if (!draftPayload.slug) draftPayload.slug = draftPayload.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 60);
           draftPayload.status = "draft";
@@ -281,8 +293,28 @@ export default function ProjectForm() {
         } catch { /* fall through to the real error */ }
       }
       toast.error(err.response?.data?.detail || "Save failed");
+      return false;
     }
     finally { setSaving(false); }
+  };
+
+  // Section gating for "Save & Next" — each section's genuinely required fields
+  const sectionError = (k) => {
+    if (k === "basic") {
+      if (!f.name.trim()) return "Enter the project name to continue";
+      if (!developers.some(d => (d.name || "").trim().toLowerCase() === devName.trim().toLowerCase())) return "Select the developer to continue (or register a new one)";
+    }
+    if (k === "location" && (!f.city || !(f.location || "").trim())) return "Select a city and enter the locality to continue";
+    return null;
+  };
+  const saveNext = async () => {
+    const err = sectionError(tab);
+    if (err) { toast.error(err); return; }
+    const ok = await save(false, { stay: true });
+    if (!ok) return;
+    const order = sections.map(s => s.k);
+    const i = order.indexOf(tab);
+    if (i > -1 && i < order.length - 1) setTab(order[i + 1]);
   };
 
   const sections = [
@@ -537,6 +569,24 @@ export default function ProjectForm() {
               </div>
             </div>
           )}
+          {/* Step footer — Save & Next per section; final section: Save in Draft + Save & Publish */}
+          <div className="flex items-center justify-between gap-3 mt-8 pt-6 border-t border-slate-100 flex-wrap">
+            <button type="button" onClick={() => save(false)} disabled={saving} data-testid="save-in-draft"
+              className="px-4 py-2.5 border border-blue-200 bg-blue-50 text-blue-700 rounded-lg text-sm font-medium hover:bg-blue-100 disabled:opacity-50">
+              Save in Draft
+            </button>
+            {tab !== sections[sections.length - 1].k ? (
+              <button type="button" onClick={saveNext} disabled={saving} data-testid="save-next"
+                className="px-5 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 disabled:opacity-50 shadow-sm">
+                {saving ? "Saving…" : "Save & Next →"}
+              </button>
+            ) : (
+              <button type="button" onClick={() => save(true)} disabled={saving} data-testid="save-publish"
+                className="px-5 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 disabled:opacity-50 shadow-sm">
+                {saving ? "Saving…" : (inAdmin ? "Save & Publish" : "Save & Submit for Review")}
+              </button>
+            )}
+          </div>
         </div>
       </div>
 

@@ -3,9 +3,10 @@ import { Navigate, Link } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import api from "@/lib/api";
 import { toast } from "sonner";
-import { Plus, House, Buildings, ChatCircle, Heart, MagnifyingGlass, UserGear, Users, Archive, ArrowCounterClockwise, PencilSimple, GlobeHemisphereWest, CircleNotch, ChartBar, PaperPlaneTilt, FileDashed } from "@phosphor-icons/react";
+import { Plus, House, Buildings, ChatCircle, Heart, MagnifyingGlass, UserGear, Users, Archive, ArrowCounterClockwise, PencilSimple, GlobeHemisphereWest, CircleNotch, ChartBar, PaperPlaneTilt, FileDashed, UserCheck } from "@phosphor-icons/react";
 import { AccountPanel, MyListings } from "@/components/dashboard/AccountPanel";
 import DraftsPanel from "@/components/dashboard/DraftsPanel";
+import AssignedPanel from "@/components/dashboard/AssignedPanel";
 import LeadsChart from "@/components/LeadsChart";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DashNavToggle, DashSidebar } from "@/components/DashNav";
@@ -38,6 +39,7 @@ export function AgentDashboard() {
     <DashShell user={user} title="Agent Workspace" tab={tab} setTab={setTab} menu={[
       ["listings", `My Listings (${items.length})`, House],
       ["drafts", "Drafts", FileDashed],
+      ["assigned", "Assigned to Me", UserCheck],
       ["leads", `Manage Leads (${leads.length})`, ChatCircle],
       ["clients", "Clients", Users],
       ["account", "Profile & Security", UserGear],
@@ -53,7 +55,9 @@ export function AgentDashboard() {
         </div>
       )}
 
-      {tab === "drafts" && <DraftsPanel editPropertyBase="/agent/list-property" />}
+      {tab === "drafts" && <DraftsPanel editPropertyBase="/agent/list-property" onChanged={loadListings} />}
+
+      {tab === "assigned" && <AssignedPanel editPropertyBase="/agent/list-property" editProjectBase="/dashboard/edit-project" />}
 
       {tab === "leads" && (
         <div className="space-y-5">
@@ -167,6 +171,7 @@ export function DeveloperDashboard() {
     <DashShell user={user} title="Developer Workspace" tab={tab} setTab={setTab} menu={[
       ["projects", `My Projects (${projects.length})`, Buildings],
       ["drafts", "Drafts", FileDashed],
+      ["assigned", "Assigned to Me", UserCheck],
       ["performance", "Leads & Performance", ChartBar],
       ["account", "Profile & Security", UserGear],
     ]} actions={[
@@ -226,7 +231,9 @@ export function DeveloperDashboard() {
         </div>
       )}
 
-      {tab === "drafts" && <DraftsPanel editProjectBase="/developer/projects" />}
+      {tab === "drafts" && <DraftsPanel editProjectBase="/developer/projects" onChanged={loadProjects} />}
+
+      {tab === "assigned" && <AssignedPanel editProjectBase="/developer/projects" editPropertyBase="/dashboard/list-property" />}
 
       {tab === "performance" && (
         <LeadsChart stats={leadStats} title="My Project Leads" />

@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ArrowLeft, FloppyDisk, Upload, Eye, Info, House, MapPin, Sparkle, Image as ImageIcon, MagnifyingGlass, Flag, Camera, Crosshair, X, CircleNotch } from "@phosphor-icons/react";
+import { ArrowLeft, FloppyDisk, Upload, Eye, Info, House, MapPin, Sparkle, Image as ImageIcon, MagnifyingGlass, Flag, Camera, Crosshair, CircleNotch } from "@phosphor-icons/react";
 import ImageUpload from "@/components/ImageUpload";
 import MultiImageUpload from "@/components/MultiImageUpload";
 import RichTextEditor from "@/components/RichTextEditor";
@@ -167,8 +167,19 @@ export default function PropertyForm() {
     set("flags", [...current, flag]);
   };
 
-  const save = async (publish) => {
-    if (!f.title.trim()) { toast.error("Title required"); setTab("basic"); return; }
+  const publishError = () => {
+    if (!f.title.trim()) return { msg: "Property title is required to publish", tab: "basic" };
+    if (f.listing_type === "sale" ? !(f.price > 0) : !(f.rent > 0)) return { msg: "A price (or monthly rent) is required to publish", tab: "basic" };
+    if (!f.city || !(f.location || "").trim()) return { msg: "City and Locality are required to publish", tab: "location" };
+    if (!f.main_image && !(f.images || []).length) return { msg: "Add at least a main image to publish", tab: "media" };
+    return null;
+  };
+
+  const save = async (publish, { stay = false } = {}) => {
+    if (publish) {
+      const pe = publishError();
+      if (pe) { toast.error(pe.msg); setTab(pe.tab); return false; }
+    } else if (!f.title.trim()) { toast.error("Title required"); setTab("basic"); return false; }
     setSaving(true);
     try {
       const payload = { ...f };
@@ -182,8 +193,9 @@ export default function PropertyForm() {
         await api.post("/properties", payload);
       }
       doneRef.current = true;
-      toast.success(id ? "Property updated" : publish ? (inAdmin ? "Property published" : "Submitted for admin review") : "Draft saved");
-      nav(backTo);
+      toast.success(stay ? "Progress saved" : id ? "Property updated" : publish ? (inAdmin ? "Property published" : "Submitted for admin review") : "Draft saved");
+      if (!stay) nav(backTo);
+      return true;
     } catch (err) {
       // Transient server/network failure while publishing → preserve data as a draft
       if (publish && (!err.response || err.response.status >= 500)) {
@@ -203,8 +215,25 @@ export default function PropertyForm() {
         } catch { /* fall through to the real error */ }
       }
       toast.error(err.response?.data?.detail || "Save failed");
+      return false;
     }
     finally { setSaving(false); }
+  };
+
+  // Section gating for "Save & Next" — each section's genuinely required fields
+  const sectionError = (k) => {
+    if (k === "basic" && !f.title.trim()) return "Enter the property title to continue";
+    if (k === "location" && (!f.city || !(f.location || "").trim())) return "Select a city and enter the locality to continue";
+    return null;
+  };
+  const saveNext = async () => {
+    const err = sectionError(tab);
+    if (err) { toast.error(err); return; }
+    const ok = await save(false, { stay: true });
+    if (!ok) return;
+    const order = sections.map(s => s.k);
+    const i = order.indexOf(tab);
+    if (i > -1 && i < order.length - 1) setTab(order[i + 1]);
   };
 
   const typologyOptions = f.property_category === "commercial" ? COM_TYPES : RES_TYPES;
@@ -425,16 +454,9 @@ export default function PropertyForm() {
               <F label="Main Image *"><ImageUpload value={f.main_image || ""} onChange={v => set("main_image", v)} kind="properties" dataTestid="property-main-image-upload" allowUrl={false} /></F>
               <F label="Property Gallery Images">
                 {(f.images || []).length > 0 && (
-                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 mb-3">
+                  <div className="space-y-3 mb-3">
                     {(f.images || []).map((url, i) => (
-                      <div key={`${url}-${i}`} className="relative aspect-[4/3] rounded-lg overflow-hidden border border-slate-200 bg-slate-50">
-                        <img src={url} alt={`Gallery ${i + 1}`} className="w-full h-full object-cover" />
-                        <button type="button" onClick={() => set("images", (f.images || []).filter((_, j) => j !== i))} data-testid={`gallery-remove-${i}`} aria-label={`Remove gallery image ${i + 1}`}
-                          className="absolute top-1 right-1 w-6 h-6 rounded-full bg-slate-900/70 text-white flex items-center justify-center hover:bg-rose-600 transition-colors">
-                          <X size={12} weight="bold" />
-                        </button>
-                        <span className="absolute bottom-1 left-1 text-[10px] bg-slate-900/60 text-white px-1.5 py-0.5 rounded">{i + 1}</span>
-                      </div>
+                      <ImageUpload key={`${url}-${i}`} value={url} onChange={v => set("images", (f.images || []).map((x, j) => j === i ? v : x).filter(Boolean))} kind="properties" dataTestid={`property-image-upload-${i}`} allowUrl={false} />
                     ))}
                   </div>
                 )}
@@ -489,6 +511,25 @@ export default function PropertyForm() {
               </div>
             </div>
           )}
+
+          {/* Step footer — Save & Next per section; final section: Save in Draft + Save & Publish */}
+          <div className="flex items-center justify-between gap-3 mt-8 pt-6 border-t border-slate-100 flex-wrap">
+            <button type="button" onClick={() => save(false)} disabled={saving} data-testid="save-in-draft"
+              className="px-4 py-2.5 border border-blue-200 bg-blue-50 text-blue-700 rounded-lg text-sm font-medium hover:bg-blue-100 disabled:opacity-50">
+              Save in Draft
+            </button>
+            {tab !== sections[sections.length - 1].k ? (
+              <button type="button" onClick={saveNext} disabled={saving} data-testid="save-next"
+                className="px-5 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 disabled:opacity-50 shadow-sm">
+                {saving ? "Saving…" : "Save & Next →"}
+              </button>
+            ) : (
+              <button type="button" onClick={() => save(true)} disabled={saving} data-testid="save-publish"
+                className="px-5 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 disabled:opacity-50 shadow-sm">
+                {saving ? "Saving…" : (inAdmin ? "Save & Publish" : "Save & Submit for Review")}
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>
