@@ -325,3 +325,9 @@
 - Lead model +next_follow_up; User model +whatsapp; PUT /auth/profile accepts whatsapp; AccountPanel WhatsApp Number field
 - Fix pass 2 (reported "Agent Overview issue"): WhatsApp contact actions now target the CLIENT's phone (new waTo helper; previously opened the business number); follow-ups today counted as due/overdue; missing testids added; seeded demo data for agent account (2 assigned properties, 3 leads, 1 visit) since the account had zero data (root cause of the "empty overview")
 - Verified: overview shows real counts (3/1/2/2/1/2/0), lead WhatsApp href targets client number, follow-up sections split correctly, visits/assigned rows render, mobile no overflow, console clean
+
+## Fix (2026-08-19 — role-based dashboard routing)
+- User reported agent (production, carpetadda.com/dashboard) landing on the plain user dashboard instead of the Agent workspace
+- Root cause: /dashboard always rendered UserDashboard regardless of role
+- Fix (DashboardPages.jsx, 3 lines): /dashboard now redirects — agent → /agent, developer → /developer, admin/super_admin → /admin; regular users stay on /dashboard
+- Verified: agent opening /dashboard lands on Agent Workspace; regular user still gets the user dashboard. NOTE: requires REDEPLOY for production; also ensure the production user's role is "agent" (Admin → Users)

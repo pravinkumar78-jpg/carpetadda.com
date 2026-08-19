@@ -28,6 +28,10 @@ export function UserDashboard() {
 
   if (!ready) return null;
   if (!user) return <Navigate to="/login" />;
+  // Route each role to its own workspace — the plain dashboard is for regular users only
+  if (user.role === "agent") return <Navigate to="/agent" replace />;
+  if (user.role === "developer") return <Navigate to="/developer" replace />;
+  if (user.role === "admin" || user.role === "super_admin") return <Navigate to="/admin" replace />;
 
   const MENU = [
     ["overview", "Overview", SquaresFour],
