@@ -337,3 +337,12 @@
 - Data: 26 existing amenities recategorized to residential (they were all residential-flavored); 15 commercial amenities added (24x7 Access, High-Speed Elevators, Central AC, Conference Room, Reception/Lobby, Loading Bay, Signage, Pantry, Fiber Internet, Access Control, etc.)
 - PropertyForm + ProjectForm: amenity list refetches on property_category change (instant switch); quick-add + AddAmenity now tag new amenities with the current category; fallback lists split residential/commercial
 - Save/restore unchanged (amenities stored as name array in the existing field); verified E2E: residential hides commercial options, commercial switch is instant, selected commercial amenity saved to draft and restored on edit; QA draft cleaned up
+
+## Fix (2026-08-19 — PERMANENT image disappearing fix, root cause)
+- Root cause (proven): uploads were stored ONLY on the container's ephemeral local disk. Every redeploy/restart/fork wipes it while MongoDB keeps the /api/files/... paths → DB pointed at files that no longer existed (Lodha Signet's 6 images 404'd on production; same class of loss on preview forks)
+- Fix: backend/storage.py now writes to Emergent object storage (INTEGRATION_PROXY_URL + EMERGENT_LLM_KEY, added to backend/.env) with the local uploads dir as a write-through cache. Same interface (init_storage/put_object/get_object), same path scheme (carpetadda/...), same /api/files URLs, same DB records — zero changes needed anywhere else; no-key environments (Hostinger VPS) fall back to local-only (durable there)
+- Migrated all 32 existing preview files to durable storage (0 failures)
+- Durability proven: upload → 200 → deleted local cache file (simulated container wipe) → still 200 from remote → cache auto-repopulated
+- .gitignore: removed .env blocks so EMERGENT_LLM_KEY deploys to production; deployment_agent re-check PASS
+- HONEST CAVEAT: production images lost BEFORE this fix (Lodha Signet main+5 gallery, homepage hero, etc.) are unrecoverable — the bytes were wiped with the old container. After redeploy, re-upload those once via admin; everything uploaded afterwards persists permanently
+- ACTION REQUIRED: redeploy to production, then re-upload the previously-lost images once
