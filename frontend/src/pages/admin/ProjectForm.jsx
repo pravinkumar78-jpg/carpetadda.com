@@ -16,6 +16,7 @@ import RegisterDeveloper from "@/components/RegisterDeveloper";
 const CITIES = ["mumbai", "thane", "navi-mumbai", "dombivli", "kalyan"];
 const PROJECT_FLAGS = [["featured", "Featured"], ["new_launch", "New Launch"], ["best_payment_plan", "Best Payment Plan"], ["best_performer", "Best Performer"]];
 const AMENITIES = ["Swimming Pool", "Gym", "Clubhouse", "Landscaped Garden", "Children's Play Area", "Jogging Track", "24x7 Security", "CCTV", "Covered Parking", "Power Backup", "EV Charging", "Fire Safety", "Yoga Deck", "Multipurpose Hall", "Amphitheatre", "Senior Citizen Area", "Rainwater Harvesting"];
+const AMENITIES_COMMERCIAL = ["24x7 Access", "High-Speed Elevators", "Central Air Conditioning", "Conference Room", "Reception / Lobby", "Visitor Parking", "Power Backup", "Fire Safety", "CCTV Surveillance", "Loading / Unloading Bay", "Signage Space", "Pantry / Cafeteria", "Fiber Internet", "Access Control", "Ample Parking"];
 
 const empty = () => ({
   name: "", slug: "", description: "", developer_id: "",
@@ -66,11 +67,12 @@ export default function ProjectForm() {
     }
   }, [developers, f.developer_id]);
   useEffect(() => {
-    api.get("/amenities").then(r => {
+    const fallback = f.property_category === "commercial" ? AMENITIES_COMMERCIAL : AMENITIES;
+    api.get(`/amenities?category=${f.property_category}`).then(r => {
       const names = (r.data || []).map(a => a.name);
-      setAmenityOptions(prev => Array.from(new Set([...prev, ...names])));
-    }).catch(() => {});
-  }, []);
+      setAmenityOptions(names.length ? names : fallback);
+    }).catch(() => setAmenityOptions(fallback));
+  }, [f.property_category]); // switching residential/commercial instantly swaps the amenity list
 
   const amenityAdded = (name) => {
     setAmenityOptions(prev => prev.includes(name) ? prev : [...prev, name]);
@@ -81,7 +83,7 @@ export default function ProjectForm() {
     const name = newAmenity.trim();
     if (!name) return;
     try {
-      await api.post("/admin/amenities", { name });
+      await api.post("/admin/amenities", { name, category: f.property_category });
       amenityAdded(name);
       setNewAmenity("");
       toast.success(`"${name}" added — available on all future projects`);
@@ -482,7 +484,7 @@ export default function ProjectForm() {
               <h2 className="text-xl font-semibold text-slate-900 mb-4">Amenities</h2>
               <div className="flex gap-2 mb-2">
                 <Input data-testid="new-amenity-quick-input" value={newAmenity} onChange={e => setNewAmenity(e.target.value)} onKeyDown={e => e.key === "Enter" && (e.preventDefault(), newAmenity.trim() ? addAmenity() : toast.error("Please enter an amenity name"))} placeholder="Quick add, e.g. Sky Deck" className="h-11 rounded-lg border-slate-300 max-w-xs" />
-                <AddAmenity existing={amenityOptions} onAdded={amenityAdded} />
+                <AddAmenity existing={amenityOptions} onAdded={amenityAdded} category={f.property_category} />
               </div>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                 {amenityOptions.map(a => {

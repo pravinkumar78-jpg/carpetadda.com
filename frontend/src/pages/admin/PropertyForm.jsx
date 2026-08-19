@@ -24,6 +24,7 @@ const OWNERSHIP = ["freehold", "leasehold", "co_operative"];
 const PARKING_TYPES = ["open", "covered", "podium", "mlcp", "other"];
 const MARKETING_FLAGS = [["low_cost", "Low Cost"], ["hot_inventory", "Hot Inventory"], ["best_seller", "Best Seller"]];
 const AMENITIES_DEFAULT = ["Lift", "Swimming Pool", "Gym", "Clubhouse", "Garden", "Children's Play Area", "Security", "CCTV", "Power Backup", "Parking", "EV Charging", "Fire Safety", "Jogging Track", "Intercom", "Visitor Parking", "Gas Pipeline", "Rainwater Harvesting", "Solar", "Sewage Treatment"];
+const AMENITIES_COMMERCIAL = ["24x7 Access", "High-Speed Elevators", "Central Air Conditioning", "Conference Room", "Reception / Lobby", "Visitor Parking", "Power Backup", "Fire Safety", "CCTV Surveillance", "Loading / Unloading Bay", "Signage Space", "Pantry / Cafeteria", "Fiber Internet", "Access Control", "Ample Parking"];
 
 const empty = () => ({
   title: "", slug: "", description: "", listing_type: "sale", property_category: "residential",
@@ -59,11 +60,12 @@ export default function PropertyForm() {
   const backTo = inAdmin ? "/admin" : window.location.pathname.startsWith("/agent") ? "/agent" : "/dashboard";
 
   useEffect(() => {
-    api.get("/amenities").then(r => {
+    const fallback = f.property_category === "commercial" ? AMENITIES_COMMERCIAL : AMENITIES_DEFAULT;
+    api.get(`/amenities?category=${f.property_category}`).then(r => {
       const names = (r.data || []).map(a => a.name);
-      setAmenityOptions(prev => Array.from(new Set([...prev, ...names])));
-    }).catch(() => {});
-  }, []);
+      setAmenityOptions(names.length ? names : fallback);
+    }).catch(() => setAmenityOptions(fallback));
+  }, [f.property_category]); // switching residential/commercial instantly swaps the amenity list
 
   const amenityAdded = (name) => {
     setAmenityOptions(prev => prev.includes(name) ? prev : [...prev, name]);
@@ -74,7 +76,7 @@ export default function PropertyForm() {
     const name = newAmenity.trim();
     if (!name) return;
     try {
-      await api.post("/admin/amenities", { name });
+      await api.post("/admin/amenities", { name, category: f.property_category });
       amenityAdded(name);
       setNewAmenity("");
       toast.success(`"${name}" added — available on all future listings`);
@@ -432,7 +434,7 @@ export default function PropertyForm() {
               <h2 className="text-xl font-semibold text-slate-900 mb-4">Amenities</h2>
               <div className="flex gap-2 mb-2">
                 <Input data-testid="new-amenity-quick-input" value={newAmenity} onChange={e => setNewAmenity(e.target.value)} onKeyDown={e => e.key === "Enter" && (e.preventDefault(), newAmenity.trim() ? addAmenity() : toast.error("Please enter an amenity name"))} placeholder="Quick add, e.g. Sky Deck" className="h-11 rounded-lg border-slate-300 max-w-xs" />
-                <AddAmenity existing={amenityOptions} onAdded={amenityAdded} />
+                <AddAmenity existing={amenityOptions} onAdded={amenityAdded} category={f.property_category} />
               </div>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                 {amenityOptions.map(a => {

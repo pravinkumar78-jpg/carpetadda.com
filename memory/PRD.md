@@ -331,3 +331,9 @@
 - Root cause: /dashboard always rendered UserDashboard regardless of role
 - Fix (DashboardPages.jsx, 3 lines): /dashboard now redirects — agent → /agent, developer → /developer, admin/super_admin → /admin; regular users stay on /dashboard
 - Verified: agent opening /dashboard lands on Agent Workspace; regular user still gets the user dashboard. NOTE: requires REDEPLOY for production; also ensure the production user's role is "agent" (Admin → Users)
+
+## Implemented (2026-08-19 — category-aware amenities)
+- Amenities split into Residential / Commercial using the EXISTING amenities system (GET /amenities gained optional ?category= filter; Amenity model already had category field)
+- Data: 26 existing amenities recategorized to residential (they were all residential-flavored); 15 commercial amenities added (24x7 Access, High-Speed Elevators, Central AC, Conference Room, Reception/Lobby, Loading Bay, Signage, Pantry, Fiber Internet, Access Control, etc.)
+- PropertyForm + ProjectForm: amenity list refetches on property_category change (instant switch); quick-add + AddAmenity now tag new amenities with the current category; fallback lists split residential/commercial
+- Save/restore unchanged (amenities stored as name array in the existing field); verified E2E: residential hides commercial options, commercial switch is instant, selected commercial amenity saved to draft and restored on edit; QA draft cleaned up

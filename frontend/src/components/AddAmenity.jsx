@@ -10,7 +10,7 @@ import { Plus, CircleNotch } from "@phosphor-icons/react";
  * (POST /admin/amenities — server-side case-insensitive dedupe), then calls
  * onAdded(name) so the parent form can list + auto-select it immediately.
  */
-export default function AddAmenity({ existing = [], onAdded, buttonTestId = "add-amenity-btn" }) {
+export default function AddAmenity({ existing = [], onAdded, buttonTestId = "add-amenity-btn", category }) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
@@ -27,7 +27,7 @@ export default function AddAmenity({ existing = [], onAdded, buttonTestId = "add
     }
     setBusy(true);
     try {
-      const { data } = await api.post("/admin/amenities", { name: n });
+      const { data } = await api.post("/admin/amenities", { name: n, ...(category ? { category } : {}) });
       const saved = data?.name || n;
       onAdded(saved);
       setName(""); setOpen(false);

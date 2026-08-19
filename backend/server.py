@@ -1680,8 +1680,11 @@ async def admin_delete_user(uid: str, current: dict = Depends(current_user)):
 
 # ---------------- Amenities ----------------
 @api.get("/amenities")
-async def list_amenities():
-    return await db.amenities.find({"active": True}, PROJ).to_list(200)
+async def list_amenities(category: Optional[str] = None):
+    q: dict = {"active": True}
+    if category:
+        q["category"] = {"$regex": f"^{re.escape(category)}$", "$options": "i"}
+    return await db.amenities.find(q, PROJ).to_list(200)
 
 
 @api.post("/admin/amenities", dependencies=[Depends(require_roles("admin", "agent", "developer", "owner"))])
