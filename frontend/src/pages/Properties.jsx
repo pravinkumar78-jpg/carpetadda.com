@@ -15,7 +15,8 @@ const COMMERCIAL_TYPES = [
   ["commercial_land", "Commercial Land"], ["other", "Other"],
 ];
 
-export default function Properties() {
+export default function Properties({ fixedCategory }) {
+  const isCommercial = fixedCategory === "commercial";
   const [sp, setSp] = useSearchParams();
   const [layout, setLayout] = useState("grid");
   const [items, setItems] = useState([]);
@@ -38,6 +39,7 @@ export default function Properties() {
     let cancelled = false;
     setLoading(true);
     const qp = new URLSearchParams(sp);
+    if (fixedCategory) qp.set("category", fixedCategory); // dedicated category pages lock the classification
     qp.set("page", String(page));
     qp.set("sort", sort);
     qp.set("page_size", "12");
@@ -60,6 +62,7 @@ export default function Properties() {
           <SelectContent><SelectItem value="sale">Buy</SelectItem><SelectItem value="rent">Rent</SelectItem></SelectContent>
         </Select>
       </FilterGroup>
+      {!fixedCategory && (
       <FilterGroup label="Category">
         <Select value={params.category || ""} onValueChange={v => {
           const next = new URLSearchParams(sp);
@@ -71,13 +74,14 @@ export default function Properties() {
           <SelectContent><SelectItem value="residential">Residential</SelectItem><SelectItem value="commercial">Commercial</SelectItem></SelectContent>
         </Select>
       </FilterGroup>
+      )}
       <FilterGroup label="City">
         <Select value={params.city || ""} onValueChange={v => update("city", v)}>
           <SelectTrigger data-testid="filter-city" className="rounded-lg border-slate-200"><SelectValue placeholder="Any city" /></SelectTrigger>
           <SelectContent>{CITIES.map(c => <SelectItem key={c} value={c} className="capitalize">{c.replace("-", " ")}</SelectItem>)}</SelectContent>
         </Select>
       </FilterGroup>
-      {params.category === "commercial" ? (
+      {isCommercial || params.category === "commercial" ? (
         <FilterGroup label="Commercial Sub-Category">
           <Select value={params.property_type || ""} onValueChange={v => update("property_type", v)}>
             <SelectTrigger data-testid="filter-commercial-type" className="rounded-lg border-slate-200"><SelectValue placeholder="Any" /></SelectTrigger>
@@ -119,8 +123,8 @@ export default function Properties() {
         <div className="max-w-7xl mx-auto px-6 lg:px-10 py-8">
           <div className="flex items-end justify-between flex-wrap gap-4">
             <div>
-              <div className="text-xs text-slate-500 mb-2"><a href="/" className="hover:text-blue-600">Home</a> › Properties</div>
-              <h1 className="text-3xl sm:text-4xl font-bold text-slate-900">Properties for Sale & Rent</h1>
+              <div className="text-xs text-slate-500 mb-2"><a href="/" className="hover:text-blue-600">Home</a> › {isCommercial ? "Commercial Properties" : "Properties"}</div>
+              <h1 className="text-3xl sm:text-4xl font-bold text-slate-900">{isCommercial ? "Commercial Properties" : "Properties for Sale & Rent"}</h1>
               <div className="text-sm text-slate-600 mt-1">{loading ? "Searching…" : `${total} listings found`}</div>
             </div>
             <div className="flex items-center gap-3 flex-wrap">

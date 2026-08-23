@@ -52,6 +52,7 @@ export default function App() {
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/properties" element={<Properties />} />
+              <Route path="/commercial-properties" element={<Properties fixedCategory="commercial" />} />
               <Route path="/property/:slug" element={<PropertyDetail />} />
               <Route path="/projects" element={<Projects />} />
               <Route path="/new-launch" element={<Projects fixedStatus="new_launch" />} />

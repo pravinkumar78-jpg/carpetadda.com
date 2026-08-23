@@ -459,8 +459,9 @@ async def featured_properties(limit: int = 8):
 
 @api.get("/properties/{slug_or_id}")
 async def get_property(slug_or_id: str):
-    doc = await db.properties.find_one({"$or": [{"slug": slug_or_id}, {"id": slug_or_id}]}, PROJ)
-    if not doc or doc.get("status") != "active":
+    # status filter inside the query so an inactive duplicate (same slug) can never shadow the live listing
+    doc = await db.properties.find_one({"$or": [{"slug": slug_or_id}, {"id": slug_or_id}], "status": "active"}, PROJ)
+    if not doc:
         raise HTTPException(404, "Property not found")
     await db.properties.update_one({"id": doc["id"]}, {"$inc": {"views": 1}})
     developer = await db.developers.find_one({"id": doc.get("developer_id")}, PROJ) if doc.get("developer_id") else None
@@ -856,8 +857,9 @@ async def featured_projects(limit: int = 6):
 
 @api.get("/projects/{slug_or_id}")
 async def get_project(slug_or_id: str):
-    doc = await db.projects.find_one({"$or": [{"slug": slug_or_id}, {"id": slug_or_id}]}, PROJ)
-    if not doc or doc.get("status") != "active":
+    # status filter inside the query so an inactive duplicate (same slug) can never shadow the live project
+    doc = await db.projects.find_one({"$or": [{"slug": slug_or_id}, {"id": slug_or_id}], "status": "active"}, PROJ)
+    if not doc:
         raise HTTPException(404, "Project not found")
     developer = await db.developers.find_one({"id": doc.get("developer_id")}, PROJ)
     properties = await db.properties.find({"project_id": doc["id"], "status": "active"}, PROJ).limit(12).to_list(12)

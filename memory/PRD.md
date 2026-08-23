@@ -372,3 +372,10 @@
 - User asked to "add the File & media storage integration" — already implemented per the official playbook; audited against it point-by-point: EMERGENT_LLM_KEY + INTEGRATION_PROXY_URL env pattern ✓, session storage_key with force re-mint on 404 ✓, app-name-prefixed paths (carpetadda/...) ✓, DB file records with is_deleted soft-delete ✓, startup init ✓, /api/files served through backend ✓, 8MB + content-type validation ✓, .env deploys to production (.gitignore fixed) ✓
 - Fresh round-trip verified: upload → read → wipe local cache → read from remote — all pass
 - Going-live checklist: only step left is REDEPLOY so EMERGENT_LLM_KEY + code reach production
+
+## Implemented (2026-08-23 — dedicated Commercial Properties page)
+- New route /commercial-properties reusing the Properties listing with a locked filter (Properties accepts fixedCategory prop → qp.set("category","commercial"); heading "Commercial Properties"; Category select hidden, BHK hidden, commercial sub-category filter shown)
+- Header "Properties" dropdown gained "Commercial Properties" item (desktop + mobile via shared PROPERTY_MENU)
+- ROOT-CAUSE fix (affects the screenshot's "Property not found"): get_property/get_project matched slug WITHOUT status in the query — an inactive duplicate draft with the same slug (from the old duplicate-draft bug) could be returned first and 404 the live listing; the status=active filter is now INSIDE the find_one query
+- Verified: menu → page opens with 18 commercial-only listings (0 residential leak via API), sub-category/sort/pagination/detail links/images all work, mobile clean, no console errors. Backend param is `category` (NOT property_category) — verified via API
+- Production note: the "Commercial Properties Not Available" text lives in the old production build; redeploy ships the new page

@@ -10,6 +10,7 @@ const DARK_LOGO = "https://customer-assets-jt897jd0.emergentagent.net/job_dombiv
 const PROPERTY_MENU = [
   { to: "/properties?listing_type=sale", label: "Buy", tid: "nav-prop-buy" },
   { to: "/properties?listing_type=rent", label: "Rent", tid: "nav-prop-rent" },
+  { to: "/commercial-properties", label: "Commercial Properties", tid: "nav-prop-commercial-properties" },
   { to: "/projects?category=residential", label: "Residential Projects", tid: "nav-prop-residential" },
   { to: "/projects?category=commercial", label: "Commercial Projects", tid: "nav-prop-commercial" },
 ];
