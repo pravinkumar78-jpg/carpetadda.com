@@ -367,3 +367,8 @@
 10. Admin → Users edit dialog now edits name/phone/whatsapp (PUT /admin/users already accepted them) + existing password reset
 11. Properties hang root cause: Properties.jsx fetch had NO .catch — any API failure left the page on "Loading…" forever; added catch + request cancellation + removed stray `layout` dep from effect
 12. Verified: /new-launch 7 projects (incl. flag-marked), /rtmi includes rtmi-flagged, Land Area stat + existing int floors render, hero sharp, project form hero fields/floors text, users edit dialog fields, syntax checks all green; test flag changes reverted
+
+## Confirmed (2026-08-23 — File & Media Storage integration, official)
+- User asked to "add the File & media storage integration" — already implemented per the official playbook; audited against it point-by-point: EMERGENT_LLM_KEY + INTEGRATION_PROXY_URL env pattern ✓, session storage_key with force re-mint on 404 ✓, app-name-prefixed paths (carpetadda/...) ✓, DB file records with is_deleted soft-delete ✓, startup init ✓, /api/files served through backend ✓, 8MB + content-type validation ✓, .env deploys to production (.gitignore fixed) ✓
+- Fresh round-trip verified: upload → read → wipe local cache → read from remote — all pass
+- Going-live checklist: only step left is REDEPLOY so EMERGENT_LLM_KEY + code reach production
