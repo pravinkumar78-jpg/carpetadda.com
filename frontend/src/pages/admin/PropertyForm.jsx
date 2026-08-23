@@ -22,7 +22,7 @@ const DIRECTIONS = ["east", "west", "north", "south", "north-east", "north-west"
 const FURNISHING = ["furnished", "semi", "unfurnished"];
 const OWNERSHIP = ["freehold", "leasehold", "co_operative"];
 const PARKING_TYPES = ["open", "covered", "podium", "mlcp", "other"];
-const MARKETING_FLAGS = [["low_cost", "Low Cost"], ["hot_inventory", "Hot Inventory"], ["best_seller", "Best Seller"]];
+const MARKETING_FLAGS = [["low_cost", "Low Cost"], ["hot_inventory", "Hot Inventory"], ["best_seller", "Best Seller"], ["rtmi", "RTMI (Ready to Move)"]];
 const AMENITIES_DEFAULT = ["Lift", "Swimming Pool", "Gym", "Clubhouse", "Garden", "Children's Play Area", "Security", "CCTV", "Power Backup", "Parking", "EV Charging", "Fire Safety", "Jogging Track", "Intercom", "Visitor Parking", "Gas Pipeline", "Rainwater Harvesting", "Solar", "Sewage Treatment"];
 const AMENITIES_COMMERCIAL = ["24x7 Access", "High-Speed Elevators", "Central Air Conditioning", "Conference Room", "Reception / Lobby", "Visitor Parking", "Power Backup", "Fire Safety", "CCTV Surveillance", "Loading / Unloading Bay", "Signage Space", "Pantry / Cafeteria", "Fiber Internet", "Access Control", "Ample Parking"];
 
@@ -443,7 +443,7 @@ export default function PropertyForm() {
                 <AddAmenity existing={amenityOptions} onAdded={amenityAdded} category={f.property_category} />
               </div>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                {amenityOptions.map(a => {
+                {Array.from(new Set([...amenityOptions, ...(f.amenities || [])])).map(a => {
                   const on = (f.amenities || []).includes(a);
                   return (
                     <button key={a} type="button" onClick={() => set("amenities", on ? f.amenities.filter(x => x !== a) : [...(f.amenities || []), a])}

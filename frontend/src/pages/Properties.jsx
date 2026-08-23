@@ -35,16 +35,22 @@ export default function Properties() {
   };
 
   useEffect(() => {
+    let cancelled = false;
     setLoading(true);
     const qp = new URLSearchParams(sp);
     qp.set("page", String(page));
     qp.set("sort", sort);
     qp.set("page_size", "12");
     api.get(`/properties?${qp.toString()}`).then(r => {
+      if (cancelled) return;
       setItems(r.data.items || []);
       setTotal(r.data.total || 0);
-    }).finally(() => setLoading(false));
-  }, [sp, page, sort, layout]);
+    }).catch(() => {
+      if (cancelled) return;
+      setItems([]); setTotal(0); // API failure must never leave the page stuck on "Loading…"
+    }).finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [sp, page, sort]);
 
   const filters = (
     <div className="space-y-5">

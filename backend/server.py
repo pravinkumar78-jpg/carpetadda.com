@@ -819,7 +819,15 @@ async def list_projects(city: Optional[str] = None, location: Optional[str] = No
     if featured is not None: query["featured"] = featured
     if hero is not None: query["hero_project"] = hero
     if category: query["property_category"] = category
-    if construction_status: query["construction_status"] = construction_status
+    if construction_status:
+        if construction_status == "new_launch":
+            # "New Launch" can be marked via construction_status OR the new_launch marketing flag
+            query.setdefault("$and", []).append({"$or": [{"construction_status": "new_launch"}, {"flags": "new_launch"}]})
+        elif construction_status == "ready":
+            # RTMI = ready-to-move construction status OR the rtmi marketing flag
+            query.setdefault("$and", []).append({"$or": [{"construction_status": "ready"}, {"flags": "rtmi"}]})
+        else:
+            query["construction_status"] = construction_status
     if bhk: query["configurations"] = {"$regex": f"^{bhk}\\s*BHK", "$options": "i"}
     if config: query["configurations"] = {"$regex": f"^{re.escape(config)}", "$options": "i"}  # commercial sub-category
     if price_min is not None: query["price_to"] = {"$gte": price_min}

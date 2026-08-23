@@ -191,6 +191,9 @@ function RoleDialog({ user, onClose, onSaved }) {
   const [role, setRole] = useState(user.role);
   const [verified, setVerified] = useState(!!user.verified);
   const [active, setActive] = useState(user.active !== false);
+  const [name, setName] = useState(user.name || "");
+  const [phone, setPhone] = useState(user.phone || "");
+  const [whatsapp, setWhatsapp] = useState(user.whatsapp || "");
   const [busy, setBusy] = useState(false);
 
   const submit = async (e) => {
@@ -199,9 +202,10 @@ function RoleDialog({ user, onClose, onSaved }) {
     const deactivating = !active && user.active !== false;
     if (changingRole && !confirm(`Change ${user.name}'s role from "${user.role}" to "${role}"?`)) return;
     if (deactivating && !confirm(`Deactivate ${user.name}? They won't be able to log in or publish. Their listings are preserved.`)) return;
+    if (!name.trim()) { toast.error("Name is required"); return; }
     setBusy(true);
     try {
-      await api.put(`/admin/users/${user.id}`, { role, verified, active });
+      await api.put(`/admin/users/${user.id}`, { role, verified, active, name: name.trim(), phone: phone.trim() || null, whatsapp: whatsapp.trim() || null });
       toast.success("User updated");
       onSaved();
     } catch (err) { toast.error(err?.response?.data?.detail || "Update failed"); }
@@ -213,6 +217,20 @@ function RoleDialog({ user, onClose, onSaved }) {
       <DialogContent className="max-w-md" data-testid="role-dialog">
         <DialogHeader><DialogTitle className="text-2xl">Edit user · {user.name}</DialogTitle></DialogHeader>
         <form onSubmit={submit} className="space-y-4">
+          <div>
+            <div className="text-xs font-semibold text-slate-600 mb-1">Name</div>
+            <Input data-testid="role-name" value={name} onChange={e => setName(e.target.value)} className="h-11 rounded-lg border-slate-300" />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <div className="text-xs font-semibold text-slate-600 mb-1">Phone</div>
+              <Input data-testid="role-phone" value={phone} onChange={e => setPhone(e.target.value)} className="h-11 rounded-lg border-slate-200" />
+            </div>
+            <div>
+              <div className="text-xs font-semibold text-slate-600 mb-1">WhatsApp</div>
+              <Input data-testid="role-whatsapp" value={whatsapp} onChange={e => setWhatsapp(e.target.value)} className="h-11 rounded-lg border-slate-200" />
+            </div>
+          </div>
           <div>
             <div className="text-xs font-semibold text-slate-600 mb-1">Role</div>
             <Select value={role} onValueChange={setRole}>

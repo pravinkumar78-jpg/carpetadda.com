@@ -235,7 +235,9 @@ class Project(BaseDoc):
 
     total_towers: int = 1
     total_units: int = 0
-    total_floors: Optional[int] = None
+    total_floors: Optional[str] = None  # supports multi-tower text, e.g. "Tower A: 20, Tower B: 30"
+    hero_title: Optional[str] = None  # H1 shown over the main image on the public project page
+    hero_description: Optional[str] = None  # short description shown under the hero H1
 
     amenities: List[str] = Field(default_factory=list)
     specifications: List[str] = Field(default_factory=list)

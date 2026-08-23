@@ -14,7 +14,7 @@ import AddAmenity from "@/components/AddAmenity";
 import RegisterDeveloper from "@/components/RegisterDeveloper";
 
 const CITIES = ["mumbai", "thane", "navi-mumbai", "dombivli", "kalyan"];
-const PROJECT_FLAGS = [["featured", "Featured"], ["new_launch", "New Launch"], ["best_payment_plan", "Best Payment Plan"], ["best_performer", "Best Performer"]];
+const PROJECT_FLAGS = [["featured", "Featured"], ["new_launch", "New Launch"], ["rtmi", "RTMI (Ready to Move)"], ["best_payment_plan", "Best Payment Plan"], ["best_performer", "Best Performer"]];
 const AMENITIES = ["Swimming Pool", "Gym", "Clubhouse", "Landscaped Garden", "Children's Play Area", "Jogging Track", "24x7 Security", "CCTV", "Covered Parking", "Power Backup", "EV Charging", "Fire Safety", "Yoga Deck", "Multipurpose Hall", "Amphitheatre", "Senior Citizen Area", "Rainwater Harvesting"];
 const AMENITIES_COMMERCIAL = ["24x7 Access", "High-Speed Elevators", "Central Air Conditioning", "Conference Room", "Reception / Lobby", "Visitor Parking", "Power Backup", "Fire Safety", "CCTV Surveillance", "Loading / Unloading Bay", "Signage Space", "Pantry / Cafeteria", "Fiber Internet", "Access Control", "Ample Parking"];
 
@@ -415,7 +415,7 @@ export default function ProjectForm() {
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                 <F label="Land Size"><Input data-testid="project-land-size" value={f.land_size || ""} onChange={e => set("land_size", e.target.value)} placeholder="e.g. 2.5 Acres" /></F>
                 <F label="Total Towers"><Input type="number" value={f.total_towers ?? 0} onChange={e => set("total_towers", Number(e.target.value))} /></F>
-                <F label="Total Floors"><Input type="number" value={f.total_floors ?? ""} onChange={e => set("total_floors", Number(e.target.value) || null)} /></F>
+                <F label="Total Floors (per tower, e.g. Tower A: 20, Tower B: 30)"><Input data-testid="project-total-floors" value={f.total_floors ?? ""} onChange={e => set("total_floors", e.target.value)} placeholder="Single tower: 22 — or Tower A: 20, Tower B: 30" /></F>
                 <F label="Area From (sq.ft.)"><Input type="number" value={f.area_from ?? ""} onChange={e => set("area_from", Number(e.target.value) || null)} /></F>
                 <F label="Area To (sq.ft.)"><Input type="number" value={f.area_to ?? ""} onChange={e => set("area_to", Number(e.target.value) || null)} /></F>
                 <F label="Construction Status"><Sel value={f.construction_status} onChange={v => set("construction_status", v)} options={[["new_launch","New Launch"],["under_construction","Under Construction"],["ready","Ready to Move"]]} /></F>
@@ -474,7 +474,7 @@ export default function ProjectForm() {
                   <F label="Description"><Textarea rows={2} data-testid={`rera-desc-${i}`} value={r.description || ""} onChange={e => set("rera_entries", f.rera_entries.map((x, j) => j === i ? { ...x, description: e.target.value } : x))} placeholder="e.g. Tower A & B — registered under MahaRERA" /></F>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <F label="Upload RERA QR"><ImageUpload value={r.qr_url || ""} onChange={v => set("rera_entries", f.rera_entries.map((x, j) => j === i ? { ...x, qr_url: v } : x))} kind="projects" dataTestid={`rera-qr-upload-${i}`} allowUrl={false} /></F>
-                    <F label="Upload RERA Certificate"><ImageUpload value={r.certificate_url || ""} onChange={v => set("rera_entries", f.rera_entries.map((x, j) => j === i ? { ...x, certificate_url: v } : x))} kind="projects" dataTestid={`rera-cert-upload-${i}`} allowUrl={false} /></F>
+                    <F label="Upload RERA Certificate (image or PDF)"><ImageUpload value={r.certificate_url || ""} onChange={v => set("rera_entries", f.rera_entries.map((x, j) => j === i ? { ...x, certificate_url: v } : x))} kind="projects" dataTestid={`rera-cert-upload-${i}`} allowUrl={false} accept="image/*,application/pdf" /></F>
                   </div>
                 </div>
               ))}
@@ -493,7 +493,7 @@ export default function ProjectForm() {
                 <AddAmenity existing={amenityOptions} onAdded={amenityAdded} category={f.property_category} />
               </div>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                {amenityOptions.map(a => {
+                {Array.from(new Set([...amenityOptions, ...(f.amenities || [])])).map(a => {
                   const on = (f.amenities || []).includes(a);
                   return (
                     <button key={a} type="button" onClick={() => set("amenities", on ? f.amenities.filter(x => x !== a) : [...(f.amenities || []), a])}
@@ -510,6 +510,8 @@ export default function ProjectForm() {
             <div className="space-y-4">
               <h2 className="text-xl font-semibold text-slate-900 mb-4">Media</h2>
               <F label="Upload Main Image *"><ImageUpload value={f.main_image || ""} onChange={v => set("main_image", v)} kind="projects" dataTestid="project-main-image-upload" allowUrl={false} /></F>
+              <F label="Main Image H1 (shown over the main image, max 80 chars)"><Input data-testid="project-hero-title" maxLength={80} value={f.hero_title || ""} onChange={e => set("hero_title", e.target.value)} placeholder="e.g. Luxury 2 & 3 BHK Homes in Dombivli" /></F>
+              <F label="Main Image Description (max 300 chars)"><Textarea rows={2} maxLength={300} data-testid="project-hero-description" value={f.hero_description || ""} onChange={e => set("hero_description", e.target.value)} placeholder="One or two lines shown under the H1 on the main image" /></F>
               <F label="Project Gallery Images">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {(f.images || []).map((url, i) => <ImageUpload key={`${url}-${i}`} value={url} onChange={v => set("images", (f.images || []).map((x,j) => j===i ? v : x).filter(Boolean))} kind="projects" dataTestid={`project-image-upload-${i}`} allowUrl={false} />)}

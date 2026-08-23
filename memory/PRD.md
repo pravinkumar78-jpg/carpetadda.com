@@ -353,3 +353,17 @@
 - Images: full chain re-verified on the durable storage fix (upload ×2 → save → fresh GET persists → both URLs 200; survives local wipe)
 - Approval workflow verified correct on current code: admin create/publish → active directly (never queued); agent → pending_review; developer → pending_review. If an "admin" listing was queued on production, that account's role is not admin/super_admin, or production predates these fixes — redeploy + check role in Admin → Users
 - All QA test data cleaned up
+
+## Implemented (2026-08-23 — 12-point production batch)
+1. ProjectDetail stat "Total Units" → "Land Area" (existing land_size field)
+2. Project.total_floors int → str (multi-tower text, e.g. "Tower A: 20, Tower B: 30"); form input now text; existing int data passes through raw reads untouched
+3. RERA certificate upload accepts PDF: ImageUpload gained `accept` passthrough (accept="image/*,application/pdf") + PDF preview chip; backend already allowed PDF for admin uploads
+4. NEW LAUNCH root cause: projects are marked via flags array ("new_launch" in flags), page filtered only construction_status → backend list_projects now matches BOTH (construction_status=new_launch OR flags contains new_launch)
+5. RTMI: added "rtmi" to PROJECT_FLAGS; RTMI page filter matches construction_status=ready OR flags contains rtmi; property RTMI flag added to MARKETING_FLAGS (uses existing flags array, no model change)
+6. Hero blur = white overlay gradients (from-white/90 + bottom fade) — softened to from-white/70 via-white/20, bottom fade removed; headline still readable
+7. Project hero H1 + description: Project model +hero_title/hero_description; ProjectForm media fields (80/300 char limits); ProjectDetail displays over main image (white text on existing dark gradient = auto-readable, moves with the image)
+8. Website hero CMS already existed (hero_image + hero_headline + hero_subtitle + multiple rotating hero_backgrounds in Admin → Settings → Hero) — verified present, no duplication needed
+9. Property listing: images fixed via durable storage; amenity chips now render selected-but-other-category amenities (nothing hidden/"deleted" on category switch); admin publish verified → active directly, agent/developer → pending_review
+10. Admin → Users edit dialog now edits name/phone/whatsapp (PUT /admin/users already accepted them) + existing password reset
+11. Properties hang root cause: Properties.jsx fetch had NO .catch — any API failure left the page on "Loading…" forever; added catch + request cancellation + removed stray `layout` dep from effect
+12. Verified: /new-launch 7 projects (incl. flag-marked), /rtmi includes rtmi-flagged, Land Area stat + existing int floors render, hero sharp, project form hero fields/floors text, users edit dialog fields, syntax checks all green; test flag changes reverted

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { UploadSimple, X, Image as ImageIcon, LinkSimple } from "@phosphor-icons/react";
+import { UploadSimple, X, Image as ImageIcon, LinkSimple, FileText } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import api from "@/lib/api";
 import { Input } from "@/components/ui/input";
@@ -62,7 +62,13 @@ export default function ImageUpload({ value, onChange, kind = "general", label, 
 
       {preview ? (
         <div className="relative group card-premium overflow-hidden p-0">
-          {broken ? (
+          {preview.toLowerCase().endsWith(".pdf") ? (
+            <a href={preview} target="_blank" rel="noopener" data-testid={`${dataTestid}-pdf`}
+              className="w-full h-40 bg-slate-100 flex flex-col items-center justify-center gap-1.5 text-slate-500 hover:text-blue-600 transition-colors">
+              <FileText size={26} />
+              <span className="text-xs font-semibold">PDF attached — click to open</span>
+            </a>
+          ) : broken ? (
             <div className="w-full h-40 bg-slate-100 flex flex-col items-center justify-center gap-1.5 text-slate-400" data-testid={`${dataTestid}-broken`}>
               <ImageIcon size={22} />
               <span className="text-xs font-medium">Preview unavailable — use Replace or remove</span>
@@ -95,7 +101,7 @@ export default function ImageUpload({ value, onChange, kind = "general", label, 
           <div className="text-sm font-medium text-slate-700">
             {uploading ? "Uploading…" : "Drop image here"}
           </div>
-          <div className="text-xs text-slate-500 mt-1">or click to browse · JPG, PNG, WebP · max 8&nbsp;MB</div>
+          <div className="text-xs text-slate-500 mt-1">or click to browse · {accept.includes("pdf") ? "JPG, PNG, WebP, PDF" : "JPG, PNG, WebP"} · max 8&nbsp;MB</div>
         </label>
       )}
 

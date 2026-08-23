@@ -111,7 +111,8 @@ export default function ProjectDetail() {
               {p.rera_number && <span className="inline-flex items-center gap-1 text-xs font-semibold bg-blue-500 text-white px-3 py-1 rounded-full">RERA {p.rera_number}</span>}
               {p.construction_status && <span className="inline-flex items-center text-xs font-semibold bg-white/15 backdrop-blur text-white px-3 py-1 rounded-full uppercase tracking-wider">{p.construction_status.replace("_", " ")}</span>}
             </div>
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight">{p.name}</h1>
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight">{p.hero_title || p.name}</h1>
+            {p.hero_description && <p data-testid="project-hero-description" className="mt-3 text-base lg:text-lg max-w-2xl leading-relaxed opacity-90">{p.hero_description}</p>}
             <div className="flex items-center gap-2 text-white/80 mt-3"><MapPin size={16} /> {p.location}, {p.city}</div>
             {allImages.length > 0 && (
               <button type="button" data-testid="view-gallery-btn"
@@ -146,7 +147,7 @@ export default function ProjectDetail() {
         <div className="lg:col-span-2 space-y-12">
           <section data-testid="section-overview" className="space-y-8">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-              <Stat label="Total Units" value={p.total_units} />
+              <Stat label="Land Area" value={p.land_size} />
               <Stat label="Towers" value={p.total_towers} />
               <Stat label="Floors" value={p.total_floors} />
               <Stat label="Possession" value={p.possession_date} />
