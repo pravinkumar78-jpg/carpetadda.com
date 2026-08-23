@@ -43,6 +43,7 @@ export default function ProjectForm() {
   const [f, setF] = useState(empty());
   const [tab, setTab] = useState("basic");
   const [saving, setSaving] = useState(false);
+  const [createdId, setCreatedId] = useState(null); // id assigned by the first save of a NEW project
   const [loaded, setLoaded] = useState(!id);
   const [developers, setDevelopers] = useState([]);
   const [amenityOptions, setAmenityOptions] = useState(AMENITIES);
@@ -118,6 +119,7 @@ export default function ProjectForm() {
   const dirtyRef = useRef(false);
   const doneRef = useRef(false);
   const skipRef = useRef(!!id);
+  const effIdRef = useRef(id || null); effIdRef.current = id || createdId;
   useEffect(() => {
     if (skipRef.current) { skipRef.current = false; return; }
     dirtyRef.current = true;
@@ -125,8 +127,9 @@ export default function ProjectForm() {
   useEffect(() => {
     const onHide = () => {
       const cur = fRef.current;
+      const effId = effIdRef.current;
       if (!dirtyRef.current || doneRef.current || !(cur?.name || "").trim()) return;
-      if (id && cur.status !== "draft") return; // never unpublish a live/pending project on exit
+      if (effId && cur.status !== "draft") return; // never unpublish a live/pending project on exit
       try {
         const match = devRef.current.find(d => (d.name || "").trim().toLowerCase() === (devNameRef.current || "").trim().toLowerCase());
         const payload = { ...cur, status: "draft" };
@@ -138,8 +141,8 @@ export default function ProjectForm() {
         ["id", "created_at", "updated_at", "developer", "properties", "similar"].forEach(k => delete payload[k]);
         const token = localStorage.getItem("eh_token");
         const base = (process.env.REACT_APP_BACKEND_URL || "").replace(/\/$/, "");
-        fetch(`${base}/api/projects${id ? `/${id}` : ""}`, {
-          method: id ? "PUT" : "POST",
+        fetch(`${base}/api/projects${effId ? `/${effId}` : ""}`, {
+          method: effId ? "PUT" : "POST",
           headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
           body: JSON.stringify(payload),
           keepalive: true,
@@ -243,6 +246,7 @@ export default function ProjectForm() {
   };
 
   const save = async (publish, { stay = false } = {}) => {
+    if (saving) return false; // guard against double-clicks / repeated submissions
     if (!f.name.trim()) { toast.error("Project name required"); setTab("basic"); return false; }
     // Developer is typed as free text — resolve the name to the existing developer record
     const match = developers.find(d => (d.name || "").trim().toLowerCase() === devName.trim().toLowerCase());
@@ -265,14 +269,16 @@ export default function ProjectForm() {
       if (!payload.slug) payload.slug = payload.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 60);
       if (!payload.main_image && payload.images?.[0]) payload.main_image = payload.images[0];
       payload.status = publish ? "active" : "draft";
-      if (id) {
-        const pid = payload.id; ["id","created_at","updated_at","developer","properties","similar"].forEach(k => delete payload[k]);
+      const effId = id || createdId;
+      if (effId) {
+        const pid = effId; ["id","created_at","updated_at","developer","properties","similar"].forEach(k => delete payload[k]);
         await api.put(`/projects/${pid}`, payload);
       } else {
-        await api.post("/projects", payload);
+        const { data } = await api.post("/projects", payload);
+        if (data?.id) setCreatedId(data.id); // first save creates the record — every later save UPDATES it
       }
-      doneRef.current = true;
-      toast.success(stay ? "Progress saved" : id ? "Project updated" : publish ? (inAdmin ? "Project published" : "Submitted for admin review") : "Draft saved");
+      doneRef.current = !stay; // intermediate "Save & Next" keeps exit-autosave armed (as an UPDATE, never a new record)
+      toast.success(stay ? "Progress saved" : effId ? "Project updated" : publish ? (inAdmin ? "Project published" : "Submitted for admin review") : "Draft saved");
       if (!stay) nav(backTo);
       return true;
     } catch (err) {

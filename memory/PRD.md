@@ -346,3 +346,10 @@
 - .gitignore: removed .env blocks so EMERGENT_LLM_KEY deploys to production; deployment_agent re-check PASS
 - HONEST CAVEAT: production images lost BEFORE this fix (Lodha Signet main+5 gallery, homepage hero, etc.) are unrecoverable — the bytes were wiped with the old container. After redeploy, re-upload those once via admin; everything uploaded afterwards persists permanently
 - ACTION REQUIRED: redeploy to production, then re-upload the previously-lost images once
+
+## Fix (2026-08-23 — duplicate drafts + approval verification)
+- ROOT CAUSE of duplicate draft listings: PropertyForm/ProjectForm `save()` always POSTed for new listings — every "Save & Next" created a NEW record. Fix: first save captures the created id (createdId state); every subsequent save (Save & Next, Save Draft, exit autosave) PUTs that same record. Added double-submit guard (if saving return) and exit-autosave now uses the effective id (PUT) and re-arms after intermediate saves
+- Verified: agent created one rent listing clicking Save & Next ×3 + Save in Draft → exactly ONE draft; continuing the draft updates the same record (draft count stays 1); data + images restore on edit
+- Images: full chain re-verified on the durable storage fix (upload ×2 → save → fresh GET persists → both URLs 200; survives local wipe)
+- Approval workflow verified correct on current code: admin create/publish → active directly (never queued); agent → pending_review; developer → pending_review. If an "admin" listing was queued on production, that account's role is not admin/super_admin, or production predates these fixes — redeploy + check role in Admin → Users
+- All QA test data cleaned up
