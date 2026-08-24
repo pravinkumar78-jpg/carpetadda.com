@@ -385,3 +385,10 @@
 - Footer Explore gained "Commercial Properties" link (footer-link-commercial)
 - SEO: saved /commercial-properties meta via the existing admin SEO API; fixed SeoManager STATIC_PAGES whitelist (the page was missing so saved meta never applied) — title/description now render
 - Verified: card → page, footer → page, title "Commercial Properties in Thane — Shops, Offices & Showrooms | CarpetAdda" + description applied
+
+## Implemented (2026-08-24 — SEO follow-up + deploy prep)
+- /new-launch + /rtmi added to SeoManager STATIC_PAGES whitelist; meta title/description saved for both via the existing SEO API
+- Commercial OG image set via existing SEO editor API using an existing durable uploaded image (og:image meta verified in DOM)
+- Sitemap: existing /api/sitemap JSON endpoint extended with "pages": ["/commercial-properties", "/new-launch", "/rtmi"] (no XML renderer consumes it yet — noted)
+- Deployment prep: .gitignore had a SECOND .env block (lines 106-108) — removed; deployment_agent re-check PASS; everything ready for redeploy
+- Verified: browser tab titles for /new-launch + /rtmi, og:image meta tag, sitemap pages list, image 200

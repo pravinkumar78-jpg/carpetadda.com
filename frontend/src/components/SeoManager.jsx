@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import api from "@/lib/api";
 
-const STATIC_PAGES = ["/", "/properties", "/commercial-properties", "/projects", "/blog", "/about", "/contact", "/faqs", "/home-loan", "/post-property", "/ai-search", "/emi-calculator", "/compare", "/agents", "/developers"];
+const STATIC_PAGES = ["/", "/properties", "/commercial-properties", "/projects", "/new-launch", "/rtmi", "/blog", "/about", "/contact", "/faqs", "/home-loan", "/post-property", "/ai-search", "/emi-calculator", "/compare", "/agents", "/developers"];
 const DEFAULT_TITLE = "CarpetAdda — Every Dream Deserves an Address";
 
 function setMeta(selector, attrs, content) {

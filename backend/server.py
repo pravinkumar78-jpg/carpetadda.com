@@ -2418,7 +2418,8 @@ async def sitemap():
     ags = await db.agents.find({}, {"_id": 0, "slug": 1, "updated_at": 1}).to_list(500)
     blogs = await db.blogs.find({"published": True}, {"_id": 0, "slug": 1, "updated_at": 1}).to_list(500)
     return {"properties": props, "projects": projs, "locations": locs,
-            "developers": devs, "agents": ags, "blogs": blogs}
+            "developers": devs, "agents": ags, "blogs": blogs,
+            "pages": ["/commercial-properties", "/new-launch", "/rtmi"]}  # dedicated listing pages
 
 
 # ---------------- Mount ----------------
