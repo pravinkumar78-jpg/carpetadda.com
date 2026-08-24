@@ -1661,7 +1661,14 @@ async def admin_list_users(role: Optional[str] = None, q: Optional[str] = None):
 
 @api.put("/admin/users/{uid}", dependencies=[Depends(require_roles("admin"))])
 async def admin_update_user(uid: str, body: dict = Body(...)):
-    body.pop("_id", None); body.pop("id", None); body.pop("password_hash", None); body.pop("email", None)
+    body.pop("_id", None); body.pop("id", None); body.pop("password_hash", None)
+    if "email" in body:
+        email = (body.get("email") or "").strip().lower()
+        if not email or "@" not in email:
+            raise HTTPException(400, "Valid email required")
+        if await db.users.find_one({"email": email, "id": {"$ne": uid}}, {"_id": 0, "id": 1}):
+            raise HTTPException(400, "Email already used by another account")
+        body["email"] = email
     new_password = (body.pop("password", None) or "").strip()
     if new_password:
         if len(new_password) < 8:

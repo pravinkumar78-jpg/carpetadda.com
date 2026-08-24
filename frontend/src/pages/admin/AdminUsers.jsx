@@ -6,6 +6,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Pencil, Key, Trash, MagnifyingGlass, Plus, Prohibit } from "@phosphor-icons/react";
 import { useAuth } from "@/lib/auth";
+import ImageUpload from "@/components/ImageUpload";
 
 const ROLES = ["user", "agent", "developer", "owner", "admin", "super_admin"];
 
@@ -193,8 +194,10 @@ function RoleDialog({ user, onClose, onSaved }) {
   const [verified, setVerified] = useState(!!user.verified);
   const [active, setActive] = useState(user.active !== false);
   const [name, setName] = useState(user.name || "");
+  const [email, setEmail] = useState(user.email || "");
   const [phone, setPhone] = useState(user.phone || "");
   const [whatsapp, setWhatsapp] = useState(user.whatsapp || "");
+  const [avatar, setAvatar] = useState(user.avatar || "");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -205,10 +208,11 @@ function RoleDialog({ user, onClose, onSaved }) {
     if (changingRole && !confirm(`Change ${user.name}'s role from "${user.role}" to "${role}"?`)) return;
     if (deactivating && !confirm(`Deactivate ${user.name}? They won't be able to log in or publish. Their listings are preserved.`)) return;
     if (!name.trim()) { toast.error("Name is required"); return; }
+    if (!email.trim() || !email.includes("@")) { toast.error("Valid email is required"); return; }
     if (password && password.length < 8) { toast.error("Password must be at least 8 characters"); return; }
     setBusy(true);
     try {
-      const payload = { role, verified, active, name: name.trim(), phone: phone.trim() || null, whatsapp: whatsapp.trim() || null };
+      const payload = { role, verified, active, name: name.trim(), email: email.trim().toLowerCase(), phone: phone.trim() || null, whatsapp: whatsapp.trim() || null, avatar: avatar || null };
       if (password) payload.password = password;
       await api.put(`/admin/users/${user.id}`, payload);
       toast.success("User updated");
@@ -219,12 +223,20 @@ function RoleDialog({ user, onClose, onSaved }) {
 
   return (
     <Dialog open onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-md" data-testid="role-dialog">
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto" data-testid="role-dialog">
         <DialogHeader><DialogTitle className="text-2xl">Edit user · {user.name}</DialogTitle></DialogHeader>
         <form onSubmit={submit} className="space-y-4">
           <div>
+            <div className="text-xs font-semibold text-slate-600 mb-1">Profile Photo / Logo</div>
+            <ImageUpload value={avatar} onChange={setAvatar} kind="avatars" dataTestid="role-avatar" />
+          </div>
+          <div>
             <div className="text-xs font-semibold text-slate-600 mb-1">Name</div>
             <Input data-testid="role-name" value={name} onChange={e => setName(e.target.value)} className="h-11 rounded-lg border-slate-300" />
+          </div>
+          <div>
+            <div className="text-xs font-semibold text-slate-600 mb-1">Email</div>
+            <Input data-testid="role-email" type="email" value={email} onChange={e => setEmail(e.target.value)} className="h-11 rounded-lg border-slate-200" />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>

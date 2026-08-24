@@ -406,3 +406,8 @@
 - Backend: PUT /admin/amenities/{id} (rename, per-category dedupe guard) + DELETE /admin/amenities/{id} (SOFT delete active=False — existing property records untouched); admin/super_admin only (agent 403 verified)
 - GET /amenities?category= already powers Property/Project forms → add/edit/delete reflect instantly in the correct category dropdown
 - Verified all 5 required checks: add res (27 total, no commercial leak), add com (16 total), rename, delete disappears from selections, existing properties intact (10 with amenities unchanged); UI smoke PASS (41 rows, both sections)
+
+## Implemented (2026-08-24 — admin user edit: email + avatar)
+- Admin → Users edit dialog now includes an editable Email field and a Profile Photo / Logo upload (existing ImageUpload component, kind="avatars" → existing durable object storage, no local-disk writes, no new APIs/models)
+- Backend admin_update_user no longer strips email: normalizes (trim/lowercase), rejects invalid emails (400) and emails already used by another account (400, self-update allowed); avatar URL saved via the same update payload
+- Verified: email change → login with new email works; duplicate/invalid email 400; non-admin 403; dialog renders photo upload + prefilled email with name/phone/whatsapp/role/password untouched; temp test user cleaned up
