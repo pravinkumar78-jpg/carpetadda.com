@@ -132,7 +132,7 @@ export default function Properties({ fixedCategory }) {
                 <SheetTrigger asChild>
                   <button data-testid="filters-btn" className="lg:hidden flex items-center gap-2 px-4 py-2 border border-slate-200 rounded-lg text-sm bg-white text-slate-700"><FunnelSimple size={16} /> Filters</button>
                 </SheetTrigger>
-                <SheetContent side="left" className="w-80 overflow-y-auto bg-white"><div className="mt-8">{filters}</div></SheetContent>
+                <SheetContent side="right" className="w-80 overflow-y-auto bg-white"><div className="mt-8">{filters}</div></SheetContent>
               </Sheet>
               <Select value={sort} onValueChange={setSort}>
                 <SelectTrigger data-testid="sort-select" className="w-44 bg-white border-slate-200 rounded-lg"><SelectValue /></SelectTrigger>

@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { SquaresFour, List, MagnifyingGlass } from "@phosphor-icons/react";
+import { SquaresFour, List, MagnifyingGlass, FunnelSimple } from "@phosphor-icons/react";
 import api from "@/lib/api";
 import ProjectCard from "@/components/ProjectCard";
 import { Input } from "@/components/ui/input";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { formatINR } from "@/lib/format";
 
 const PRICE_CAP = 100000000; // ₹10 Cr
@@ -52,6 +53,50 @@ export default function Projects({ fixedStatus }) {
   const search = () => update("q", keyword.trim());
   const locOptions = useMemo(() => locations.map(l => [l.slug, l.name]), [locations]);
 
+  const filters = (
+    <div className="space-y-5" data-testid="project-filters">
+      <div>
+        <div className="text-xs uppercase tracking-widest text-slate-500 font-semibold mb-2">Keyword</div>
+        <Input data-testid="pf-keyword" value={keyword} onChange={e => setKeyword(e.target.value)}
+          onKeyDown={e => e.key === "Enter" && search()} placeholder="Project or developer…" className="h-11 rounded-lg border-slate-300" />
+      </div>
+      {params.category === "commercial" ? (
+        <div>
+          <div className="text-xs uppercase tracking-widest text-slate-500 font-semibold mb-2">Commercial Sub-Category</div>
+          <Select value={params.config || ""} onValueChange={v => update("config", v === "any" ? "" : v)}>
+            <SelectTrigger data-testid="pf-config" className="h-11 rounded-lg border-slate-300"><SelectValue placeholder="Any" /></SelectTrigger>
+            <SelectContent><SelectItem value="any">Any</SelectItem>{[["shop", "Shop"], ["office", "Office Space"], ["showroom", "Showroom"]].map(([v, l]) => <SelectItem key={v} value={v}>{l}</SelectItem>)}</SelectContent>
+          </Select>
+        </div>
+      ) : (
+        <div>
+          <div className="text-xs uppercase tracking-widest text-slate-500 font-semibold mb-2">BHK</div>
+          <Select value={params.bhk || ""} onValueChange={v => update("bhk", v === "any" ? "" : v)}>
+            <SelectTrigger data-testid="pf-bhk" className="h-11 rounded-lg border-slate-300"><SelectValue placeholder="Any" /></SelectTrigger>
+            <SelectContent><SelectItem value="any">Any</SelectItem>{[1, 2, 3, 4, 5].map(n => <SelectItem key={n} value={String(n)}>{n} BHK</SelectItem>)}</SelectContent>
+          </Select>
+        </div>
+      )}
+      <div>
+        <div className="text-xs uppercase tracking-widest text-slate-500 font-semibold mb-2">Location</div>
+        <Select value={params.location || ""} onValueChange={v => update("location", v === "any" ? "" : v)}>
+          <SelectTrigger data-testid="pf-location" className="h-11 rounded-lg border-slate-300"><SelectValue placeholder="Any location" /></SelectTrigger>
+          <SelectContent><SelectItem value="any">Any location</SelectItem>{locOptions.map(([v, l]) => <SelectItem key={v} value={v} className="capitalize">{l}</SelectItem>)}</SelectContent>
+        </Select>
+      </div>
+      <div>
+        <div className="text-xs uppercase tracking-widest text-slate-500 font-semibold mb-2 flex justify-between">
+          <span>Max Price</span><span className="text-blue-600 font-bold" data-testid="pf-price-label">{priceMax >= PRICE_CAP ? "Any" : formatINR(priceMax)}</span>
+        </div>
+        <Slider data-testid="pf-price" value={[priceMax]} min={2000000} max={PRICE_CAP} step={500000}
+          onValueChange={([v]) => update("price_max", v >= PRICE_CAP ? "" : String(v))} className="py-3" />
+      </div>
+      <button onClick={search} data-testid="pf-search" className="h-11 w-full px-6 bg-blue-600 text-white hover:bg-blue-700 rounded-lg font-semibold flex items-center justify-center gap-2 transition-colors shadow-md shadow-blue-500/25">
+        <MagnifyingGlass size={16} weight="bold" /> Search
+      </button>
+    </div>
+  );
+
   return (
     <div>
       <div className="section-blue py-14">
@@ -62,6 +107,12 @@ export default function Projects({ fixedStatus }) {
                 <div className="text-xs uppercase tracking-widest text-blue-600 font-semibold mb-3">Premium Commercial Real Estate Opportunities</div>
                 <h1 className="text-4xl sm:text-5xl font-bold text-slate-900 tracking-tight mb-3">Commercial Projects</h1>
                 <p className="text-slate-600 max-w-2xl">Explore premium commercial projects, business spaces and investment opportunities across prime locations, carefully selected for businesses and investors.</p>
+              </>
+            ) : params.category === "residential" && !fixedStatus ? (
+              <>
+                <div className="text-xs uppercase tracking-widest text-blue-600 font-semibold mb-3">Premium Residential Developments</div>
+                <h1 className="text-4xl sm:text-5xl font-bold text-slate-900 tracking-tight mb-3">Residential Projects</h1>
+                <p className="text-slate-600 max-w-2xl">Explore premium residential projects from trusted builders across prime locations — RERA verified homes for every budget.</p>
               </>
             ) : (
               <>
@@ -82,60 +133,26 @@ export default function Projects({ fixedStatus }) {
         </div>
       </div>
 
-      {/* Filter bar */}
+      {/* Count + filter trigger (right-side panel) + sort — listings stay immediately visible */}
       <div className="max-w-7xl mx-auto px-6 lg:px-10 pt-8">
-        <div className="card-premium p-5 lg:p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-[1.4fr,1fr,1fr,1.4fr,auto] gap-4 items-end" data-testid="project-filters">
-          <div>
-            <div className="text-xs uppercase tracking-widest text-slate-500 font-semibold mb-2">Keyword</div>
-            <Input data-testid="pf-keyword" value={keyword} onChange={e => setKeyword(e.target.value)}
-              onKeyDown={e => e.key === "Enter" && search()} placeholder="Project or developer…" className="h-11 rounded-lg border-slate-300" />
-          </div>
-          {params.category === "commercial" ? (
-            <div>
-              <div className="text-xs uppercase tracking-widest text-slate-500 font-semibold mb-2">Commercial Sub-Category</div>
-              <Select value={params.config || ""} onValueChange={v => update("config", v === "any" ? "" : v)}>
-                <SelectTrigger data-testid="pf-config" className="h-11 rounded-lg border-slate-300"><SelectValue placeholder="Any" /></SelectTrigger>
-                <SelectContent><SelectItem value="any">Any</SelectItem>{[["shop", "Shop"], ["office", "Office Space"], ["showroom", "Showroom"]].map(([v, l]) => <SelectItem key={v} value={v}>{l}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
-          ) : (
-            <div>
-              <div className="text-xs uppercase tracking-widest text-slate-500 font-semibold mb-2">BHK</div>
-              <Select value={params.bhk || ""} onValueChange={v => update("bhk", v === "any" ? "" : v)}>
-                <SelectTrigger data-testid="pf-bhk" className="h-11 rounded-lg border-slate-300"><SelectValue placeholder="Any" /></SelectTrigger>
-                <SelectContent><SelectItem value="any">Any</SelectItem>{[1, 2, 3, 4, 5].map(n => <SelectItem key={n} value={String(n)}>{n} BHK</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
-          )}
-          <div>
-            <div className="text-xs uppercase tracking-widest text-slate-500 font-semibold mb-2">Location</div>
-            <Select value={params.location || ""} onValueChange={v => update("location", v === "any" ? "" : v)}>
-              <SelectTrigger data-testid="pf-location" className="h-11 rounded-lg border-slate-300"><SelectValue placeholder="Any location" /></SelectTrigger>
-              <SelectContent><SelectItem value="any">Any location</SelectItem>{locOptions.map(([v, l]) => <SelectItem key={v} value={v} className="capitalize">{l}</SelectItem>)}</SelectContent>
+        <div className="flex items-center justify-between flex-wrap gap-3 mb-6">
+          <div className="text-sm text-slate-600" data-testid="project-count">{loading ? "Searching…" : `${total} project${total === 1 ? "" : "s"} found`}</div>
+          <div className="flex items-center gap-3 flex-wrap">
+            <Sheet>
+              <SheetTrigger asChild>
+                <button data-testid="project-filters-btn" className="flex items-center gap-2 px-4 py-2 border border-slate-200 rounded-lg text-sm bg-white text-slate-700 hover:border-blue-300 hover:text-blue-600 transition-colors"><FunnelSimple size={16} /> Filters</button>
+              </SheetTrigger>
+              <SheetContent side="right" className="w-80 sm:w-96 overflow-y-auto bg-white"><div className="mt-8">{filters}</div></SheetContent>
+            </Sheet>
+            <Select value={params.sort || "newest"} onValueChange={v => update("sort", v === "newest" ? "" : v)}>
+              <SelectTrigger data-testid="pf-sort" className="w-56 bg-white border-slate-300 rounded-lg"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="newest">Recently Added First</SelectItem>
+                <SelectItem value="price_low">Price: Low to High</SelectItem>
+                <SelectItem value="price_high">Price: High to Low</SelectItem>
+              </SelectContent>
             </Select>
           </div>
-          <div>
-            <div className="text-xs uppercase tracking-widest text-slate-500 font-semibold mb-2 flex justify-between">
-              <span>Max Price</span><span className="text-blue-600 font-bold" data-testid="pf-price-label">{priceMax >= PRICE_CAP ? "Any" : formatINR(priceMax)}</span>
-            </div>
-            <Slider data-testid="pf-price" value={[priceMax]} min={2000000} max={PRICE_CAP} step={500000}
-              onValueChange={([v]) => update("price_max", v >= PRICE_CAP ? "" : String(v))} className="py-3" />
-          </div>
-          <button onClick={search} data-testid="pf-search" className="h-11 px-6 bg-blue-600 text-white hover:bg-blue-700 rounded-lg font-semibold flex items-center justify-center gap-2 transition-colors shadow-md shadow-blue-500/25">
-            <MagnifyingGlass size={16} weight="bold" /> Search
-          </button>
-        </div>
-
-        <div className="flex items-center justify-between flex-wrap gap-3 mt-6 mb-6">
-          <div className="text-sm text-slate-600" data-testid="project-count">{loading ? "Searching…" : `${total} project${total === 1 ? "" : "s"} found`}</div>
-          <Select value={params.sort || "newest"} onValueChange={v => update("sort", v === "newest" ? "" : v)}>
-            <SelectTrigger data-testid="pf-sort" className="w-56 bg-white border-slate-300 rounded-lg"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="newest">Recently Added First</SelectItem>
-              <SelectItem value="price_low">Price: Low to High</SelectItem>
-              <SelectItem value="price_high">Price: High to Low</SelectItem>
-            </SelectContent>
-          </Select>
         </div>
 
         {layout === "list" ? (

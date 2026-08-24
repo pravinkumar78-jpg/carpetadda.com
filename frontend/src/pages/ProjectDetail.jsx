@@ -5,7 +5,7 @@ import PropertyMap from "@/components/PropertyMap";
 import ProjectCard from "@/components/ProjectCard";
 import { formatINR, formatArea } from "@/lib/format";
 import { waProjectMsg, waUnitMsg, telTo } from "@/lib/whatsapp";
-import { MapPin, Download, PhoneCall, WhatsappLogo, CalendarBlank, Check, Compass, Bed, Bank, SquaresFour, List, QrCode, FileText, ArrowSquareOut } from "@phosphor-icons/react";
+import { MapPin, Download, PhoneCall, WhatsappLogo, CalendarBlank, Check, Compass, Bed, Bank, SquaresFour, List, QrCode, FileText, ArrowSquareOut, ShieldCheck } from "@phosphor-icons/react";
 import { ytEmbedId } from "@/lib/utils";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
@@ -91,6 +91,14 @@ export default function ProjectDetail() {
     <div>
       {/* 1. Main Image — slider only */}
       <section className="relative" data-testid="project-gallery-slider">
+        {/* RERA / Verified / status tags — pinned to the TOP so the main image stays fully visible */}
+        <div className="absolute top-0 inset-x-0 z-10 pointer-events-none">
+          <div className="max-w-7xl mx-auto px-6 lg:px-10 pt-5 flex items-center gap-2 flex-wrap">
+            {p.rera_number && <span data-testid="project-rera-tag" className="inline-flex items-center gap-1 text-xs font-semibold bg-blue-500 text-white px-3 py-1 rounded-full shadow">RERA {p.rera_number}</span>}
+            {p.verified && <span data-testid="project-verified-tag" className="inline-flex items-center gap-1 text-xs font-semibold bg-emerald-500 text-white px-3 py-1 rounded-full shadow"><ShieldCheck size={12} weight="fill" /> Verified Property</span>}
+            {p.construction_status && <span className="inline-flex items-center text-xs font-semibold bg-slate-900/60 backdrop-blur text-white px-3 py-1 rounded-full uppercase tracking-wider">{p.construction_status.replace("_", " ")}</span>}
+          </div>
+        </div>
         <Carousel className="relative" opts={{ loop: true }}>
           <CarouselContent>
             {gallery.map((src, i) => (
@@ -107,10 +115,6 @@ export default function ProjectDetail() {
         </Carousel>
         <div className="absolute inset-x-0 bottom-0 pointer-events-none">
           <div className="max-w-7xl mx-auto px-6 lg:px-10 pb-12 text-white">
-            <div className="flex items-center gap-2 mb-4 flex-wrap">
-              {p.rera_number && <span className="inline-flex items-center gap-1 text-xs font-semibold bg-blue-500 text-white px-3 py-1 rounded-full">RERA {p.rera_number}</span>}
-              {p.construction_status && <span className="inline-flex items-center text-xs font-semibold bg-white/15 backdrop-blur text-white px-3 py-1 rounded-full uppercase tracking-wider">{p.construction_status.replace("_", " ")}</span>}
-            </div>
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight">{p.hero_title || p.name}</h1>
             {p.hero_description && <p data-testid="project-hero-description" className="mt-3 text-base lg:text-lg max-w-2xl leading-relaxed opacity-90">{p.hero_description}</p>}
             <div className="flex items-center gap-2 text-white/80 mt-3"><MapPin size={16} /> {p.location}, {p.city}</div>
