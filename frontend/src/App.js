@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { Toaster } from "sonner";
 import "@/App.css";
 import "@/index.css";
@@ -105,19 +105,28 @@ export default function App() {
             </Routes>
           </main>
           <Footer />
-          <a
-            href="https://wa.me/918828830707"
-            target="_blank"
-            rel="noopener"
-            data-testid="floating-whatsapp"
-            aria-label="Chat with CarpetAdda on WhatsApp"
-            className="fixed bottom-5 right-5 z-[60] w-14 h-14 rounded-full bg-[#25D366] text-white flex items-center justify-center shadow-lg shadow-emerald-500/30 hover:bg-[#1eb85a] hover:scale-105 transition-all"
-          >
-            <WhatsappLogo size={28} weight="fill" />
-          </a>
+          <FloatingWhatsApp />
           <Toaster position="top-center" richColors />
         </div>
       </BrowserRouter>
     </AuthProvider>
+  );
+}
+
+// Floating WhatsApp bubble — hidden on mobile property detail pages, where the sticky enquiry bar takes over
+function FloatingWhatsApp() {
+  const { pathname } = useLocation();
+  const onPropertyPage = pathname.startsWith("/property/");
+  return (
+    <a
+      href="https://wa.me/918828830707"
+      target="_blank"
+      rel="noopener"
+      data-testid="floating-whatsapp"
+      aria-label="Chat with CarpetAdda on WhatsApp"
+      className={`fixed bottom-5 right-5 z-[60] w-14 h-14 rounded-full bg-[#25D366] text-white items-center justify-center shadow-lg shadow-emerald-500/30 hover:bg-[#1eb85a] hover:scale-105 transition-all ${onPropertyPage ? "hidden lg:flex" : "flex"}`}
+    >
+      <WhatsappLogo size={28} weight="fill" />
+    </a>
   );
 }

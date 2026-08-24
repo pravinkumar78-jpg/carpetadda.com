@@ -146,7 +146,7 @@ export default function PropertyDetail() {
   ].filter(([, v]) => v !== null && v !== undefined && v !== "");
 
   return (
-    <div>
+    <div className="pb-20 lg:pb-0">
       <div className="max-w-7xl mx-auto px-6 lg:px-10 py-6">
         <nav className="text-xs text-slate-500 mb-6 flex items-center gap-1 flex-wrap">
           <Link to="/" className="hover:text-blue-600">Home</Link><CaretRight size={10} />
@@ -373,7 +373,7 @@ export default function PropertyDetail() {
                 </Link>
               ) : null}
 
-              <form onSubmit={submitEnquiry} className="mt-4 space-y-3">
+              <form id="enquiry-form" onSubmit={submitEnquiry} className="mt-4 space-y-3">
                 <Input required data-testid="enquiry-name" placeholder="Your name" value={form.name} onChange={e => setForm({...form, name: e.target.value})} className="rounded-lg border-slate-200" />
                 <Input required data-testid="enquiry-phone" placeholder="Phone" value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} className="rounded-lg border-slate-200" />
                 <Input type="email" data-testid="enquiry-email" placeholder="Email" value={form.email} onChange={e => setForm({...form, email: e.target.value})} className="rounded-lg border-slate-200" />
@@ -405,6 +405,13 @@ export default function PropertyDetail() {
             )}
           </div>
         </aside>
+      </div>
+
+      {/* Mobile sticky enquiry bar — routes to the assigned agent/developer contact when set, business number otherwise */}
+      <div className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-white border-t border-slate-200 shadow-[0_-4px_16px_rgba(15,23,42,0.08)] px-3 py-2.5 grid grid-cols-3 gap-2" data-testid="mobile-enquiry-bar">
+        <a href={telTo(p.contact?.phone || p.contact?.whatsapp)} data-testid="mobile-bar-call" className="flex items-center justify-center gap-1.5 py-2.5 border border-slate-200 rounded-lg text-slate-700 font-medium text-sm"><PhoneCall size={15} /> Call</a>
+        <a href={waMsg} target="_blank" rel="noopener" data-testid="mobile-bar-whatsapp" className="flex items-center justify-center gap-1.5 py-2.5 border border-emerald-200 bg-emerald-50 text-emerald-700 rounded-lg font-medium text-sm"><WhatsappLogo size={15} /> WhatsApp</a>
+        <button type="button" data-testid="mobile-bar-enquire" onClick={() => { document.getElementById("enquiry-form")?.scrollIntoView({ behavior: "smooth", block: "center" }); setTimeout(() => document.querySelector('[data-testid="enquiry-name"]')?.focus({ preventScroll: true }), 600); }} className="py-2.5 bg-blue-600 text-white rounded-lg font-semibold text-sm">Enquire</button>
       </div>
 
       <ScheduleVisitDialog open={visitOpen} onOpenChange={setVisitOpen} propertyId={p.id} targetName={p.title} />

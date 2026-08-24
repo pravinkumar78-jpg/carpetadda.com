@@ -416,3 +416,8 @@
 - Root cause: title/address block and price block shared one wrapping flex row above the gallery — on mobile they collided
 - Fix (PropertyDetail.jsx, layout-only): header + gallery now one single-source flex container with responsive order utilities — mobile sequence: Title → Main Image → Address (left) | Price (right, share/save below it); long titles/addresses wrap cleanly (break-words, min-w-0), price no-wrap and smaller on mobile, desktop (lg+) visually unchanged (title left, price right, address under title, image below)
 - Verified geometrically: 390px PASS (title→image→address|price order, zero h-overflow) + 1920px PASS (desktop unchanged); no API/data/component changes
+
+## Implemented (2026-08-24 — mobile sticky enquiry bar, Property Detail)
+- Mobile-only (lg:hidden) fixed bottom bar on Property Detail: Call / WhatsApp / Enquire — reuses existing telTo/waMsg (assigned agent/developer contact when set, business 8828830707 fallback) and the existing enquiry form (Enquire smooth-scrolls to it + focuses the name field; form id="enquiry-form")
+- Page root gained pb-20 lg:pb-0 so the bar never covers end-of-page content; FloatingWhatsApp (App.js, route-aware via useLocation) hides on mobile ONLY on /property/* pages to avoid overlap — desktop and all other pages unchanged
+- Verified mobile 390px: assigned-agent hrefs tel:/wa.me/919820033311 → after unassign fallback tel:/wa.me/918828830707; Enquire → form visible + name focused; desktop 1920px bar hidden + floating WA intact; zero API/lead-system changes. Seed state restored
