@@ -7,9 +7,16 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import FilterChips from "@/components/FilterChips";
 import { formatINR } from "@/lib/format";
 
 const PRICE_CAP = 100000000; // ₹10 Cr
+
+const CHIP_LABELS = {
+  q: v => `"${v}"`,
+  bhk: v => `${v} BHK`,
+  price_max: v => `Under ${formatINR(Number(v))}`,
+};
 
 export default function Projects({ fixedStatus }) {
   const [sp, setSp] = useSearchParams();
@@ -154,6 +161,8 @@ export default function Projects({ fixedStatus }) {
             </Select>
           </div>
         </div>
+
+        <FilterChips params={params} update={update} exclude={["category"]} labels={CHIP_LABELS} />
 
         {layout === "list" ? (
           <>

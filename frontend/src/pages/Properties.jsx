@@ -7,6 +7,8 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Checkbox } from "@/components/ui/checkbox";
+import FilterChips from "@/components/FilterChips";
+import { formatINR } from "@/lib/format";
 
 const CITIES = ["mumbai", "thane", "navi-mumbai", "dombivli", "kalyan"];
 const COMMERCIAL_TYPES = [
@@ -14,6 +16,17 @@ const COMMERCIAL_TYPES = [
   ["warehouse", "Warehouse"], ["industrial", "Industrial"],
   ["commercial_land", "Commercial Land"], ["other", "Other"],
 ];
+
+const CHIP_LABELS = {
+  listing_type: v => (v === "rent" ? "Rent" : "Buy"),
+  bhk: v => `${v} BHK`,
+  property_type: v => COMMERCIAL_TYPES.find(([k]) => k === v)?.[1] || v,
+  price_min: v => `Min ${formatINR(Number(v))}`,
+  price_max: v => `Max ${formatINR(Number(v))}`,
+  verified: () => "Verified only",
+  rera: () => "RERA registered",
+  featured: () => "Featured",
+};
 
 export default function Properties({ fixedCategory }) {
   const isCommercial = fixedCategory === "commercial";
@@ -164,6 +177,7 @@ export default function Properties({ fixedCategory }) {
           <aside className="hidden lg:block card-premium p-6 h-fit sticky top-24">{filters}</aside>
 
           <div>
+            <FilterChips params={params} update={update} exclude={isCommercial ? ["category"] : []} labels={CHIP_LABELS} />
             {layout === "list" ? (
               <>
                 <div className="space-y-4 hidden md:block">{items.map(p => <PropertyCard key={p.id} p={p} layout="list" />)}</div>

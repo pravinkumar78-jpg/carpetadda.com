@@ -88,7 +88,7 @@ export default function ProjectDetail() {
   ].filter(([, v]) => v !== null && v !== undefined && v !== "");
 
   return (
-    <div>
+    <div className="pb-20 lg:pb-0">
       {/* 1. Main Image — slider only */}
       <section className="relative" data-testid="project-gallery-slider">
         {/* RERA / Verified / status tags — pinned to the TOP so the main image stays fully visible */}
@@ -378,7 +378,7 @@ export default function ProjectDetail() {
           <div className="sticky top-24 space-y-4">
             <div className="card-premium p-6">
               <div className="text-xs uppercase tracking-widest text-blue-600 font-semibold mb-3">Get Best Price</div>
-              <form onSubmit={submit} className="space-y-3">
+              <form id="enquiry-form" onSubmit={submit} className="space-y-3">
                 <Input required data-testid="proj-enquiry-name" placeholder="Your name" value={form.name} onChange={e => setForm({...form, name: e.target.value})} className="rounded-lg border-slate-200" />
                 <Input required data-testid="proj-enquiry-phone" placeholder="Phone" value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} className="rounded-lg border-slate-200" />
                 <Input type="email" data-testid="proj-enquiry-email" placeholder="Email" value={form.email} onChange={e => setForm({...form, email: e.target.value})} className="rounded-lg border-slate-200" />
@@ -407,6 +407,13 @@ export default function ProjectDetail() {
             )}
           </div>
         </aside>
+      </div>
+
+      {/* Mobile sticky enquiry bar — same routing as Property Detail (assigned contact → business fallback) */}
+      <div className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-white border-t border-slate-200 shadow-[0_-4px_16px_rgba(15,23,42,0.08)] px-3 py-2.5 grid grid-cols-3 gap-2" data-testid="mobile-enquiry-bar">
+        <a href={telTo(p.contact?.phone || p.contact?.whatsapp)} data-testid="mobile-bar-call" className="flex items-center justify-center gap-1.5 py-2.5 border border-slate-200 rounded-lg text-slate-700 font-medium text-sm"><PhoneCall size={15} /> Call</a>
+        <a href={waProjectMsg(p, p.contact?.whatsapp || p.contact?.phone)} target="_blank" rel="noopener" data-testid="mobile-bar-whatsapp" className="flex items-center justify-center gap-1.5 py-2.5 border border-emerald-200 bg-emerald-50 text-emerald-700 rounded-lg font-medium text-sm"><WhatsappLogo size={15} /> WhatsApp</a>
+        <button type="button" data-testid="mobile-bar-enquire" onClick={() => { document.getElementById("enquiry-form")?.scrollIntoView({ behavior: "smooth", block: "center" }); setTimeout(() => document.querySelector('[data-testid="proj-enquiry-name"]')?.focus({ preventScroll: true }), 600); }} className="py-2.5 bg-blue-600 text-white rounded-lg font-semibold text-sm">Enquire</button>
       </div>
 
       <ScheduleVisitDialog open={visitOpen} onOpenChange={setVisitOpen} projectId={p.id} targetName={p.name} />

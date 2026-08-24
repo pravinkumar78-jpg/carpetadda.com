@@ -116,7 +116,7 @@ export default function App() {
 // Floating WhatsApp bubble — hidden on mobile property detail pages, where the sticky enquiry bar takes over
 function FloatingWhatsApp() {
   const { pathname } = useLocation();
-  const onPropertyPage = pathname.startsWith("/property/");
+  const onPropertyPage = pathname.startsWith("/property/") || pathname.startsWith("/project/");
   return (
     <a
       href="https://wa.me/918828830707"
