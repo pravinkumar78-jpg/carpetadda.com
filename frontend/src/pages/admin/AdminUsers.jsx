@@ -52,9 +52,10 @@ export default function AdminUsers() {
     } catch (err) { toast.error(err?.response?.data?.detail || "Action failed"); }
   };
 
-  const remove = async (u) => {    if (u.id === me.id) return toast.error("You cannot delete your own account");
-    if (!confirm(`Delete ${u.name} (${u.email})? This is permanent.`)) return;
-    try { await api.delete(`/admin/users/${u.id}`); toast.success("Deleted"); load(); }
+  const remove = async (u) => {
+    if (u.id === me.id) return toast.error("You cannot delete your own account");
+    if (!confirm(`Delete ${u.name} (${u.email})?\n\nThis user's Properties and Projects will be transferred to you (Admin) and will not be deleted.\n\nThis action is permanent.`)) return;
+    try { await api.delete(`/admin/users/${u.id}`); toast.success("User deleted — their listings were transferred to you"); load(); }
     catch (err) { toast.error(err?.response?.data?.detail || "Delete failed"); }
   };
 
@@ -194,6 +195,7 @@ function RoleDialog({ user, onClose, onSaved }) {
   const [name, setName] = useState(user.name || "");
   const [phone, setPhone] = useState(user.phone || "");
   const [whatsapp, setWhatsapp] = useState(user.whatsapp || "");
+  const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
 
   const submit = async (e) => {
@@ -203,9 +205,12 @@ function RoleDialog({ user, onClose, onSaved }) {
     if (changingRole && !confirm(`Change ${user.name}'s role from "${user.role}" to "${role}"?`)) return;
     if (deactivating && !confirm(`Deactivate ${user.name}? They won't be able to log in or publish. Their listings are preserved.`)) return;
     if (!name.trim()) { toast.error("Name is required"); return; }
+    if (password && password.length < 8) { toast.error("Password must be at least 8 characters"); return; }
     setBusy(true);
     try {
-      await api.put(`/admin/users/${user.id}`, { role, verified, active, name: name.trim(), phone: phone.trim() || null, whatsapp: whatsapp.trim() || null });
+      const payload = { role, verified, active, name: name.trim(), phone: phone.trim() || null, whatsapp: whatsapp.trim() || null };
+      if (password) payload.password = password;
+      await api.put(`/admin/users/${user.id}`, payload);
       toast.success("User updated");
       onSaved();
     } catch (err) { toast.error(err?.response?.data?.detail || "Update failed"); }
@@ -237,6 +242,10 @@ function RoleDialog({ user, onClose, onSaved }) {
               <SelectTrigger data-testid="role-select" className="h-11 rounded-lg border-slate-200"><SelectValue /></SelectTrigger>
               <SelectContent>{ROLES.map(r => <SelectItem key={r} value={r} className="capitalize">{r.replace("_", " ")}</SelectItem>)}</SelectContent>
             </Select>
+          </div>
+          <div>
+            <div className="text-xs font-semibold text-slate-600 mb-1">Set New Password</div>
+            <Input data-testid="role-password" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Leave blank to keep current · min 8 chars" className="h-11 rounded-lg border-slate-200" />
           </div>
           <label className="flex items-center gap-2 text-sm text-slate-700">
             <input type="checkbox" checked={verified} onChange={e => setVerified(e.target.checked)} /> Email verified

@@ -21,6 +21,7 @@ import AdminPages from "@/pages/admin/AdminPages";
 import DraftsPanel from "@/components/dashboard/DraftsPanel";
 import AdminDevelopers from "@/pages/admin/AdminDevelopers";
 import AdminApprovals from "@/pages/admin/AdminApprovals";
+import AdminAmenities from "@/pages/admin/AdminAmenities";
 import { DashNavToggle, DashSidebar } from "@/components/DashNav";
 
 const TABS = [
@@ -37,6 +38,7 @@ const TABS = [
   ["testimonials", "Testimonials", Star],
   ["faqs", "FAQs", Question],
   ["pages", "Pages", Article],
+  ["amenities", "Amenities", Package],
   ["archive", "Archive", Archive],
   ["users", "Users", Users],
   ["settings", "Settings", Gear],
@@ -126,6 +128,7 @@ export default function AdminPanel() {
             <TabsContent value="testimonials"><AdminTestimonials /></TabsContent>
             <TabsContent value="faqs"><AdminFAQs /></TabsContent>
             <TabsContent value="pages"><AdminPages /></TabsContent>
+            <TabsContent value="amenities"><AdminAmenities /></TabsContent>
             <TabsContent value="seo"><AdminSeo page={seoPage} onSelectPage={setSeoPage} /></TabsContent>
             <TabsContent value="archive"><AdminArchive /></TabsContent>
             <TabsContent value="users"><AdminUsers /></TabsContent>

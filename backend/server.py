@@ -36,6 +36,8 @@ import email_service  # noqa: E402
 from email_service import send_lead_notification, send_lead_notification_report, send_account_email, send_client_auto_reply, record_email_log, smtp_self_test, resend_email_log, _absolutize  # noqa: E402
 from html import escape  # noqa: E402
 from storage import ROOT as UPLOAD_ROOT, build_upload_path, get_object, guess_content_type, init_storage, put_object  # noqa: E402
+from io import BytesIO  # noqa: E402
+from PIL import Image  # noqa: E402
 from models import (  # noqa: E402
     Agent,
     Amenity,
@@ -457,6 +459,23 @@ async def featured_properties(limit: int = 8):
     return await db.properties.find({"featured": True, "status": "active"}, PROJ).limit(limit).to_list(limit)
 
 
+async def _listing_contact(doc: dict) -> Optional[dict]:
+    """Who customers should talk to: the assigned user first, then the listing agent/owner-side contact.
+    Returns {name, phone, whatsapp, role} or None (→ default admin routing)."""
+    if doc.get("assigned_to"):
+        u = await db.users.find_one({"id": doc["assigned_to"]}, {"_id": 0, "name": 1, "phone": 1, "whatsapp": 1, "role": 1})
+        if u and (u.get("phone") or u.get("whatsapp")):
+            return u
+    if doc.get("agent_id"):
+        a = await db.agents.find_one({"id": doc["agent_id"]}, {"_id": 0, "name": 1, "phone": 1, "whatsapp": 1, "role": 1})
+        if a and (a.get("phone") or a.get("whatsapp")):
+            return a
+        u = await db.users.find_one({"id": doc["agent_id"]}, {"_id": 0, "name": 1, "phone": 1, "whatsapp": 1, "role": 1})
+        if u and (u.get("phone") or u.get("whatsapp")):
+            return u
+    return None
+
+
 @api.get("/properties/{slug_or_id}")
 async def get_property(slug_or_id: str):
     # status filter inside the query so an inactive duplicate (same slug) can never shadow the live listing
@@ -467,11 +486,12 @@ async def get_property(slug_or_id: str):
     developer = await db.developers.find_one({"id": doc.get("developer_id")}, PROJ) if doc.get("developer_id") else None
     agent = await db.agents.find_one({"id": doc.get("agent_id")}, PROJ) if doc.get("agent_id") else None
     project = await db.projects.find_one({"id": doc.get("project_id")}, PROJ) if doc.get("project_id") else None
+    contact = await _listing_contact(doc)
     similar = await db.properties.find(
         {"id": {"$ne": doc["id"]}, "city": doc.get("city"), "property_category": doc.get("property_category"), "status": "active"},
         PROJ,
     ).limit(6).to_list(6)
-    return {**doc, "developer": developer, "agent": agent, "project": project, "similar": similar}
+    return {**doc, "developer": developer, "agent": agent, "project": project, "contact": contact, "similar": similar}
 
 
 @api.post("/properties", dependencies=[Depends(require_roles("admin", "agent", "developer", "owner", "user"))])
@@ -865,8 +885,10 @@ async def get_project(slug_or_id: str):
     properties = await db.properties.find({"project_id": doc["id"], "status": "active"}, PROJ).limit(12).to_list(12)
     similar = await db.projects.find({"id": {"$ne": doc["id"]}, "city": doc.get("city"), "status": "active"}, PROJ).limit(6).to_list(6)
     units = await db.units.find({"project_id": doc["id"], "published": {"$ne": False}}, PROJ).sort([("typology", 1), ("price", 1)]).to_list(200)
-    return {**doc, "developer": developer, "properties": properties, "similar": similar, "units": units}
-    return {**doc, "developer": developer, "properties": properties, "similar": similar}
+    contact = await _listing_contact(doc)
+    if not contact and developer and (developer.get("phone") or developer.get("whatsapp")):
+        contact = {"name": developer.get("name"), "phone": developer.get("phone"), "whatsapp": developer.get("whatsapp"), "role": "developer"}
+    return {**doc, "developer": developer, "properties": properties, "similar": similar, "units": units, "contact": contact}
 
 
 @api.post("/projects", dependencies=[Depends(require_roles("admin", "developer"))])
@@ -1640,9 +1662,37 @@ async def admin_list_users(role: Optional[str] = None, q: Optional[str] = None):
 @api.put("/admin/users/{uid}", dependencies=[Depends(require_roles("admin"))])
 async def admin_update_user(uid: str, body: dict = Body(...)):
     body.pop("_id", None); body.pop("id", None); body.pop("password_hash", None); body.pop("email", None)
+    new_password = (body.pop("password", None) or "").strip()
+    if new_password:
+        if len(new_password) < 8:
+            raise HTTPException(400, "Password must be at least 8 characters")
+        body["password_hash"] = hash_password(new_password)
     body["updated_at"] = _now_iso_str()
     await db.users.update_one({"id": uid}, {"$set": body})
     return await db.users.find_one({"id": uid}, {"_id": 0, "password_hash": 0})
+
+
+@api.delete("/admin/users/{uid}")
+async def admin_delete_user(uid: str, u: dict = Depends(current_user)):
+    """Delete a user and reassign all their listings/leads to the acting admin — nothing is orphaned or lost."""
+    if u["role"] not in ("admin", "super_admin"):
+        raise HTTPException(403, "Insufficient permissions")
+    if uid == u["sub"]:
+        raise HTTPException(400, "You cannot delete your own account")
+    target = await db.users.find_one({"id": uid}, {"_id": 0, "id": 1, "role": 1})
+    if not target:
+        raise HTTPException(404, "User not found")
+    now = _now_iso_str()
+    # Option A: transfer ALL ownership/assignment to the acting admin — listings, images, approvals, URLs stay intact
+    await db.properties.update_many({"owner_id": uid}, {"$set": {"owner_id": u["sub"], "updated_at": now}})
+    await db.properties.update_many({"assigned_to": uid}, {"$set": {"assigned_to": u["sub"], "updated_at": now}})
+    await db.properties.update_many({"agent_id": uid}, {"$set": {"agent_id": u["sub"], "updated_at": now}})
+    await db.projects.update_many({"owner_id": uid}, {"$set": {"owner_id": u["sub"], "updated_at": now}})
+    await db.projects.update_many({"assigned_to": uid}, {"$set": {"assigned_to": u["sub"], "updated_at": now}})
+    await db.leads.update_many({"assigned_to": uid}, {"$set": {"assigned_to": u["sub"]}})
+    await db.leads.update_many({"agent_id": uid}, {"$set": {"agent_id": u["sub"]}})
+    await db.users.delete_one({"id": uid})
+    return {"deleted": 1, "reassigned_to": u["sub"]}
 
 
 @api.post("/admin/users", dependencies=[Depends(require_roles("admin"))])
@@ -1680,14 +1730,6 @@ async def admin_reset_password(uid: str):
     return {"ok":True,"message":"Password reset link sent to the user's registered email."}
 
 
-@api.delete("/admin/users/{uid}", dependencies=[Depends(require_roles("admin"))])
-async def admin_delete_user(uid: str, current: dict = Depends(current_user)):
-    if uid == current["sub"]:
-        raise HTTPException(400, "You cannot delete your own account")
-    r = await db.users.delete_one({"id": uid})
-    return {"deleted": r.deleted_count}
-
-
 # ---------------- Amenities ----------------
 @api.get("/amenities")
 async def list_amenities(category: Optional[str] = None):
@@ -1710,7 +1752,68 @@ async def create_amenity(body: dict = Body(...)):
     return _clean(a.model_dump())
 
 
+@api.put("/admin/amenities/{aid}", dependencies=[Depends(require_roles("admin"))])
+async def update_amenity(aid: str, body: dict = Body(...)):
+    name = (body.get("name") or "").strip()
+    if not name:
+        raise HTTPException(400, "Amenity name required")
+    doc = await db.amenities.find_one({"id": aid})
+    if not doc:
+        raise HTTPException(404, "Amenity not found")
+    dup = await db.amenities.find_one({"id": {"$ne": aid}, "category": doc.get("category"),
+                                       "name": {"$regex": f"^{re.escape(name)}$", "$options": "i"}})
+    if dup:
+        raise HTTPException(400, "An amenity with this name already exists in this category")
+    await db.amenities.update_one({"id": aid}, {"$set": {"name": name}})
+    return await db.amenities.find_one({"id": aid}, PROJ)
+
+
+@api.delete("/admin/amenities/{aid}", dependencies=[Depends(require_roles("admin"))])
+async def delete_amenity(aid: str):
+    """Soft delete — hidden from new selections; existing listings keep their saved amenity names intact."""
+    res = await db.amenities.update_one({"id": aid}, {"$set": {"active": False}})
+    if not res.matched_count:
+        raise HTTPException(404, "Amenity not found")
+    return {"deleted": 1}
+
+
 # ---------------- Media Uploads (persistent local storage) ----------------
+MAX_IMAGE_DIMENSION = 1920
+
+def _optimize_image(data: bytes, content_type: str) -> tuple[bytes, str]:
+    """Downscale/recompress large uploaded images so originals (e.g. 5-6MB camera photos)
+    don't ship to the browser untouched. Leaves PDFs, GIFs, and unrecognized formats alone,
+    and only returns the optimized bytes if they actually came out smaller."""
+    if not (content_type or "").startswith("image/"):
+        return data, content_type
+    try:
+        img = Image.open(BytesIO(data))
+        img.load()
+        fmt = (img.format or "").upper()
+    except Exception:
+        return data, content_type
+    if fmt not in ("JPEG", "PNG", "WEBP") or getattr(img, "is_animated", False):
+        return data, content_type
+    w, h = img.size
+    if max(w, h) > MAX_IMAGE_DIMENSION:
+        scale = MAX_IMAGE_DIMENSION / max(w, h)
+        img = img.resize((max(1, int(w * scale)), max(1, int(h * scale))), Image.LANCZOS)
+    buf = BytesIO()
+    try:
+        if fmt == "JPEG":
+            if img.mode != "RGB":
+                img = img.convert("RGB")
+            img.save(buf, format="JPEG", quality=82, optimize=True)
+        elif fmt == "PNG":
+            img.save(buf, format="PNG", optimize=True)
+        else:
+            img.save(buf, format="WEBP", quality=82)
+    except Exception:
+        return data, content_type
+    out = buf.getvalue()
+    return (out, content_type) if 0 < len(out) < len(data) else (data, content_type)
+
+
 ALLOWED_UPLOAD_KINDS = {"blogs", "testimonials", "og", "properties", "projects", "developers", "agents", "general", "avatars", "hero"}
 MAX_UPLOAD_BYTES = 8 * 1024 * 1024
 
@@ -1721,6 +1824,7 @@ async def admin_upload(kind: str = Query("general"), file: UploadFile = File(...
     if len(data)>MAX_UPLOAD_BYTES: raise HTTPException(400, "File too large. Max 8 MB")
     if not (file.content_type or "").startswith(("image/","application/pdf")): raise HTTPException(400,"Only image or PDF uploads are allowed")
     path=build_upload_path(kind,file.filename or "upload.bin"); ct=file.content_type or guess_content_type(file.filename or "")
+    data, ct = _optimize_image(data, ct)
     try: result=put_object(path,data,ct)
     except Exception as e: raise HTTPException(500,f"Upload failed: {e}")
     file_doc={"id":path.split("/")[-1].rsplit(".",1)[0],"storage_path":path,"original_filename":file.filename,"content_type":ct,"size":len(data),"kind":kind,"is_deleted":False,"created_at":_now_iso_str()}
@@ -1736,6 +1840,7 @@ async def user_upload(kind: str = Query("avatars"), file: UploadFile = File(...)
     if len(data) > MAX_UPLOAD_BYTES: raise HTTPException(400, "File too large. Max 8 MB")
     if not (file.content_type or "").startswith("image/"): raise HTTPException(400, "Only image uploads are allowed")
     path = build_upload_path(kind, file.filename or "upload.bin"); ct = file.content_type or guess_content_type(file.filename or "")
+    data, ct = _optimize_image(data, ct)
     try: result = put_object(path, data, ct)
     except Exception as e: raise HTTPException(500, f"Upload failed: {e}")
     file_doc = {"id": path.split("/")[-1].rsplit(".",1)[0], "storage_path": path, "original_filename": file.filename, "content_type": ct, "size": len(data), "kind": kind, "is_deleted": False, "created_at": _now_iso_str()}
@@ -1873,6 +1978,16 @@ async def create_lead(body: Lead, background: BackgroundTasks):
         raise HTTPException(400, "Name required")
 
     lead_dict = body.model_dump()
+    # route the lead to the listing's assigned user; admin sees every lead regardless
+    if not lead_dict.get("assigned_to"):
+        if lead_dict.get("property_id"):
+            prop = await db.properties.find_one({"id": lead_dict["property_id"]}, {"_id": 0, "assigned_to": 1})
+            if prop and prop.get("assigned_to"):
+                lead_dict["assigned_to"] = prop["assigned_to"]
+        elif lead_dict.get("project_id"):
+            proj = await db.projects.find_one({"id": lead_dict["project_id"]}, {"_id": 0, "assigned_to": 1})
+            if proj and proj.get("assigned_to"):
+                lead_dict["assigned_to"] = proj["assigned_to"]
     await db.leads.insert_one(lead_dict)
 
     # enrich context (property / project title) for the notification email
@@ -1948,7 +2063,7 @@ async def list_leads(status: Optional[str] = None, limit: int = 100, u: dict = D
     query: dict[str, Any] = {"status": status} if status else {}
     if u["role"] == "agent":
         prop_ids = await _agent_property_ids(u["sub"])
-        scope = [{"agent_id": u["sub"]}] + ([{"property_id": {"$in": prop_ids}}] if prop_ids else [])
+        scope = [{"agent_id": u["sub"]}, {"assigned_to": u["sub"]}] + ([{"property_id": {"$in": prop_ids}}] if prop_ids else [])
         query = {"$and": [query, {"$or": scope}]} if query else {"$or": scope}
     return await db.leads.find(query, PROJ).sort([("created_at", -1)]).to_list(limit)
 
@@ -1965,7 +2080,7 @@ async def _agent_can_access_lead(u: dict, lid: str):
         raise HTTPException(404, "Lead not found")
     if u["role"] == "agent":
         prop_ids = await _agent_property_ids(u["sub"])
-        if lead.get("agent_id") != u["sub"] and lead.get("property_id") not in prop_ids:
+        if lead.get("agent_id") != u["sub"] and lead.get("assigned_to") != u["sub"] and lead.get("property_id") not in prop_ids:
             raise HTTPException(403, "Not your lead")
     return lead
 

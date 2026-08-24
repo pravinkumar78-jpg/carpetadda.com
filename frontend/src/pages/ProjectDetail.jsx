@@ -4,7 +4,7 @@ import api from "@/lib/api";
 import PropertyMap from "@/components/PropertyMap";
 import ProjectCard from "@/components/ProjectCard";
 import { formatINR, formatArea } from "@/lib/format";
-import { waProjectMsg, waUnitMsg } from "@/lib/whatsapp";
+import { waProjectMsg, waUnitMsg, telTo } from "@/lib/whatsapp";
 import { MapPin, Download, PhoneCall, WhatsappLogo, CalendarBlank, Check, Compass, Bed, Bank, SquaresFour, List, QrCode, FileText, ArrowSquareOut } from "@phosphor-icons/react";
 import { ytEmbedId } from "@/lib/utils";
 import { toast } from "sonner";
@@ -381,9 +381,12 @@ export default function ProjectDetail() {
                 <Textarea data-testid="proj-enquiry-message" placeholder="Ask about pricing, floor plans…" value={form.message} onChange={e => setForm({...form, message: e.target.value})} rows={3} className="rounded-lg border-slate-200" />
                 <button data-testid="proj-enquiry-submit" className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors shadow-md shadow-blue-500/20">Request Callback</button>
               </form>
+              {p.contact?.name && (
+                <p className="text-xs text-slate-500 mt-3 text-center" data-testid="project-contact-name">You’ll be connected with <span className="font-semibold text-slate-700">{p.contact.name}</span></p>
+              )}
               <div className="grid grid-cols-2 gap-2 mt-3">
-                <a href="tel:+918828830707" className="flex items-center justify-center gap-1.5 text-sm py-2.5 border border-slate-200 rounded-lg text-slate-700 hover:bg-blue-50 hover:border-blue-300 hover:text-blue-600 transition-colors font-medium"><PhoneCall size={14} /> Call</a>
-                <a href={waProjectMsg(p)} target="_blank" rel="noopener" data-testid="project-detail-whatsapp" className="flex items-center justify-center gap-1.5 text-sm py-2.5 border border-emerald-200 bg-emerald-50 text-emerald-700 rounded-lg hover:bg-emerald-100 font-medium"><WhatsappLogo size={14} /> WhatsApp</a>
+                <a href={telTo(p.contact?.phone || p.contact?.whatsapp)} data-testid="project-detail-call" className="flex items-center justify-center gap-1.5 text-sm py-2.5 border border-slate-200 rounded-lg text-slate-700 hover:bg-blue-50 hover:border-blue-300 hover:text-blue-600 transition-colors font-medium"><PhoneCall size={14} /> Call</a>
+                <a href={waProjectMsg(p, p.contact?.whatsapp || p.contact?.phone)} target="_blank" rel="noopener" data-testid="project-detail-whatsapp" className="flex items-center justify-center gap-1.5 text-sm py-2.5 border border-emerald-200 bg-emerald-50 text-emerald-700 rounded-lg hover:bg-emerald-100 font-medium"><WhatsappLogo size={14} /> WhatsApp</a>
               </div>
               <button data-testid="schedule-visit-btn" onClick={() => setVisitOpen(true)} className="w-full mt-3 inline-flex items-center justify-center gap-2 py-2.5 border border-blue-200 bg-white text-blue-700 rounded-lg font-medium text-sm hover:bg-blue-50 hover:border-blue-300 transition-colors">
                 <CalendarBlank size={16} weight="bold" /> Schedule Site Visit

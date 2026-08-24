@@ -392,3 +392,17 @@
 - Sitemap: existing /api/sitemap JSON endpoint extended with "pages": ["/commercial-properties", "/new-launch", "/rtmi"] (no XML renderer consumes it yet — noted)
 - Deployment prep: .gitignore had a SECOND .env block (lines 106-108) — removed; deployment_agent re-check PASS; everything ready for redeploy
 - Verified: browser tab titles for /new-launch + /rtmi, og:image meta tag, sitemap pages list, image 200
+
+## Implemented (2026-08-24 — lead routing, contact buttons, admin user management)
+- FIXED broken server.py (previous fork left truncated admin_update_user + duplicate admin_delete_user — backend would not start)
+- Lead routing: create_lead auto-links assigned_to from the listing's assigned user; agent lead scope now also matches lead.assigned_to (list + update guards); admin sees all leads globally — no duplicate records
+- Contact buttons: GET /properties/{id} + /projects/{id} return a `contact` (assigned user → agent → developer fallback); PropertyDetail/ProjectDetail Call + WhatsApp buttons now target that contact's phone (waTo/telTo helpers, waPropertyMsg/waProjectMsg accept optional phone; fallback = business 8828830707); "You'll be connected with {name}" label
+- Admin delete user (Option A): transfers ALL owned/assigned properties+projects and linked leads to the acting admin (owner_id/assigned_to/agent_id) — listings stay live, images/URLs/approvals intact; self-delete 400, non-admin 403; confirm dialog explains the transfer
+- Admin edit user: name/phone/whatsapp/role/verified/active + NEW optional direct password set (PUT /admin/users accepts password ≥8 → hashed); email reset-link flow retained
+- Verified by curl E2E: assign → public contact=agent → lead routed → agent sees it → admin edit+password login → delete → listing live + transferred + lead reassigned; QA data cleaned
+
+## Implemented (2026-08-24 — Admin Amenities management)
+- Admin → Amenities tab (AdminAmenities.jsx): Residential + Commercial sections, Add/Edit/Delete per amenity, reuses existing amenities model/API and form integration (no duplicate system)
+- Backend: PUT /admin/amenities/{id} (rename, per-category dedupe guard) + DELETE /admin/amenities/{id} (SOFT delete active=False — existing property records untouched); admin/super_admin only (agent 403 verified)
+- GET /amenities?category= already powers Property/Project forms → add/edit/delete reflect instantly in the correct category dropdown
+- Verified all 5 required checks: add res (27 total, no commercial leak), add com (16 total), rename, delete disappears from selections, existing properties intact (10 with amenities unchanged); UI smoke PASS (41 rows, both sections)

@@ -4,7 +4,7 @@ import api from "@/lib/api";
 import PropertyMap from "@/components/PropertyMap";
 import PropertyCard from "@/components/PropertyCard";
 import { formatINR, formatArea } from "@/lib/format";
-import { waPropertyMsg } from "@/lib/whatsapp";
+import { waPropertyMsg, telTo } from "@/lib/whatsapp";
 import { MapPin, Bed, Bathtub, ArrowsOutSimple, Car, Buildings, Calendar, ShieldCheck, PhoneCall, WhatsappLogo, Heart, ShareNetwork, Download, CaretRight, CalendarBlank, Compass, FileText, Sparkle, SwimmingPool, Barbell, WifiHigh, Tree, Lightning, Elevator, Drop, GameController, Flower, SoccerBall, ShoppingBag, Bank, SquaresFour, List } from "@phosphor-icons/react";
 import { ytEmbedId } from "@/lib/utils";
 import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext } from "@/components/ui/carousel";
@@ -102,7 +102,7 @@ export default function PropertyDetail() {
   if (!p) return <div className="max-w-4xl mx-auto p-20 text-center text-slate-500">Loading…</div>;
 
   const price = p.listing_type === "rent" ? `${formatINR(p.rent)}/mo` : formatINR(p.price);
-  const waMsg = waPropertyMsg(p);
+  const waMsg = waPropertyMsg(p, p.contact?.whatsapp || p.contact?.phone);
   const hasHtml = (p.description || "").includes("<");
   const ytId = ytEmbedId(p.youtube_url);
   const allImages = [
@@ -372,8 +372,11 @@ export default function PropertyDetail() {
                 <button type="submit" data-testid="enquiry-submit" className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors shadow-md shadow-blue-500/20">Enquire Now</button>
               </form>
 
+              {p.contact?.name && (
+                <p className="text-xs text-slate-500 mt-3 text-center" data-testid="detail-contact-name">You’ll be connected with <span className="font-semibold text-slate-700">{p.contact.name}</span></p>
+              )}
               <div className="grid grid-cols-2 gap-2 mt-3">
-                <a data-testid="detail-call" href="tel:+918828830707" className="flex items-center justify-center gap-1.5 text-sm py-2.5 border border-slate-200 rounded-lg text-slate-700 hover:bg-blue-50 hover:border-blue-300 hover:text-blue-600 transition-colors font-medium"><PhoneCall size={14} /> Call</a>
+                <a data-testid="detail-call" href={telTo(p.contact?.phone || p.contact?.whatsapp)} className="flex items-center justify-center gap-1.5 text-sm py-2.5 border border-slate-200 rounded-lg text-slate-700 hover:bg-blue-50 hover:border-blue-300 hover:text-blue-600 transition-colors font-medium"><PhoneCall size={14} /> Call</a>
                 <a data-testid="detail-whatsapp" href={waMsg} target="_blank" rel="noopener" className="flex items-center justify-center gap-1.5 text-sm py-2.5 border border-emerald-200 bg-emerald-50 text-emerald-700 rounded-lg hover:bg-emerald-100 transition-colors font-medium"><WhatsappLogo size={14} /> WhatsApp</a>
               </div>
 

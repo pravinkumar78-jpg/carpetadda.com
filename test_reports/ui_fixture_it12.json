@@ -1,0 +1,14 @@
+{
+  "agent_id": "72fa5028-a15a-4b74-8772-eccd52c45ee1",
+  "agent_email": "test_ui_agent_1787548041@qatest.com",
+  "agent_name": "TEST_UI Agent 1787548041",
+  "agent_password": "TestPass@123",
+  "dev_id": "c010e976-54a7-46e6-8a16-bf66d25f5b21",
+  "dev_email": "test_ui_dev_1787548041@qatest.com",
+  "prop_id": "cad521c0-18fe-461a-97d2-f63692b9d956",
+  "prop_slug": "test-ui-contact-routing-1787548041",
+  "unassigned_slug": "test-qa-pending-review-layout-2026-08-13-1786622129098",
+  "project_slug": "lodha-opulis-dombivli",
+  "project_id": "d449ae59-7b1a-43c0-b5f6-b4f08b061781",
+  "project_orig_assigned": null
+}

@@ -8,6 +8,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { WhatsappLogo } from "@phosphor-icons/react";
 import SeoManager from "@/components/SeoManager";
+import ScrollToTop from "@/components/ScrollToTop";
 import { AuthProvider } from "@/lib/auth";
 
 import Home from "@/pages/Home";
@@ -45,6 +46,7 @@ export default function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
+        <ScrollToTop />
         <SeoManager />
         <div className="flex flex-col min-h-screen">
           <Header />
