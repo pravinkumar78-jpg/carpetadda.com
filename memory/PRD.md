@@ -379,3 +379,9 @@
 - ROOT-CAUSE fix (affects the screenshot's "Property not found"): get_property/get_project matched slug WITHOUT status in the query — an inactive duplicate draft with the same slug (from the old duplicate-draft bug) could be returned first and 404 the live listing; the status=active filter is now INSIDE the find_one query
 - Verified: menu → page opens with 18 commercial-only listings (0 residential leak via API), sub-category/sort/pagination/detail links/images all work, mobile clean, no console errors. Backend param is `category` (NOT property_category) — verified via API
 - Production note: the "Commercial Properties Not Available" text lives in the old production build; redeploy ships the new page
+
+## Implemented (2026-08-23 — commercial page entry points)
+- Homepage "Commercial" browse card now links to /commercial-properties (Home.jsx line 166)
+- Footer Explore gained "Commercial Properties" link (footer-link-commercial)
+- SEO: saved /commercial-properties meta via the existing admin SEO API; fixed SeoManager STATIC_PAGES whitelist (the page was missing so saved meta never applied) — title/description now render
+- Verified: card → page, footer → page, title "Commercial Properties in Thane — Shops, Offices & Showrooms | CarpetAdda" + description applied
