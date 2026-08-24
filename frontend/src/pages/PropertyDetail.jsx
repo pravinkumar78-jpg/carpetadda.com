@@ -155,41 +155,50 @@ export default function PropertyDetail() {
           <span className="text-slate-700">{p.title}</span>
         </nav>
 
-        <div className="flex items-start justify-between flex-wrap gap-6 mb-6">
-          <div className="flex-1 min-w-0">
+        <div className="flex flex-wrap items-start gap-x-6 gap-y-4">
+          {/* 1. Title — top on all screens */}
+          <div className="order-1 w-full lg:w-auto lg:flex-1 lg:min-w-0">
             <div className="flex items-center gap-2 mb-3 flex-wrap">
               {p.featured && <span className="blue-badge">Featured</span>}
               {p.rera_number && <span className="blue-badge">RERA {p.rera_number}</span>}
               {p.verified && <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full"><ShieldCheck size={12} weight="fill" /> Verified</span>}
             </div>
-            <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 leading-tight mb-2">{p.title}</h1>
-            <div className="flex items-center gap-2 text-slate-500"><MapPin size={16} /> {p.address}</div>
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-slate-900 leading-tight">{p.title}</h1>
           </div>
-          <div className="flex items-center gap-3">
+
+          {/* 2. Main Image — directly below title on mobile, below the header row on desktop */}
+          <div className="order-2 lg:order-4 w-full rounded-2xl overflow-hidden mb-2 lg:mb-10" data-testid="property-gallery">
+            <Carousel className="relative" opts={{ loop: true }}>
+              <CarouselContent>
+                {Array.from(new Set([p.main_image, ...(p.images || [])].filter(Boolean))).map((src, i) => (
+                  <CarouselItem key={i}>
+                    <div className="relative aspect-[16/9] max-h-[540px] w-full bg-slate-100 overflow-hidden">
+                      <img src={src} alt={`${p.title} — image ${i + 1}`} className="absolute inset-0 w-full h-full object-cover object-center" loading={i === 0 ? "eager" : "lazy"} />
+                    </div>
+                  </CarouselItem>
+                ))}
+              </CarouselContent>
+              <CarouselPrevious data-testid="gallery-prev" className="left-4 bg-white/90 border-0 text-slate-800 hover:bg-white" />
+              <CarouselNext data-testid="gallery-next" className="right-4 bg-white/90 border-0 text-slate-800 hover:bg-white" />
+            </Carousel>
+          </div>
+
+          {/* 3. Address — left, below the image on mobile */}
+          <div className="order-3 flex-1 min-w-0 mb-6 lg:mb-0 lg:w-full lg:flex-none flex items-start gap-2 text-slate-500">
+            <MapPin size={16} className="shrink-0 mt-0.5" /> <span className="min-w-0 break-words">{p.address}</span>
+          </div>
+
+          {/* 4. Price — right, below the image on mobile */}
+          <div className="order-4 lg:order-2 ml-auto lg:ml-0 mb-6 lg:mb-0 flex flex-col items-end gap-2 lg:flex-row lg:items-center lg:gap-3">
             <div className="text-right">
-              <div className="text-3xl font-bold text-slate-900"><span className="rupee">{price}</span></div>
+              <div className="text-2xl sm:text-3xl font-bold text-slate-900 whitespace-nowrap"><span className="rupee">{price}</span></div>
               {p.price_per_sqft && <div className="text-sm text-slate-500 font-medium"><span className="rupee">₹</span>{p.price_per_sqft}/sq.ft.</div>}
             </div>
-            <button data-testid="share-btn" onClick={() => { navigator.clipboard.writeText(window.location.href); toast.success("Link copied!"); }} className="p-3 border border-slate-200 rounded-lg text-slate-600 hover:border-blue-300 hover:text-blue-600 transition-colors"><ShareNetwork size={16} /></button>
-            <button data-testid="save-btn" onClick={async () => { try { await api.post(`/favorites/${p.id}`); toast.success("Saved!"); } catch { toast.error("Please login to save"); } }} className="p-3 border border-slate-200 rounded-lg text-slate-600 hover:border-rose-300 hover:text-rose-500 transition-colors"><Heart size={16} /></button>
+            <div className="flex gap-2 lg:gap-3">
+              <button data-testid="share-btn" onClick={() => { navigator.clipboard.writeText(window.location.href); toast.success("Link copied!"); }} className="p-3 border border-slate-200 rounded-lg text-slate-600 hover:border-blue-300 hover:text-blue-600 transition-colors"><ShareNetwork size={16} /></button>
+              <button data-testid="save-btn" onClick={async () => { try { await api.post(`/favorites/${p.id}`); toast.success("Saved!"); } catch { toast.error("Please login to save"); } }} className="p-3 border border-slate-200 rounded-lg text-slate-600 hover:border-rose-300 hover:text-rose-500 transition-colors"><Heart size={16} /></button>
+            </div>
           </div>
-        </div>
-
-        {/* 1. Main Image — slider with arrows */}
-        <div className="rounded-2xl overflow-hidden mb-10" data-testid="property-gallery">
-          <Carousel className="relative" opts={{ loop: true }}>
-            <CarouselContent>
-              {Array.from(new Set([p.main_image, ...(p.images || [])].filter(Boolean))).map((src, i) => (
-                <CarouselItem key={i}>
-                  <div className="relative aspect-[16/9] max-h-[540px] w-full bg-slate-100 overflow-hidden">
-                    <img src={src} alt={`${p.title} — image ${i + 1}`} className="absolute inset-0 w-full h-full object-cover object-center" loading={i === 0 ? "eager" : "lazy"} />
-                  </div>
-                </CarouselItem>
-              ))}
-            </CarouselContent>
-            <CarouselPrevious data-testid="gallery-prev" className="left-4 bg-white/90 border-0 text-slate-800 hover:bg-white" />
-            <CarouselNext data-testid="gallery-next" className="right-4 bg-white/90 border-0 text-slate-800 hover:bg-white" />
-          </Carousel>
         </div>
       </div>
 

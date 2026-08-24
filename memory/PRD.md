@@ -411,3 +411,8 @@
 - Admin → Users edit dialog now includes an editable Email field and a Profile Photo / Logo upload (existing ImageUpload component, kind="avatars" → existing durable object storage, no local-disk writes, no new APIs/models)
 - Backend admin_update_user no longer strips email: normalizes (trim/lowercase), rejects invalid emails (400) and emails already used by another account (400, self-update allowed); avatar URL saved via the same update payload
 - Verified: email change → login with new email works; duplicate/invalid email 400; non-admin 403; dialog renders photo upload + prefilled email with name/phone/whatsapp/role/password untouched; temp test user cleaned up
+
+## Fix (2026-08-24 — mobile Property Detail layout)
+- Root cause: title/address block and price block shared one wrapping flex row above the gallery — on mobile they collided
+- Fix (PropertyDetail.jsx, layout-only): header + gallery now one single-source flex container with responsive order utilities — mobile sequence: Title → Main Image → Address (left) | Price (right, share/save below it); long titles/addresses wrap cleanly (break-words, min-w-0), price no-wrap and smaller on mobile, desktop (lg+) visually unchanged (title left, price right, address under title, image below)
+- Verified geometrically: 390px PASS (title→image→address|price order, zero h-overflow) + 1920px PASS (desktop unchanged); no API/data/component changes
