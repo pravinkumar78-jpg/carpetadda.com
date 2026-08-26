@@ -433,3 +433,10 @@
 - Project Detail mobile sticky bar: same Call / WhatsApp / Enquire bar as Property Detail (telTo/waProjectMsg with p.contact → assigned user/developer fallback → business number); Enquire scrolls to existing form (id=enquiry-form, focuses proj-enquiry-name); root pb-20 lg:pb-0; FloatingWhatsApp now also hides on mobile /project/* pages
 - Verified: property chips (rent+bhk shown, bhk-only removal 10→19, rent kept); project chips (bhk shown, category excluded, removal refetches); project bar mobile (call/WA → developer 919820000000, enquire focus, floating WA hidden); property bar regression PASS; JSX parse all OK
 - deployment_agent readiness: PASS, zero findings — ready for the user to hit Deploy (deployment to carpetadda.com is user-triggered on the platform)
+
+## Implemented (2026-08-26 — project Developer→User assignment + Developers admin section removed)
+- Admin nav: "Developers" tab removed from AdminPanel (AdminDevelopers.jsx file kept but unlinked; POST /admin/developers API + developers directory data untouched — still used by /developers public pages, fetch-details matching and existing projects)
+- ProjectForm: "Developer *" free-text/datalist REPLACED with "User *" Select sourced from GET /admin/users (existing Admin → Users data, admin-only); any user selectable; inline "Add User →" reuses the exported CreateUserDialog (AdminUsers.jsx — now passes the created user to onSaved) → new user immediately selected
+- Selected user stored in project.assigned_to (Project model gained assigned_to field) → drives existing Assigned-to-Me dashboards, lead routing and contact-button routing automatically; admin publish/section gating now requires the User selection (was developer); developer_id preserved as-is on edits (existing projects' data intact)
+- Non-admin form usage (developer/user roles): User field hidden, ownership unchanged
+- Verified: backend create+update with assigned_to persisted; existing 10 projects keep developer_id (Lodha Opulis → Lodha Group intact); UI: Developers tab gone, 6 users in select, inline Add User → created + auto-selected; QA user/drafts cleaned

@@ -135,7 +135,7 @@ export default function AdminUsers() {
   );
 }
 
-function CreateUserDialog({ onClose, onSaved }) {
+export function CreateUserDialog({ onClose, onSaved }) {
   const [form, setForm] = useState({ role: "user", name: "", phone: "", email: "", password: "", active: true, verified: true });
   const [busy, setBusy] = useState(false);
   const set = (k, v) => setForm(p => ({ ...p, [k]: v }));
@@ -146,9 +146,9 @@ function CreateUserDialog({ onClose, onSaved }) {
     if (form.password.length < 8) { toast.error("Password must be at least 8 characters"); return; }
     setBusy(true);
     try {
-      await api.post("/admin/users", form);
+      const { data } = await api.post("/admin/users", form);
       toast.success(`User created — ${form.role} account for ${form.email}`);
-      onSaved();
+      onSaved(data);
     } catch (err) { toast.error(err?.response?.data?.detail || "Create failed"); }
     finally { setBusy(false); }
   };

@@ -253,6 +253,7 @@ class Project(BaseDoc):
     hero_project: bool = False
     status: str = "active"
     owner_id: Optional[str] = None
+    assigned_to: Optional[str] = None  # user this project is assigned to (Admin → Project form "User" field)
     import_source_url: Optional[str] = None
 
     # Homepage placement + marketing flags

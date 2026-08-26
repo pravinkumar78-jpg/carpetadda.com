@@ -11,7 +11,7 @@ import { ArrowLeft, FloppyDisk, Upload, Eye, Info, House, MapPin, Sparkle, Image
 import ImageUpload from "@/components/ImageUpload";
 import RichTextEditor from "@/components/RichTextEditor";
 import AddAmenity from "@/components/AddAmenity";
-import RegisterDeveloper from "@/components/RegisterDeveloper";
+import { CreateUserDialog } from "@/pages/admin/AdminUsers";
 
 const CITIES = ["mumbai", "thane", "navi-mumbai", "dombivli", "kalyan"];
 const PROJECT_FLAGS = [["featured", "Featured"], ["new_launch", "New Launch"], ["rtmi", "RTMI (Ready to Move)"], ["best_payment_plan", "Best Payment Plan"], ["best_performer", "Best Performer"]];
@@ -19,7 +19,7 @@ const AMENITIES = ["Swimming Pool", "Gym", "Clubhouse", "Landscaped Garden", "Ch
 const AMENITIES_COMMERCIAL = ["24x7 Access", "High-Speed Elevators", "Central Air Conditioning", "Conference Room", "Reception / Lobby", "Visitor Parking", "Power Backup", "Fire Safety", "CCTV Surveillance", "Loading / Unloading Bay", "Signage Space", "Pantry / Cafeteria", "Fiber Internet", "Access Control", "Ample Parking"];
 
 const empty = () => ({
-  name: "", slug: "", description: "", developer_id: "",
+  name: "", slug: "", description: "", developer_id: "", assigned_to: "",
   property_category: "residential",
   city: "dombivli", location: "dombivli-east", address: "", lat: null, lng: null,
   price_from: 5000000, price_to: 15000000, configurations: ["1 BHK", "2 BHK", "3 BHK"],
@@ -45,11 +45,10 @@ export default function ProjectForm() {
   const [saving, setSaving] = useState(false);
   const [createdId, setCreatedId] = useState(null); // id assigned by the first save of a NEW project
   const [loaded, setLoaded] = useState(!id);
-  const [developers, setDevelopers] = useState([]);
+  const [users, setUsers] = useState([]); // Admin → Users accounts, for the "User" assignment field
   const [amenityOptions, setAmenityOptions] = useState(AMENITIES);
   const [newAmenity, setNewAmenity] = useState("");
-  const [devModal, setDevModal] = useState(false);
-  const [devName, setDevName] = useState("");
+  const [userModal, setUserModal] = useState(false);
   const [configText, setConfigText] = useState(null); // null = derive from f.configurations
   const [fetchUrl, setFetchUrl] = useState("");
   const [fetching, setFetching] = useState(false);
@@ -58,15 +57,8 @@ export default function ProjectForm() {
   const isAdmin = inAdmin && (user?.role === "admin" || user?.role === "super_admin");
   const backTo = inAdmin ? "/admin" : (user?.role === "developer" ? "/developer" : "/dashboard");
 
-  const loadDevelopers = () => api.get("/developers?limit=200").then(r => setDevelopers(r.data || [])).catch(() => {});
-  useEffect(() => { loadDevelopers(); }, []);
-  // Keep the developer text input in sync when editing an existing project
-  useEffect(() => {
-    if (!devName && f.developer_id && developers.length) {
-      const d = developers.find(x => x.id === f.developer_id);
-      if (d) setDevName(d.name);
-    }
-  }, [developers, f.developer_id]);
+  const loadUsers = () => api.get("/admin/users").then(r => setUsers(r.data || [])).catch(() => {});
+  useEffect(() => { if (isAdmin) loadUsers(); }, [isAdmin]);
   useEffect(() => {
     const fallback = f.property_category === "commercial" ? AMENITIES_COMMERCIAL : AMENITIES;
     api.get(`/amenities?category=${f.property_category}`).then(r => {
@@ -114,8 +106,6 @@ export default function ProjectForm() {
 
   // Auto-save unfinished work as a draft when the form is closed/interrupted
   const fRef = useRef(f); fRef.current = f;
-  const devRef = useRef(developers); devRef.current = developers;
-  const devNameRef = useRef(devName); devNameRef.current = devName;
   const dirtyRef = useRef(false);
   const doneRef = useRef(false);
   const skipRef = useRef(!!id);
@@ -131,10 +121,8 @@ export default function ProjectForm() {
       if (!dirtyRef.current || doneRef.current || !(cur?.name || "").trim()) return;
       if (effId && cur.status !== "draft") return; // never unpublish a live/pending project on exit
       try {
-        const match = devRef.current.find(d => (d.name || "").trim().toLowerCase() === (devNameRef.current || "").trim().toLowerCase());
         const payload = { ...cur, status: "draft" };
-        if (match) payload.developer_id = match.id;
-        if (!payload.developer_id) payload.developer_id = "";
+        payload.developer_id = payload.developer_id || "";
         if (typeof payload.configurations === "string") payload.configurations = payload.configurations.split(",").map(s => s.trim()).filter(Boolean);
         if (!payload.slug) payload.slug = cur.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 60);
         if (!payload.main_image && payload.images?.[0]) payload.main_image = payload.images[0];
@@ -199,7 +187,7 @@ export default function ProjectForm() {
       if (!f.developer_id && data.developer_match) { set("developer_id", data.developer_match.id); mapped.push("developer"); }
       if (mapped.length) toast.success(`Fetched: ${mapped.join(", ")} — review every field, then Save Draft or Publish`);
       else toast.info("Page fetched, but everything found is already filled in the form");
-      if (!data.developer_match && data.developer_guess) toast.info(`Developer "${data.developer_guess}" isn't registered — use "Register New Developer" below`);
+      if (!data.developer_match && data.developer_guess) toast.info(`Developer "${data.developer_guess}" isn't in the developers directory — the project can still be saved`);
     } catch (err) {
       const d = err?.response?.data?.detail;
       toast.error(typeof d === "string" ? d : "Could not fetch project details");
@@ -237,9 +225,9 @@ export default function ProjectForm() {
     set("flags", [...cur, fl]);
   };
 
-  const publishError = (match) => {
+  const publishError = () => {
     if (!f.name.trim()) return { msg: "Project name is required to publish", tab: "basic" };
-    if (!match) return { msg: "Developer is required to publish — pick an existing developer or register a new one", tab: "basic" };
+    if (isAdmin && !f.assigned_to) return { msg: "Select the user to publish — pick an existing user or add a new one", tab: "basic" };
     if (!f.city || !(f.location || "").trim()) return { msg: "City and Locality are required to publish", tab: "location" };
     if (!f.main_image && !(f.images || []).length) return { msg: "Add at least a main image to publish", tab: "media" };
     return null;
@@ -248,15 +236,13 @@ export default function ProjectForm() {
   const save = async (publish, { stay = false } = {}) => {
     if (saving) return false; // guard against double-clicks / repeated submissions
     if (!f.name.trim()) { toast.error("Project name required"); setTab("basic"); return false; }
-    // Developer is typed as free text — resolve the name to the existing developer record
-    const match = developers.find(d => (d.name || "").trim().toLowerCase() === devName.trim().toLowerCase());
     if (publish) {
-      const pe = publishError(match);
+      const pe = publishError();
       if (pe) { toast.error(pe.msg); setTab(pe.tab); return false; }
     }
     setSaving(true);
     try {
-      const payload = { ...f, developer_id: match?.id || f.developer_id || "" };
+      const payload = { ...f, developer_id: f.developer_id || "" };
       // keep legacy single RERA fields in sync with the first entry (back-compat)
       const firstRera = (payload.rera_entries || [])[0];
       if (firstRera) {
@@ -285,7 +271,7 @@ export default function ProjectForm() {
       // Transient server/network failure while publishing → preserve data as a draft
       if (publish && (!err.response || err.response.status >= 500)) {
         try {
-          const draftPayload = { ...f, developer_id: match?.id || f.developer_id || "" };
+          const draftPayload = { ...f, developer_id: f.developer_id || "" };
           if (typeof draftPayload.configurations === "string") draftPayload.configurations = draftPayload.configurations.split(",").map(s => s.trim()).filter(Boolean);
           if (!draftPayload.slug) draftPayload.slug = draftPayload.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 60);
           draftPayload.status = "draft";
@@ -310,7 +296,7 @@ export default function ProjectForm() {
   const sectionError = (k) => {
     if (k === "basic") {
       if (!f.name.trim()) return "Enter the project name to continue";
-      if (!developers.some(d => (d.name || "").trim().toLowerCase() === devName.trim().toLowerCase())) return "Select the developer to continue (or register a new one)";
+      if (isAdmin && !f.assigned_to) return "Select the user to continue (or add a new one)";
     }
     if (k === "location" && (!f.city || !(f.location || "").trim())) return "Select a city and enter the locality to continue";
     return null;
@@ -393,11 +379,12 @@ export default function ProjectForm() {
               <F label="Project Title *"><Input data-testid="project-title" value={f.name} onChange={e => set("name", e.target.value)} /></F>
               <F label="Description"><RichTextEditor value={f.description || ""} onChange={v => set("description", v)} dataTestid="project-description-editor" /></F>
               <div className="grid grid-cols-2 gap-4">
-                <F label="Developer *">
-                  <Input list="developer-options" data-testid="project-developer" value={devName} onChange={e => setDevName(e.target.value)} placeholder="Type developer name" className="h-11 rounded-lg border-slate-300" />
-                  <datalist id="developer-options">{developers.map(d => <option key={d.id} value={d.name} />)}</datalist>
-                  <button type="button" onClick={() => setDevModal(true)} data-testid="register-developer-btn" className="mt-1.5 text-xs text-blue-600 hover:text-blue-700 font-semibold">Developer not listed? Register New Developer →</button>
-                </F>
+                {isAdmin && (
+                  <F label="User *">
+                    <Sel dataTestid="project-user" value={f.assigned_to || ""} onChange={v => set("assigned_to", v)} options={users.map(u => [u.id, `${u.name} — ${u.email}`])} placeholder="Select user" />
+                    <button type="button" onClick={() => setUserModal(true)} data-testid="add-user-btn" className="mt-1.5 text-xs text-blue-600 hover:text-blue-700 font-semibold">User not listed? Add User →</button>
+                  </F>
+                )}
                 <F label="Category"><Sel value={f.property_category} onChange={v => set("property_category", v)} options={[["residential","Residential"],["commercial","Commercial"]]} /></F>
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -600,24 +587,25 @@ export default function ProjectForm() {
         </div>
       </div>
 
-      <RegisterDeveloper
-        open={devModal}
-        onClose={() => setDevModal(false)}
-        onRegistered={(d) => {
-          setDevelopers(prev => prev.some(x => x.id === d.id) ? prev : [...prev, d]);
-          set("developer_id", d.id);
-          setDevName(d.name);
-        }}
-      />
+      {userModal && (
+        <CreateUserDialog
+          onClose={() => setUserModal(false)}
+          onSaved={(u) => {
+            setUserModal(false);
+            loadUsers();
+            if (u?.id) set("assigned_to", u.id); // newly created user is immediately selected
+          }}
+        />
+      )}
     </div>
   );
 }
 
 function F({ label, children }) { return <div><label className="text-xs uppercase tracking-widest text-slate-500 font-semibold mb-1.5 block">{label}</label>{children}</div>; }
-function Sel({ value, onChange, options, placeholder }) {
+function Sel({ value, onChange, options, placeholder, dataTestid }) {
   return (
     <Select value={value || ""} onValueChange={onChange}>
-      <SelectTrigger className="border-slate-200"><SelectValue placeholder={placeholder} /></SelectTrigger>
+      <SelectTrigger data-testid={dataTestid} className="border-slate-200"><SelectValue placeholder={placeholder} /></SelectTrigger>
       <SelectContent>{options.map(([v, l]) => <SelectItem key={v} value={v}>{l}</SelectItem>)}</SelectContent>
     </Select>
   );
