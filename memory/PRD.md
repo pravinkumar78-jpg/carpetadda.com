@@ -440,3 +440,8 @@
 - Selected user stored in project.assigned_to (Project model gained assigned_to field) → drives existing Assigned-to-Me dashboards, lead routing and contact-button routing automatically; admin publish/section gating now requires the User selection (was developer); developer_id preserved as-is on edits (existing projects' data intact)
 - Non-admin form usage (developer/user roles): User field hidden, ownership unchanged
 - Verified: backend create+update with assigned_to persisted; existing 10 projects keep developer_id (Lodha Opulis → Lodha Group intact); UI: Developers tab gone, 6 users in select, inline Add User → created + auto-selected; QA user/drafts cleaned
+
+## Fix (2026-08-26 — Project form Save & Next blank page)
+- ROOT CAUSE (two-part): (1) new-project payload sent total_floors as a NUMBER (empty() init 22) while the Project model expects text → FastAPI 422; (2) the save-error toast rendered err.response.data.detail raw — a 422 detail is an ARRAY of objects → React "Objects are not valid as a React child" → whole app unmounted → blank page
+- Fix (ProjectForm.jsx only, 4 lines): total_floors initialised as "22" text; save() + exit-autosave coerce total_floors to String (older DB records holding numbers also fixed on next save); catch renders 422 details safely (first msg + field name) instead of crashing
+- Verified: New Project → fill Basic → Save & Next → draft saved (assigned_to persisted) → Details step loads, title/user retained on return; existing-draft edit → Save & Next PASS; no blank page, no console crash. QA draft cleaned. NOTE: production needs REDEPLOY

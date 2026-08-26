@@ -27,7 +27,7 @@ const empty = () => ({
   launch_date: "", possession_date: "Dec 2026", construction_status: "under_construction",
   rera_number: "", rera_link: "", rera_qr_url: "", rera_entries: [],
   master_plan: "", youtube_url: "",
-  total_towers: 3, total_units: 200, total_floors: 22, land_size: "",
+  total_towers: 3, total_units: 200, total_floors: "22", land_size: "",
   amenities: [], specifications: [], images: [], videos: [], brochure_url: "",
   payment_plan: "20:80 with bank finance", floor_plans: [],
   featured: false, verified: true, status: "draft", hero_project: false,
@@ -123,6 +123,7 @@ export default function ProjectForm() {
       try {
         const payload = { ...cur, status: "draft" };
         payload.developer_id = payload.developer_id || "";
+        if (payload.total_floors !== null && payload.total_floors !== undefined) payload.total_floors = String(payload.total_floors);
         if (typeof payload.configurations === "string") payload.configurations = payload.configurations.split(",").map(s => s.trim()).filter(Boolean);
         if (!payload.slug) payload.slug = cur.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 60);
         if (!payload.main_image && payload.images?.[0]) payload.main_image = payload.images[0];
@@ -243,6 +244,7 @@ export default function ProjectForm() {
     setSaving(true);
     try {
       const payload = { ...f, developer_id: f.developer_id || "" };
+      if (payload.total_floors !== null && payload.total_floors !== undefined) payload.total_floors = String(payload.total_floors); // backend expects text (older records may hold a number)
       // keep legacy single RERA fields in sync with the first entry (back-compat)
       const firstRera = (payload.rera_entries || [])[0];
       if (firstRera) {
@@ -286,7 +288,9 @@ export default function ProjectForm() {
           return;
         } catch { /* fall through to the real error */ }
       }
-      toast.error(err.response?.data?.detail || "Save failed");
+      const detail = err.response?.data?.detail;
+      // 422 responses return an array of error objects — never render them raw (crashes React → blank page)
+      toast.error(typeof detail === "string" ? detail : (Array.isArray(detail) && detail[0]?.msg ? `Invalid value: ${detail[0].msg} (${detail[0].loc?.slice(-1)?.[0] || "form field"})` : "Save failed"));
       return false;
     }
     finally { setSaving(false); }
