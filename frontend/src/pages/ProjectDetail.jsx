@@ -110,8 +110,12 @@ export default function ProjectDetail() {
               </CarouselItem>
             ))}
           </CarouselContent>
-          <CarouselPrevious data-testid="gallery-prev" className="left-4 lg:left-8 bg-white/90 border-0 text-slate-800 hover:bg-white" />
-          <CarouselNext data-testid="gallery-next" className="right-4 lg:right-8 bg-white/90 border-0 text-slate-800 hover:bg-white" />
+          {gallery.length > 1 && (
+            <>
+              <CarouselPrevious data-testid="gallery-prev" className="left-4 lg:left-8 bg-white/90 border-0 text-slate-800 hover:bg-white" />
+              <CarouselNext data-testid="gallery-next" className="right-4 lg:right-8 bg-white/90 border-0 text-slate-800 hover:bg-white" />
+            </>
+          )}
         </Carousel>
         <div className="absolute inset-x-0 bottom-0 pointer-events-none">
           <div className="max-w-7xl mx-auto px-6 lg:px-10 pb-12 text-white">
@@ -300,20 +304,22 @@ export default function ProjectDetail() {
                     {r.number && <div className="text-base font-bold text-slate-900 font-mono tracking-wide mb-2">RERA No: {r.number}</div>}
                     {r.description && <p className="text-sm text-slate-600 leading-relaxed mb-4">{r.description}</p>}
                     <div className="flex items-end gap-4 flex-wrap">
-                      {r.qr_url && (
-                        <a href={r.url || r.qr_url} target="_blank" rel="noopener" data-testid={`rera-qr-${i}`} className="block" title={r.url ? "Open official RERA page" : "View QR"}>
-                          <img src={r.qr_url} alt={`RERA QR ${r.number || i + 1}`} className="w-20 h-20 rounded-lg border border-slate-200 object-contain bg-white" loading="lazy" />
-                        </a>
-                      )}
+                      {(() => {
+                        // One QR only — the RERA QR Link wins when valid; otherwise the uploaded QR image
+                        const link = (r.url || "").trim();
+                        const qrSrc = (/^https?:\/\//i.test(link) || link.startsWith("/")) ? link : (r.qr_url || "");
+                        if (!qrSrc) return null;
+                        return (
+                          <a href={qrSrc} target="_blank" rel="noopener" data-testid={`rera-qr-${i}`} className="block" title="View RERA QR">
+                            <img src={qrSrc} alt={`RERA QR ${r.number || i + 1}`} className="w-20 h-20 rounded-lg border border-slate-200 object-contain bg-white" loading="lazy"
+                              onError={e => { if (r.qr_url && e.currentTarget.src !== r.qr_url) { e.currentTarget.src = r.qr_url; } }} />
+                          </a>
+                        );
+                      })()}
                       <div className="flex flex-col gap-2 text-sm">
                         {r.certificate_url && (
                           <a href={r.certificate_url} target="_blank" rel="noopener" data-testid={`rera-cert-${i}`} className="inline-flex items-center gap-1.5 text-blue-600 font-medium hover:text-blue-700">
                             <FileText size={15} /> View RERA Certificate
-                          </a>
-                        )}
-                        {r.url && (
-                          <a href={r.url} target="_blank" rel="noopener" data-testid={`rera-link-${i}`} className="inline-flex items-center gap-1.5 text-blue-600 font-medium hover:text-blue-700">
-                            <ArrowSquareOut size={15} /> Open Official RERA Page
                           </a>
                         )}
                       </div>

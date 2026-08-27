@@ -43,6 +43,7 @@ class User(BaseDoc):
     whatsapp: Optional[str] = None
     verified: bool = False
     active: bool = True
+    approved: Optional[bool] = None  # False = agent/developer/owner awaiting admin approval; None/True = approved
 
 
 class UserOut(BaseModel):

@@ -460,12 +460,11 @@ export default function ProjectForm() {
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <F label="RERA Number"><Input data-testid={`rera-number-${i}`} value={r.number || ""} onChange={e => set("rera_entries", f.rera_entries.map((x, j) => j === i ? { ...x, number: e.target.value } : x))} placeholder="A51700xxxxx" /></F>
-                    <F label="Official RERA URL"><Input data-testid={`rera-url-${i}`} value={r.url || ""} onChange={e => set("rera_entries", f.rera_entries.map((x, j) => j === i ? { ...x, url: e.target.value } : x))} placeholder="https://maharera.mahaonline.gov.in/…" /></F>
+                    <F label="RERA QR Link"><Input data-testid={`rera-url-${i}`} value={r.url || ""} onChange={e => set("rera_entries", f.rera_entries.map((x, j) => j === i ? { ...x, url: e.target.value } : x))} placeholder="https://… (link to the QR image)" /></F>
                   </div>
                   <F label="Description"><Textarea rows={2} data-testid={`rera-desc-${i}`} value={r.description || ""} onChange={e => set("rera_entries", f.rera_entries.map((x, j) => j === i ? { ...x, description: e.target.value } : x))} placeholder="e.g. Tower A & B — registered under MahaRERA" /></F>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <F label="Upload RERA QR"><ImageUpload value={r.qr_url || ""} onChange={v => set("rera_entries", f.rera_entries.map((x, j) => j === i ? { ...x, qr_url: v } : x))} kind="projects" dataTestid={`rera-qr-upload-${i}`} allowUrl={false} /></F>
-                    <F label="Upload RERA Certificate (image or PDF)"><ImageUpload value={r.certificate_url || ""} onChange={v => set("rera_entries", f.rera_entries.map((x, j) => j === i ? { ...x, certificate_url: v } : x))} kind="projects" dataTestid={`rera-cert-upload-${i}`} allowUrl={false} accept="image/*,application/pdf" /></F>
+                    <F label="Upload RERA QR Image"><ImageUpload value={r.qr_url || ""} onChange={v => set("rera_entries", f.rera_entries.map((x, j) => j === i ? { ...x, qr_url: v } : x))} kind="projects" dataTestid={`rera-qr-upload-${i}`} allowUrl={false} /></F>
                   </div>
                 </div>
               ))}

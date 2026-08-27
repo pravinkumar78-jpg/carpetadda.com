@@ -28,6 +28,7 @@ export default function AdminUsers() {
   const [editing, setEditing] = useState(null);
   const [pwUser, setPwUser] = useState(null);
   const [creating, setCreating] = useState(false);
+  const [pendingOnly, setPendingOnly] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -84,6 +85,15 @@ export default function AdminUsers() {
             {ROLES.map(r => <SelectItem key={r} value={r} className="capitalize">{r.replace("_", " ")}</SelectItem>)}
           </SelectContent>
         </Select>
+        {(() => {
+          const pendingCount = rows.filter(u => ["agent", "developer", "owner"].includes(u.role) && u.approved === false).length;
+          return (
+            <button type="button" data-testid="users-filter-pending" onClick={() => setPendingOnly(v => !v)}
+              className={`h-10 px-4 rounded-lg text-sm font-medium border transition-colors ${pendingOnly ? "bg-amber-500 text-white border-amber-500" : "bg-white text-slate-600 border-slate-200 hover:border-amber-300 hover:text-amber-600"}`}>
+              Pending approval{pendingCount > 0 ? ` (${pendingCount})` : ""}
+            </button>
+          );
+        })()}
       </div>
 
       <div className="card-premium overflow-hidden">
@@ -103,7 +113,7 @@ export default function AdminUsers() {
             <tbody>
               {loading && <tr><td colSpan={7} className="text-center py-12 text-slate-500">Loading…</td></tr>}
               {!loading && rows.length === 0 && <tr><td colSpan={7} className="text-center py-12 text-slate-500">No users found.</td></tr>}
-              {!loading && rows.map(u => (
+              {!loading && (pendingOnly ? rows.filter(u => ["agent", "developer", "owner"].includes(u.role) && u.approved === false) : rows).map(u => (
                 <tr key={u.id} className="border-b border-slate-100 last:border-0 hover:bg-blue-50/40">
                   <td className="px-4 py-3 font-medium text-slate-900">{u.name}</td>
                   <td className="px-4 py-3 text-slate-600 font-mono text-xs">{u.email}</td>
@@ -199,6 +209,7 @@ function RoleDialog({ user, onClose, onSaved }) {
   const [whatsapp, setWhatsapp] = useState(user.whatsapp || "");
   const [avatar, setAvatar] = useState(user.avatar || "");
   const [password, setPassword] = useState("");
+  const [approved, setApproved] = useState(user.approved !== false);
   const [busy, setBusy] = useState(false);
 
   const submit = async (e) => {
@@ -212,7 +223,7 @@ function RoleDialog({ user, onClose, onSaved }) {
     if (password && password.length < 8) { toast.error("Password must be at least 8 characters"); return; }
     setBusy(true);
     try {
-      const payload = { role, verified, active, name: name.trim(), email: email.trim().toLowerCase(), phone: phone.trim() || null, whatsapp: whatsapp.trim() || null, avatar: avatar || null };
+      const payload = { role, verified, active, approved, name: name.trim(), email: email.trim().toLowerCase(), phone: phone.trim() || null, whatsapp: whatsapp.trim() || null, avatar: avatar || null };
       if (password) payload.password = password;
       await api.put(`/admin/users/${user.id}`, payload);
       toast.success("User updated");
@@ -265,6 +276,11 @@ function RoleDialog({ user, onClose, onSaved }) {
           <label className="flex items-center gap-2 text-sm text-slate-700">
             <input type="checkbox" data-testid="role-active" checked={active} onChange={e => setActive(e.target.checked)} /> Active (can log in & publish)
           </label>
+          {["agent", "developer", "owner"].includes(role) && (
+            <label className="flex items-center gap-2 text-sm text-slate-700">
+              <input type="checkbox" data-testid="role-approved" checked={approved} onChange={e => setApproved(e.target.checked)} /> Approved (agent/developer listings allowed)
+            </label>
+          )}
           <DialogFooter>
             <button type="button" onClick={onClose} className="px-4 py-2 border border-slate-200 rounded-lg text-sm font-medium hover:bg-slate-50">Cancel</button>
             <button type="submit" disabled={busy} data-testid="role-save" className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium disabled:opacity-60">{busy ? "Saving…" : "Save"}</button>

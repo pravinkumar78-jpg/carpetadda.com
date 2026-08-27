@@ -105,7 +105,8 @@ async def register(body: RegisterInput, background: BackgroundTasks):
     role = body.role if body.role in {"user", "agent", "developer", "owner"} else "user"
     email_ready = bool(os.environ.get("SMTP_HOST") or os.environ.get("EMERGENT_EMAIL_KEY"))
     u = User(name=body.name, email=body.email, phone=body.phone,
-             password_hash=hash_password(body.password), role=role, verified=not email_ready)
+             password_hash=hash_password(body.password), role=role, verified=not email_ready,
+             approved=False if role in {"agent", "developer", "owner"} else True)
     await db.users.insert_one(u.model_dump())
     if email_ready:
         await _send_verification_email(u)
@@ -496,9 +497,11 @@ async def get_property(slug_or_id: str):
 
 @api.post("/properties", dependencies=[Depends(require_roles("admin", "agent", "developer", "owner", "user"))])
 async def create_property(body: Property, u: dict = Depends(current_user)):
-    account = await db.users.find_one({"id": u["sub"]}, {"_id": 0, "active": 1})
+    account = await db.users.find_one({"id": u["sub"]}, {"_id": 0, "active": 1, "approved": 1})
     if account and account.get("active") is False:
         raise HTTPException(403, "Your account is blocked. Contact admin.")
+    if account and u["role"] in ("agent", "developer", "owner") and account.get("approved") is False:
+        raise HTTPException(403, "Your account is awaiting admin approval.")
     body.owner_id = u["sub"]
     if u["role"] in ("agent",) and not body.agent_id:
         body.agent_id = u["sub"]
@@ -893,9 +896,11 @@ async def get_project(slug_or_id: str):
 
 @api.post("/projects", dependencies=[Depends(require_roles("admin", "developer"))])
 async def create_project(body: Project, u: dict = Depends(current_user)):
-    account = await db.users.find_one({"id": u["sub"]}, {"_id": 0, "active": 1, "role": 1})
+    account = await db.users.find_one({"id": u["sub"]}, {"_id": 0, "active": 1, "role": 1, "approved": 1})
     if account and account.get("active") is False:
         raise HTTPException(403, "Your account is blocked. Contact admin.")
+    if account and u["role"] in ("agent", "developer", "owner") and account.get("approved") is False:
+        raise HTTPException(403, "Your account is awaiting admin approval.")
     body.owner_id = u["sub"]
     if u["role"] not in ("admin", "super_admin"):
         body.status = "draft" if body.status == "draft" else "pending_review"
@@ -1716,7 +1721,8 @@ async def admin_create_user(body: dict = Body(...)):
         raise HTTPException(400, "Email already registered")
     u = User(name=name, email=email, phone=(body.get("phone") or "").strip() or None,
              password_hash=hash_password(password), role=role,
-             verified=bool(body.get("verified", True)), active=bool(body.get("active", True)))
+             verified=bool(body.get("verified", True)), active=bool(body.get("active", True)),
+             approved=True)  # admin-created accounts are pre-approved
     await db.users.insert_one(u.model_dump())
     if not u.verified and (os.environ.get("SMTP_HOST") or os.environ.get("EMERGENT_EMAIL_KEY")):
         await _send_verification_email(u)
