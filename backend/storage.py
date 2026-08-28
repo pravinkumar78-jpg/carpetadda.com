@@ -70,9 +70,11 @@ def _remote_get(path: str) -> bytes:
 
 
 def put_object(path: str, data: bytes, content_type: str) -> dict:
-    p=_safe(path); p.parent.mkdir(parents=True, exist_ok=True); p.write_bytes(data)
     if _remote_enabled():
-        _remote_put(path, data, content_type)  # durable copy — raises if it cannot persist
+        _remote_put(path, data, content_type)  # durable object storage — the source of truth (raises if it cannot persist)
+        return {"path": path, "size": len(data), "content_type": content_type}
+    # local-dev fallback only (no storage key configured): serve-from-disk so uploads still work offline
+    p=_safe(path); p.parent.mkdir(parents=True, exist_ok=True); p.write_bytes(data)
     return {"path": path, "size": len(data), "content_type": content_type}
 
 

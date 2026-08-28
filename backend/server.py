@@ -43,6 +43,7 @@ from models import (  # noqa: E402
     Amenity,
     Blog,
     Developer,
+    DisclaimerAck,
     FAQ,
     Favorite,
     Lead,
@@ -1788,6 +1789,20 @@ async def delete_amenity(aid: str):
     if not res.matched_count:
         raise HTTPException(404, "Amenity not found")
     return {"deleted": 1}
+
+
+# ---------------- Disclaimer acknowledgements ----------------
+
+@api.post("/disclaimer/ack")
+async def disclaimer_ack(body: dict = Body(...), u: Optional[dict] = Depends(current_user_optional)):
+    """Record that a visitor acknowledged the listings information disclaimer (best-effort, never blocks browsing)."""
+    doc = DisclaimerAck(
+        version=(body.get("version") or "v1")[:20],
+        visitor_id=(body.get("visitor_id") or "")[:64] or None,
+        user_id=u["sub"] if u else None,
+    )
+    await db.disclaimer_acks.insert_one(doc.model_dump())
+    return {"ok": True}
 
 
 # ---------------- Media Uploads (persistent local storage) ----------------

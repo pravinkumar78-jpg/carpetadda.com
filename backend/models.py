@@ -406,6 +406,15 @@ class Amenity(BaseDoc):
     active: bool = True
 
 
+# ---------- Disclaimer acknowledgement ----------
+class DisclaimerAck(BaseDoc):
+    """Visitor acknowledgement of the listings information disclaimer (audit record)."""
+    version: str = "v1"
+    visitor_id: Optional[str] = None
+    user_id: Optional[str] = None
+    acknowledged: bool = True
+
+
 # ---------- FAQ ----------
 class FAQ(BaseDoc):
     question: str

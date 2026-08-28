@@ -1,6 +1,8 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { Toaster } from "sonner";
+import api from "@/lib/api";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import "@/App.css";
 import "@/index.css";
 
@@ -106,10 +108,49 @@ export default function App() {
           </main>
           <Footer />
           <FloatingWhatsApp />
+          <VisitorDisclaimer />
           <Toaster position="top-center" richColors />
         </div>
       </BrowserRouter>
     </AuthProvider>
+  );
+}
+
+// Visitor disclaimer — shown once per session on listing/detail pages; acknowledgement is recorded best-effort
+const DISCLAIMER_VERSION = "v1";
+const DISCLAIMER_TEXT = "Information displayed on CarpetAdda.com, including prices, availability, specifications, images, amenities, approvals and other project/property details, is provided for general information only and may be subject to change or verification. Users should independently verify important details with the developer, owner or authorised representative before making any decision, payment or commitment.";
+
+function VisitorDisclaimer() {
+  const { pathname } = useLocation();
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    const listingPage = /^\/(properties|projects|commercial-properties|new-launch|rtmi|property\/|project\/)/.test(pathname);
+    if (listingPage && sessionStorage.getItem("eh_disclaimer_ok") !== DISCLAIMER_VERSION) setOpen(true);
+  }, [pathname]);
+
+  const accept = async () => {
+    sessionStorage.setItem("eh_disclaimer_ok", DISCLAIMER_VERSION);
+    setOpen(false);
+    try {
+      let visitorId = localStorage.getItem("eh_visitor_id");
+      if (!visitorId) { visitorId = crypto.randomUUID(); localStorage.setItem("eh_visitor_id", visitorId); }
+      await api.post("/disclaimer/ack", { version: DISCLAIMER_VERSION, visitor_id: visitorId });
+    } catch { /* acknowledgement is best-effort; never block browsing */ }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => { if (!v) accept(); }}>
+      <DialogContent data-testid="visitor-disclaimer" className="max-w-md">
+        <DialogHeader>
+          <DialogTitle className="text-xl">Before you continue</DialogTitle>
+          <DialogDescription className="text-sm text-slate-600 leading-relaxed pt-2">{DISCLAIMER_TEXT}</DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <button data-testid="disclaimer-accept" onClick={accept} className="w-full sm:w-auto px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-colors">I Understand</button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
