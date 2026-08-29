@@ -463,3 +463,7 @@
 - Backend: POST /api/analytics/track (AnalyticsEvent model; device from UA; one-time city/country IP lookup per session via ip-api.com — IP never stored) + GET /api/admin/analytics/summary (admin-only; total/unique visitors, page views, sessions, new vs returning, top properties/projects/pages, referrers, devices, cities, enquiries+site visits from existing collections, daily trend; inclusive date range)
 - Admin → Visitor Reports tab (AdminVisitorReports.jsx): Today / 7 Days / 30 Days / Custom range filters, 10 stat cards, CSS-bar daily trend, 6 ranked cards with listing links
 - Verified: seeded multi-visitor events → summary correct (new/returning split via first-seen check, UA device split, top listing titles resolved, trend); UI tab + filters + cards render with live data; non-admin 403; QA events cleaned. REDEPLOY needed for production
+
+## Implemented (2026-08-29 — Google Ads tag)
+- Google Ads global tag AW-18415547343 installed once in frontend/public/index.html <head> (standard async gtag.js + dataLayer + js/config snippet) — loads on every page (SPA single HTML); no other Google tags existed, none duplicated
+- Verified in browser: gtag/js?id=AW-18415547343 fetched, google.com/ccm/collect Ads beacon fired, dataLayer has js+config calls, exactly one tag, site renders normally. NOTE: index.html changes required a frontend restart (webpack processes it at startup). REDEPLOY needed — then verify on carpetadda.com with Google Ads Tag Assistant
