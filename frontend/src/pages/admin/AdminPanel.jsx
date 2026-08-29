@@ -19,6 +19,7 @@ import LeadsChart from "@/components/LeadsChart";
 import AdminArchive from "@/pages/admin/AdminArchive";
 import AdminPages from "@/pages/admin/AdminPages";
 import DraftsPanel from "@/components/dashboard/DraftsPanel";
+import AdminVisitorReports from "@/pages/admin/AdminVisitorReports";
 import AdminApprovals from "@/pages/admin/AdminApprovals";
 import AdminAmenities from "@/pages/admin/AdminAmenities";
 import { DashNavToggle, DashSidebar } from "@/components/DashNav";
@@ -30,6 +31,7 @@ const TABS = [
   ["drafts", "Drafts", FileDashed],
   ["approvals", "Approvals", CheckCircle],
   ["leads", "Leads", ChatCircle],
+  ["reports", "Visitor Reports", ChartBar],
   ["site-visits", "Site Visits", ListChecks],
   ["email-logs", "Email Logs", EnvelopeSimple],
   ["blogs", "Blog", Article],
@@ -119,6 +121,7 @@ export default function AdminPanel() {
             <TabsContent value="drafts"><DraftsPanel editPropertyBase="/admin/properties" editProjectBase="/admin/projects" /></TabsContent>
             <TabsContent value="approvals"><AdminApprovals /></TabsContent>
             <TabsContent value="leads"><AdminLeads /></TabsContent>
+            <TabsContent value="reports"><AdminVisitorReports /></TabsContent>
             <TabsContent value="site-visits"><AdminSiteVisits /></TabsContent>
             <TabsContent value="email-logs"><AdminEmailLogs /></TabsContent>
             <TabsContent value="blogs"><AdminBlogs /></TabsContent>

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { Toaster } from "sonner";
 import api from "@/lib/api";
+import { track } from "@/lib/track";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import "@/App.css";
 import "@/index.css";
@@ -109,11 +110,37 @@ export default function App() {
           <Footer />
           <FloatingWhatsApp />
           <VisitorDisclaimer />
+          <AnalyticsTracker />
           <Toaster position="top-center" richColors />
         </div>
       </BrowserRouter>
     </AuthProvider>
   );
+}
+
+// Anonymous visitor analytics — page views on public routes, listing views, and WhatsApp/Call click tracking
+function AnalyticsTracker() {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    if (/^\/(admin|dashboard|developer|agent)/.test(pathname)) return; // never track staff areas
+    track("page_view");
+    const pm = pathname.match(/^\/property\/([^/?#]+)/);
+    if (pm) track("property_view", { property_id: pm[1] });
+    const jm = pathname.match(/^\/project\/([^/?#]+)/);
+    if (jm) track("project_view", { project_id: jm[1] });
+  }, [pathname]);
+  useEffect(() => {
+    const onClick = (e) => {
+      const a = e.target.closest("a[href]");
+      if (!a) return;
+      const href = a.getAttribute("href") || "";
+      if (href.includes("wa.me")) track("whatsapp_click");
+      else if (href.startsWith("tel:")) track("call_click");
+    };
+    document.addEventListener("click", onClick, true);
+    return () => document.removeEventListener("click", onClick, true);
+  }, []);
+  return null;
 }
 
 // Visitor disclaimer — shown once per session on listing/detail pages; acknowledgement is recorded best-effort

@@ -14,7 +14,7 @@ from typing import Any, List, Optional
 from dotenv import load_dotenv
 import httpx
 from urllib.parse import urljoin, urlparse
-from fastapi import APIRouter, BackgroundTasks, Body, Depends, FastAPI, File, HTTPException, Query, UploadFile
+from fastapi import APIRouter, BackgroundTasks, Body, Depends, FastAPI, File, HTTPException, Query, Request, UploadFile
 from fastapi.responses import Response
 from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel, EmailStr
@@ -41,6 +41,7 @@ from PIL import Image  # noqa: E402
 from models import (  # noqa: E402
     Agent,
     Amenity,
+    AnalyticsEvent,
     Blog,
     Developer,
     DisclaimerAck,
@@ -1803,6 +1804,106 @@ async def disclaimer_ack(body: dict = Body(...), u: Optional[dict] = Depends(cur
     )
     await db.disclaimer_acks.insert_one(doc.model_dump())
     return {"ok": True}
+
+
+# ---------------- Visitor analytics ----------------
+
+_TRACK_EVENTS = {"page_view", "property_view", "project_view", "whatsapp_click", "call_click"}
+
+
+@api.post("/analytics/track")
+async def analytics_track(request: Request, body: dict = Body(...)):
+    """Anonymous visitor event. Privacy-safe: no IP/name/contact is stored; city comes from a one-time IP lookup per session."""
+    event = (body.get("event") or "")[:30]
+    if event not in _TRACK_EVENTS:
+        raise HTTPException(400, "Unknown event")
+    ua = (request.headers.get("user-agent") or "").lower()
+    device = "tablet" if ("ipad" in ua or "tablet" in ua) else ("mobile" if ("mobile" in ua or "iphone" in ua or ("android" in ua and "tablet" not in ua)) else "desktop")
+    doc = AnalyticsEvent(
+        event=event,
+        path=(body.get("path") or "")[:300] or None,
+        visitor_id=(body.get("visitor_id") or "")[:64] or None,
+        session_id=(body.get("session_id") or "")[:64] or None,
+        device=device,
+        referrer=(body.get("referrer") or "")[:300] or None,
+        meta=body.get("meta") if isinstance(body.get("meta"), dict) else {},
+    )
+    if body.get("session_start"):
+        ip = (request.headers.get("x-forwarded-for") or "").split(",")[0].strip() or (request.client.host if request.client else "")
+        if ip and not ip.startswith(("10.", "192.168.", "127.", "172.")):
+            try:
+                async with httpx.AsyncClient(timeout=3) as cx:
+                    geo = (await cx.get(f"http://ip-api.com/json/{ip}?fields=status,city,country")).json()
+                    if geo.get("status") == "success":
+                        doc.city, doc.country = geo.get("city"), geo.get("country")
+            except Exception:
+                pass
+    await db.analytics_events.insert_one(doc.model_dump())
+    return {"ok": True}
+
+
+@api.get("/admin/analytics/summary", dependencies=[Depends(require_roles("admin"))])
+async def admin_analytics_summary(date_from: str = Query(...), date_to: str = Query(...)):
+    """Aggregated visitor report for an inclusive date range (YYYY-MM-DD)."""
+    start, end = f"{date_from}T00:00:00", f"{date_to}T23:59:59"
+    events = await db.analytics_events.find({"created_at": {"$gte": start, "$lte": end}}, {"_id": 0}).to_list(100000)
+    page_views = [e for e in events if e.get("event") == "page_view"]
+    visitors = {e.get("visitor_id") for e in events if e.get("visitor_id")}
+    sessions = {e.get("session_id") for e in events if e.get("session_id")}
+    # New vs returning: a visitor is "new" if they have no event before the range
+    first_seen = {}
+    for vid in visitors:
+        prior = await db.analytics_events.find_one({"visitor_id": vid, "created_at": {"$lt": start}}, {"_id": 0, "id": 1})
+        first_seen[vid] = bool(prior)
+    new_count = sum(1 for v in first_seen.values() if not v)
+
+    from collections import Counter
+    def _counter(items, key, skip_empty=True):
+        c = Counter((i.get(key) or "") for i in items)
+        return [{"name": k, "count": v} for k, v in c.most_common(8) if k or not skip_empty]
+
+    async def _top_listings(event_name, id_key, collection, title_field):
+        ids = Counter((e.get("meta") or {}).get(id_key) for e in events if e.get("event") == event_name)
+        ids.pop(None, None)
+        top = ids.most_common(8)
+        docs = await db[collection].find({"id": {"$in": [i for i, _ in top]}}, {"_id": 0, "id": 1, title_field: 1, "slug": 1}).to_list(20)
+        names = {d["id"]: (d.get(title_field), d.get("slug")) for d in docs}
+        return [{"name": (names.get(i) or ("(archived)", None))[0], "slug": (names.get(i) or (None, None))[1], "count": c} for i, c in top]
+
+    # daily trend across the range
+    daily: dict[str, dict] = {}
+    for e in events:
+        day = (e.get("created_at") or "")[:10]
+        d = daily.setdefault(day, {"date": day, "page_views": 0, "visitors": set()})
+        if e.get("event") == "page_view":
+            d["page_views"] += 1
+        if e.get("visitor_id"):
+            d["visitors"].add(e["visitor_id"])
+    trend = [{"date": d["date"], "page_views": d["page_views"], "visitors": len(d["visitors"])} for _, d in sorted(daily.items())]
+
+    enquiries = await db.leads.count_documents({"created_at": {"$gte": start, "$lte": end}})
+    site_visits = await db.site_visits.count_documents({"created_at": {"$gte": start, "$lte": end}})
+    host_referrers = [e.get("referrer") for e in events if e.get("referrer") and "carpetadda" not in e["referrer"]]
+
+    return {
+        "total_visitors": len(sessions),           # total visits (sessions incl. repeat)
+        "unique_visitors": len(visitors),
+        "page_views": len(page_views),
+        "sessions": len(sessions),
+        "new_visitors": new_count,
+        "returning_visitors": len(visitors) - new_count,
+        "enquiries": enquiries,
+        "whatsapp_clicks": sum(1 for e in events if e.get("event") == "whatsapp_click"),
+        "call_clicks": sum(1 for e in events if e.get("event") == "call_click"),
+        "site_visits": site_visits,
+        "top_pages": _counter(page_views, "path"),
+        "top_referrers": [{"name": k, "count": v} for k, v in Counter(host_referrers).most_common(8)],
+        "devices": _counter(events, "device"),
+        "cities": _counter([e for e in events if e.get("city")], "city"),
+        "top_properties": await _top_listings("property_view", "property_id", "properties", "title"),
+        "top_projects": await _top_listings("project_view", "project_id", "projects", "name"),
+        "trend": trend,
+    }
 
 
 # ---------------- Media Uploads (persistent local storage) ----------------

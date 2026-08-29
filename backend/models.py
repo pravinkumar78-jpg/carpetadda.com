@@ -415,6 +415,20 @@ class DisclaimerAck(BaseDoc):
     acknowledged: bool = True
 
 
+# ---------- Visitor analytics ----------
+class AnalyticsEvent(BaseDoc):
+    """Anonymous visitor activity event. No IP, name or contact data is ever stored."""
+    event: str  # page_view | property_view | project_view | whatsapp_click | call_click
+    path: Optional[str] = None
+    visitor_id: Optional[str] = None
+    session_id: Optional[str] = None
+    device: Optional[str] = None  # mobile | desktop | tablet (derived from user-agent)
+    referrer: Optional[str] = None
+    city: Optional[str] = None
+    country: Optional[str] = None
+    meta: dict = Field(default_factory=dict)
+
+
 # ---------- FAQ ----------
 class FAQ(BaseDoc):
     question: str
