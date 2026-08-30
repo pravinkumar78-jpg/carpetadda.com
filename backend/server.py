@@ -288,10 +288,38 @@ async def get_location(slug: str):
 
 
 # ---------------- Developers ----------------
+@api.get("/developers/top")
+async def top_developers(limit: int = 6):
+    """Homepage 'Landmark Developers' — ONLY developer users flagged Top Developer."""
+    users = await db.users.find({"role": "developer", "top_developer": True, "active": {"$ne": False}},
+                                {"_id": 0, "password_hash": 0}).to_list(limit)
+    return [await _dev_user_card(u) for u in users]
+
+
 @api.get("/developers")
 async def list_developers(q: Optional[str] = None, limit: int = 50):
-    query = {"name": {"$regex": q, "$options": "i"}} if q else {}
-    return await db.developers.find(query, PROJ).to_list(limit)
+    """Developer directory — sourced from Dashboard → Users (role=developer), the single source of truth."""
+    query: dict[str, Any] = {"role": "developer", "active": {"$ne": False}}
+    if q:
+        query["name"] = {"$regex": q, "$options": "i"}
+    users = await db.users.find(query, {"_id": 0, "password_hash": 0}).to_list(limit)
+    return [await _dev_user_card(u) for u in users]
+
+
+async def _dev_user_counts(uid: str):
+    scope = {"$or": [{"owner_id": uid}, {"assigned_to": uid}], "status": "active"}
+    return (await db.projects.count_documents(scope), await db.properties.count_documents(scope))
+
+
+async def _dev_user_card(u: dict):
+    projects, properties = await _dev_user_counts(u["id"])
+    return {
+        "id": u["id"], "slug": u["id"], "name": u.get("name"),
+        "logo": u.get("avatar"), "description": None, "experience_years": None,
+        "phone": u.get("phone"), "whatsapp": u.get("whatsapp"),
+        "total_projects": projects, "total_properties": properties,
+        "top_developer": bool(u.get("top_developer")),
+    }
 
 
 @api.post("/admin/developers", dependencies=[Depends(require_roles("admin"))])
@@ -325,6 +353,14 @@ async def create_developer(body: dict = Body(...)):
 
 @api.get("/developers/{slug}")
 async def get_developer(slug: str):
+    # Single source of truth: developer-role user accounts (slug = user id)
+    u = await db.users.find_one({"id": slug, "role": "developer"}, {"_id": 0, "password_hash": 0})
+    if u:
+        scope = {"$or": [{"owner_id": slug}, {"assigned_to": slug}], "status": "active"}
+        projects = await db.projects.find(scope, PROJ).to_list(50)
+        properties = await db.properties.find(scope, PROJ).to_list(50)
+        return {**await _dev_user_card(u), "projects": projects, "properties": properties}
+    # Legacy directory records — kept so old links and existing project data keep working
     doc = await db.developers.find_one({"slug": slug}, PROJ)
     if not doc:
         raise HTTPException(404, "Developer not found")
@@ -1414,9 +1450,9 @@ async def homepage_bundle():
     if not best_resale:
         best_resale = await db.properties.find({"status": "active", "listing_type": "sale"}, PROJ).sort([("views", -1)]).limit(3).to_list(3)
 
-    top_developers = await db.developers.find({"show_on_homepage": True}, PROJ).limit(6).to_list(6)
-    if not top_developers:
-        top_developers = await db.developers.find({}, PROJ).limit(6).to_list(6)
+    top_developers = [await _dev_user_card(u) for u in await db.users.find(
+        {"role": "developer", "top_developer": True, "active": {"$ne": False}},
+        {"_id": 0, "password_hash": 0}).to_list(6)]
 
     testimonials = await db.testimonials.find({"show_on_homepage": True, "published": True}, PROJ).limit(6).to_list(6)
     if not testimonials:

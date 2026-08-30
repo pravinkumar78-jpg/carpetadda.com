@@ -44,6 +44,7 @@ class User(BaseDoc):
     verified: bool = False
     active: bool = True
     approved: Optional[bool] = None  # False = agent/developer/owner awaiting admin approval; None/True = approved
+    top_developer: Optional[bool] = None  # developer accounts flagged for the Homepage "Landmark Developers" section
 
 
 class UserOut(BaseModel):

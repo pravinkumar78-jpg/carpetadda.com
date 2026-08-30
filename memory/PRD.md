@@ -467,3 +467,10 @@
 ## Implemented (2026-08-29 — Google Ads tag)
 - Google Ads global tag AW-18415547343 installed once in frontend/public/index.html <head> (standard async gtag.js + dataLayer + js/config snippet) — loads on every page (SPA single HTML); no other Google tags existed, none duplicated
 - Verified in browser: gtag/js?id=AW-18415547343 fetched, google.com/ccm/collect Ads beacon fired, dataLayer has js+config calls, exactly one tag, site renders normally. NOTE: index.html changes required a frontend restart (webpack processes it at startup). REDEPLOY needed — then verify on carpetadda.com with Google Ads Tag Assistant
+
+## Implemented (2026-08-30 — Top Developer flag + user-sourced developer directory)
+- Single source of truth = Dashboard → Users (role=developer): GET /developers now lists developer users (active, with live counts); GET /developers/top + homepage top_developers serve ONLY top_developer=True users (homepage section hides when none flagged — legacy developers collection no longer feeds homepage/directory; GET /developers/{slug} resolves user by id first, legacy directory slug fallback keeps old links working)
+- Counts: active-only, scope = owner_id OR assigned_to (projects + properties), computed live per request
+- Admin → Users edit dialog: "Top Developer (show on Homepage)" checkbox when role=developer (User model gained top_developer; cleared automatically if role changes away)
+- Developers page: compact consistent cards (initials avatar fallback, counts, Top Developer badge, View Profile); Developer detail: profile + ONLY active listings (Projects/Properties sections hidden when empty; clean "no live listings" state); cards link to /developer/{user-id}
+- Verified all 6 checks: flag→homepage appears w/ counts+logo; unflag→disappears (still on directory); card click→dedicated page; only active listings (draft excluded); counts correct; legacy /developer/lodha-group fallback 200. Test assignments/draft/flag/avatar all restored. REDEPLOY needed for production

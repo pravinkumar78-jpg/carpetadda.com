@@ -210,6 +210,7 @@ function RoleDialog({ user, onClose, onSaved }) {
   const [avatar, setAvatar] = useState(user.avatar || "");
   const [password, setPassword] = useState("");
   const [approved, setApproved] = useState(user.approved !== false);
+  const [topDeveloper, setTopDeveloper] = useState(!!user.top_developer);
   const [busy, setBusy] = useState(false);
 
   const submit = async (e) => {
@@ -223,7 +224,7 @@ function RoleDialog({ user, onClose, onSaved }) {
     if (password && password.length < 8) { toast.error("Password must be at least 8 characters"); return; }
     setBusy(true);
     try {
-      const payload = { role, verified, active, approved, name: name.trim(), email: email.trim().toLowerCase(), phone: phone.trim() || null, whatsapp: whatsapp.trim() || null, avatar: avatar || null };
+      const payload = { role, verified, active, approved, top_developer: role === "developer" ? topDeveloper : false, name: name.trim(), email: email.trim().toLowerCase(), phone: phone.trim() || null, whatsapp: whatsapp.trim() || null, avatar: avatar || null };
       if (password) payload.password = password;
       await api.put(`/admin/users/${user.id}`, payload);
       toast.success("User updated");
@@ -279,6 +280,11 @@ function RoleDialog({ user, onClose, onSaved }) {
           {["agent", "developer", "owner"].includes(role) && (
             <label className="flex items-center gap-2 text-sm text-slate-700">
               <input type="checkbox" data-testid="role-approved" checked={approved} onChange={e => setApproved(e.target.checked)} /> Approved (agent/developer listings allowed)
+            </label>
+          )}
+          {role === "developer" && (
+            <label className="flex items-center gap-2 text-sm text-slate-700">
+              <input type="checkbox" data-testid="role-top-developer" checked={topDeveloper} onChange={e => setTopDeveloper(e.target.checked)} /> Top Developer (show on Homepage)
             </label>
           )}
           <DialogFooter>
