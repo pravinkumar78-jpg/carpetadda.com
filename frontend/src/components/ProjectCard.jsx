@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { MapPin, Buildings, Calendar, ArrowRight, WhatsappLogo } from "@phosphor-icons/react";
+import { MapPin, Calendar, ArrowRight, WhatsappLogo } from "@phosphor-icons/react";
 import { formatINR } from "@/lib/format";
 import { waProjectMsg } from "@/lib/whatsapp";
 
@@ -28,7 +28,7 @@ export default function ProjectCard({ p, layout = "grid" }) {
               <span className="text-xl font-bold text-slate-900">{formatINR(p.price_from)}</span>
             </div>
             <div className="flex items-center gap-4 text-xs text-slate-500">
-              <span className="flex items-center gap-1"><Buildings size={12} className="text-blue-500" /> {p.total_units} units</span>
+
               <span className="flex items-center gap-1"><Calendar size={12} className="text-blue-500" /> {p.possession_date}</span>
               <button type="button" data-testid={`project-wa-${p.id}`} aria-label={`WhatsApp about ${p.name}`}
                 onClick={e => { e.stopPropagation(); e.preventDefault(); window.open(waProjectMsg(p), "_blank", "noopener"); }}
@@ -63,7 +63,6 @@ export default function ProjectCard({ p, layout = "grid" }) {
           ))}
         </div>
         <div className="flex items-center justify-between text-xs text-slate-500 pt-2 border-t border-slate-100">
-          <span className="flex items-center gap-1"><Buildings size={12} className="text-blue-500" /> {p.total_units} units</span>
           <span className="flex items-center gap-1"><Calendar size={12} className="text-blue-500" /> {p.possession_date}</span>
         </div>
         <div className="flex items-center justify-between pt-1">

@@ -11,6 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ArrowLeft, FloppyDisk, Upload, Eye, Info, House, MapPin, Sparkle, Image as ImageIcon, MagnifyingGlass, Flag, Camera, Crosshair, CircleNotch } from "@phosphor-icons/react";
 import ImageUpload from "@/components/ImageUpload";
+import AddressSearchInput from "@/components/AddressSearchInput";
 import MultiImageUpload from "@/components/MultiImageUpload";
 import RichTextEditor from "@/components/RichTextEditor";
 import AddAmenity from "@/components/AddAmenity";
@@ -163,6 +164,14 @@ export default function PropertyForm() {
     } catch (err) {
       toast.error(err?.response?.data?.detail || "Could not fetch nearby locations — you can enter them manually");
     } finally { setFetchingNearby(false); }
+  };
+
+  // Address picked from map search → auto-fill location fields (never overwrites a manually entered locality)
+  const applyGeo = (g) => {
+    set("lat", g.lat); set("lng", g.lng);
+    if (g.city) set("city", g.city);
+    if (g.locality && !(f.location || "").trim()) set("location", g.locality);
+    set("google_map_link", `https://www.google.com/maps?q=${g.lat},${g.lng}`);
   };
 
   const toggleFlag = (flag) => {
@@ -359,10 +368,15 @@ export default function PropertyForm() {
             <div className="space-y-4">
               <h2 className="text-xl font-semibold text-slate-900 mb-4">Location</h2>
               <div className="grid grid-cols-2 gap-4">
-                <F label="City"><Sel value={f.city} onChange={v => set("city", v)} options={CITIES.map(c => [c, c.replace("-", " ").replace(/\b\w/g, x => x.toUpperCase())])} /></F>
+                <F label="City">
+                  <Sel value={CITIES.includes(f.city) ? f.city : "__other"} onChange={v => set("city", v === "__other" ? "" : v)} options={[...CITIES.map(c => [c, c.replace("-", " ").replace(/\b\w/g, x => x.toUpperCase())]), ["__other", "Other — Add City"]]} />
+                  {!CITIES.includes(f.city) && (
+                    <Input data-testid="city-custom" value={f.city || ""} onChange={e => set("city", e.target.value.trim().toLowerCase().replace(/\s+/g, "-"))} placeholder="Type city name (e.g. pune)" className="h-11 rounded-lg border-slate-300 mt-2" />
+                  )}
+                </F>
                 <F label="Locality slug"><Input value={f.location} onChange={e => set("location", e.target.value)} placeholder="e.g. dombivli-east" /></F>
               </div>
-              <F label="Full Address"><Input value={f.address} onChange={e => set("address", e.target.value)} /></F>
+              <F label="Full Address"><AddressSearchInput dataTestid="property-address" value={f.address} onChange={v => set("address", v)} onSelect={applyGeo} /></F>
               <div className="grid grid-cols-2 gap-4">
                 <F label="Latitude"><Input type="number" step="0.0001" value={f.lat ?? ""} onChange={e => set("lat", Number(e.target.value) || null)} /></F>
                 <F label="Longitude"><Input type="number" step="0.0001" value={f.lng ?? ""} onChange={e => set("lng", Number(e.target.value) || null)} /></F>

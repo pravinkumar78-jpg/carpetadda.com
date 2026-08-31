@@ -2044,6 +2044,34 @@ def _fmt_dist(m: float) -> str:
     return f"{int(round(m, -1))} m" if m < 1000 else f"{m / 1000:.1f} km"
 
 
+@api.get("/geo/search")
+async def geo_search(q: str = Query(..., min_length=3)):
+    """Address autocomplete via the existing OSM-based provider (Photon) — no API key required."""
+    try:
+        async with httpx.AsyncClient(timeout=8, headers={"User-Agent": "carpetadda/1.0"}) as client:
+            r = await client.get("https://photon.komoot.io/api/", params={"q": q, "limit": 6, "lang": "en"})
+            feats = r.json().get("features", [])
+    except Exception:
+        return []
+    out = []
+    for ft in feats:
+        p = ft.get("properties", {}) or {}
+        coords = (ft.get("geometry") or {}).get("coordinates") or []
+        if len(coords) < 2:
+            continue
+        lng, lat = coords[0], coords[1]
+        label = ", ".join(x for x in [p.get("name"), p.get("locality") or p.get("district"), p.get("city"), p.get("state")] if x)
+        out.append({
+            "label": label or p.get("name") or q,
+            "address": label or p.get("name") or q,
+            "lat": lat, "lng": lng,
+            "city": (p.get("city") or "").strip().lower().replace(" ", "-") or None,
+            "locality": (p.get("locality") or p.get("district") or "").strip().lower().replace(" ", "-") or None,
+            "postcode": p.get("postcode"),
+        })
+    return out
+
+
 @api.post("/nearby/fetch")
 async def fetch_nearby(body: dict = Body(...), u: dict = Depends(current_user)):
     """Fetch real nearby landmarks from OpenStreetMap. Accepts lat/lng or an
