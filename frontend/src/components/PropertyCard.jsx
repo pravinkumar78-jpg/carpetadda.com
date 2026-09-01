@@ -27,7 +27,8 @@ export default function PropertyCard({ p, layout = "grid" }) {
     return (
       <Link to={`/property/${p.slug}`} data-testid={`property-card-${p.id}`} className="group grid grid-cols-1 md:grid-cols-[280px,1fr] gap-0 card-premium overflow-hidden">
         <div className="img-zoom-wrapper aspect-[4/3] md:aspect-auto md:h-full relative">
-          <img src={p.images?.[0]} alt={p.title} className="w-full h-full object-cover" loading="lazy" />
+          <img src={p.main_image || p.images?.[0]} alt={p.title} className="w-full h-full object-cover" loading="lazy"
+            onError={e => { const alt = (p.images || []).find(u => u && u !== e.currentTarget.getAttribute("src")); e.currentTarget.onerror = null; if (alt) e.currentTarget.src = alt; else e.currentTarget.style.opacity = "0"; }} />
           <div className="absolute top-3 left-3 flex flex-col gap-2">
             {p.featured && <span className="blue-badge">Featured</span>}
             {p.rera_number && <span className="blue-badge">RERA</span>}
@@ -60,7 +61,8 @@ export default function PropertyCard({ p, layout = "grid" }) {
     <div className="group card-premium overflow-hidden flex flex-col relative">
       <Link to={`/property/${p.slug}`} data-testid={`property-card-${p.id}`} className="block">
         <div className="img-zoom-wrapper aspect-[4/3] relative bg-slate-100">
-          <img src={p.images?.[0]} alt={p.title} className="w-full h-full object-cover" loading="lazy" />
+          <img src={p.main_image || p.images?.[0]} alt={p.title} className="w-full h-full object-cover" loading="lazy"
+            onError={e => { const alt = (p.images || []).find(u => u && u !== e.currentTarget.getAttribute("src")); e.currentTarget.onerror = null; if (alt) e.currentTarget.src = alt; else e.currentTarget.style.opacity = "0"; }} />
           <div className="absolute top-3 left-3 flex flex-col gap-2">
             {p.featured && <span className="blue-badge">Featured</span>}
             {p.rera_number && <span className="blue-badge">RERA</span>}

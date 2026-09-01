@@ -8,7 +8,8 @@ export default function ProjectCard({ p, layout = "grid" }) {
     return (
       <Link to={`/project/${p.slug}`} data-testid={`project-card-${p.id}`} className="group card-premium overflow-hidden flex flex-col sm:flex-row">
         <div className="img-zoom-wrapper sm:w-72 sm:flex-shrink-0 aspect-[16/10] sm:aspect-auto relative bg-slate-100">
-          <img src={p.images?.[0]} alt={p.name} className="w-full h-full object-cover sm:absolute sm:inset-0" loading="lazy" />
+          <img src={p.main_image || p.images?.[0]} alt={p.name} className="w-full h-full object-cover sm:absolute sm:inset-0" loading="lazy"
+            onError={e => { const alt = (p.images || []).find(u => u && u !== e.currentTarget.getAttribute("src")); e.currentTarget.onerror = null; if (alt) e.currentTarget.src = alt; else e.currentTarget.style.opacity = "0"; }} />
           {p.featured && <span className="absolute top-3 left-3 blue-badge">Featured</span>}
         </div>
         <div className="p-5 flex-1 flex flex-col justify-between gap-3">
@@ -44,7 +45,8 @@ export default function ProjectCard({ p, layout = "grid" }) {
   return (
     <Link to={`/project/${p.slug}`} data-testid={`project-card-${p.id}`} className="group card-premium overflow-hidden flex flex-col">
       <div className="img-zoom-wrapper aspect-[16/10] relative bg-slate-100">
-        <img src={p.images?.[0]} alt={p.name} className="w-full h-full object-cover" loading="lazy" />
+        <img src={p.main_image || p.images?.[0]} alt={p.name} className="w-full h-full object-cover" loading="lazy"
+          onError={e => { const alt = (p.images || []).find(u => u && u !== e.currentTarget.getAttribute("src")); e.currentTarget.onerror = null; if (alt) e.currentTarget.src = alt; else e.currentTarget.style.opacity = "0"; }} />
         <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-900/85 via-slate-900/40 to-transparent p-5 pt-16 text-white">
           <div className="text-[10px] uppercase tracking-widest text-blue-200 font-semibold mb-1">{(p.construction_status || "").replace("_", " ")}</div>
           <h3 className="text-xl font-semibold leading-tight">{p.name}</h3>

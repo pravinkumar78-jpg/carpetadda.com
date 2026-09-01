@@ -3,7 +3,7 @@ import { toast } from "sonner";
 import api from "@/lib/api";
 import { CheckCircle, XCircle, Clock } from "@phosphor-icons/react";
 
-const SKIP = new Set(["seo", "nearby_locations", "images", "floor_plans", "rera_entries", "amenities", "features"]);
+const SKIP = new Set(["seo", "nearby_locations", "images", "main_image", "floor_plans", "rera_entries", "amenities", "features"]);
 const fmtWhen = (iso) => { const d = new Date(iso); return isNaN(d) ? "—" : d.toLocaleString("en-IN", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" }); };
 
 /** Super admin: review edits that assigned/owner users made to LIVE listings. */
@@ -88,6 +88,16 @@ export default function AdminApprovals() {
                       <div key={x.field} className="text-[11px] text-slate-500"><span className="font-semibold text-slate-600 capitalize">{x.field}:</span> {x.text}</div>
                     ))}
                   </div>
+                  {(() => {
+                    const pc = r.d.pending_changes || {};
+                    const thumbs = [...(pc.main_image ? [pc.main_image] : []), ...(Array.isArray(pc.images) ? pc.images : [])].filter(Boolean);
+                    const uniq = [...new Set(thumbs)].slice(0, 6);
+                    return uniq.length > 0 && (
+                      <div className="flex gap-1 mt-1.5 flex-wrap" data-testid={`approval-images-${r.d.id}`}>
+                        {uniq.map((src, i) => <img key={i} src={src} alt="" className="w-10 h-10 rounded object-cover border border-slate-200" />)}
+                      </div>
+                    );
+                  })()}
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex items-center justify-end gap-1.5">
