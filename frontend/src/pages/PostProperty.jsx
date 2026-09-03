@@ -16,14 +16,13 @@ export default function PostProperty() {
     city: "dombivli", location: "dombivli-east", address: "",
   });
 
-  // List Property flow: not logged in → Login page preserving the intended
-  // destination (login page links to Register, both carry ?next= back here).
-  // Logged in → the form renders directly.
-  if (ready && !user) return <Navigate to="/login?next=/post-property" replace />;
+  // List Property flow: not logged in → Login page; after login/register users
+  // land on /dashboard (no return to this form). Logged in → form renders directly.
+  if (ready && !user) return <Navigate to="/login" replace />;
 
   const submit = async (e) => {
     e.preventDefault();
-    if (!user) { nav("/login?next=/post-property"); return; }
+    if (!user) { nav("/login"); return; }
     try {
       const payload = { ...f, slug: f.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 60) + "-" + Date.now(),
         images: ["https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=940"] };
