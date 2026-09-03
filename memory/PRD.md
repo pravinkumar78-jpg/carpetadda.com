@@ -550,3 +550,8 @@
 - Home.jsx: the dark CTA section's inner content replaced — "Subscribe" heading + subtext + email input + Subscribe button (section wrapper/dark bg/glow/spacing untouched); posts to the new endpoint with success toast. Old cta-list-property link removed from THIS section only; header/mobile/dashboard List Property untouched
 - server.py: POST /api/subscribe — validates email, stores in new subscribers collection (deduped), background task forwards "New Subscriber" notification to LEAD_RECIPIENT_EMAIL (contact@carpetadda.com) via the existing email_service pipeline (send_account_email → _deliver → email_log)
 - Verified in preview: form visible in dark section, old CTA gone; submitted subverify@example.com → success toast + input cleared; subscribers collection stored it; email_log shows kind=subscribe to contact@carpetadda.com status=sent (emergent-proxy). Test subscriber cleaned up. REDEPLOY needed for production
+
+## Fixed (2026-09-03 — Address live-search India bias + no-match message)
+- server.py /api/geo/search: Photon query now appends ", India" (same bias pattern as the existing /nearby/fetch lookup) — same free provider, no keys, response shape unchanged
+- AddressSearchInput.jsx: zero-result searches now show "No matches — type more or enter the address manually" (data-testid {testid}-no-matches) instead of silently clearing; suggestion-select behavior (address/coords/city/map link auto-fill) unchanged
+- Verified: API — dombivli query returns only Maharashtra results, gibberish returns []; preview — gibberish shows the no-match message, "Dombivli station" returns Indian suggestions and selecting one filled address + lat/lng + Google Maps link. No data saved. REDEPLOY needed for production

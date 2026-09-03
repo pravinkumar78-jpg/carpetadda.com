@@ -10,6 +10,7 @@ import { MapPin } from "@phosphor-icons/react";
 export default function AddressSearchInput({ value, onChange, onSelect, dataTestid, placeholder }) {
   const [q, setQ] = useState(value || "");
   const [opts, setOpts] = useState([]);
+  const [noMatch, setNoMatch] = useState(false);
   const [open, setOpen] = useState(false);
   const boxRef = useRef(null);
   const debRef = useRef(null);
@@ -25,19 +26,25 @@ export default function AddressSearchInput({ value, onChange, onSelect, dataTest
     setQ(text);
     onChange(text);
     clearTimeout(debRef.current);
-    if (text.trim().length < 3) { setOpts([]); setOpen(false); return; }
+    if (text.trim().length < 3) { setOpts([]); setNoMatch(false); setOpen(false); return; }
     debRef.current = setTimeout(async () => {
       try {
         const { data } = await api.get(`/geo/search?q=${encodeURIComponent(text.trim())}`);
         setOpts(data || []);
+        setNoMatch(!(data || []).length);
         setOpen(true);
-      } catch { setOpts([]); }
+      } catch { setOpts([]); setNoMatch(false); }
     }, 350);
   };
 
   return (
     <div className="relative" ref={boxRef}>
       <Input data-testid={dataTestid} value={q} onChange={e => search(e.target.value)} onFocus={() => opts.length > 0 && setOpen(true)} placeholder={placeholder || "Start typing the address…"} autoComplete="off" />
+      {open && noMatch && (
+        <div className="absolute z-30 inset-x-0 top-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg px-3 py-2.5 text-sm text-slate-500" data-testid={`${dataTestid}-no-matches`}>
+          No matches — type more or enter the address manually
+        </div>
+      )}
       {open && opts.length > 0 && (
         <ul className="absolute z-30 inset-x-0 top-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-60 overflow-y-auto" data-testid={`${dataTestid}-suggestions`}>
           {opts.map((o, i) => (

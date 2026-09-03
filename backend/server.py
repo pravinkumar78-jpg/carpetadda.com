@@ -2052,7 +2052,7 @@ async def geo_search(q: str = Query(..., min_length=3)):
     """Address autocomplete via the existing OSM-based provider (Photon) — no API key required."""
     try:
         async with httpx.AsyncClient(timeout=8, headers={"User-Agent": "carpetadda/1.0"}) as client:
-            r = await client.get("https://photon.komoot.io/api/", params={"q": q, "limit": 6, "lang": "en"})
+            r = await client.get("https://photon.komoot.io/api/", params={"q": q + ", India", "limit": 6, "lang": "en"})
             feats = r.json().get("features", [])
     except Exception:
         return []
