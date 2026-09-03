@@ -534,3 +534,8 @@
 ## Implemented (2026-09-03 — Total Units back on Project listing cards)
 - ProjectCard.jsx (grid + list layouts): added "N Units" meta line with Buildings icon next to possession date, rendered only when total_units exists; reuses the existing total_units field from the projects API. Card→detail link and detail page "Total Units" facts row already existed — untouched
 - Verified in preview: grid cards show units (e.g. Lodha Opulis 200), list layout shows units, clicking a card opens the detail page showing the same Total Units (200). REDEPLOY needed for production
+
+## Fixed (2026-09-03 — Total Number of Units input in Project form)
+- Gap: total_units existed in backend model/API/form-state and was displayed on cards + detail page, but the Project form Details tab had NO input to manage it
+- Fix (single field): ProjectForm.jsx Details tab gained "Total Number of Units" number input (data-testid="project-total-units") bound to existing f.total_units, next to Total Towers. Saves via the existing project create/update API; no backend change
+- Verified in preview as admin: edited Lodha Opulis → field visible (200) → set 234 → Publish → listing card showed 234 Units and detail page Total Units 234 → restored 200 via the form → confirmed 200 everywhere. Note: publish requires the USER (assigned_to) selector; temporarily assigned admin in DB to pass validation, then reverted — final data identical to original (total_units 200, active, assigned_to empty). REDEPLOY needed for production

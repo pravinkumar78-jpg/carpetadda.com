@@ -389,6 +389,7 @@ export default function ProjectForm() {
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                 <F label="Land Size"><Input data-testid="project-land-size" value={f.land_size || ""} onChange={e => set("land_size", e.target.value)} placeholder="e.g. 2.5 Acres" /></F>
                 <F label="Total Towers"><Input type="number" value={f.total_towers ?? 0} onChange={e => set("total_towers", Number(e.target.value))} /></F>
+                <F label="Total Number of Units"><Input data-testid="project-total-units" type="number" value={f.total_units ?? 0} onChange={e => set("total_units", Number(e.target.value))} /></F>
                 <F label="Total Floors (per tower, e.g. Tower A: 20, Tower B: 30)"><Input data-testid="project-total-floors" value={f.total_floors ?? ""} onChange={e => set("total_floors", e.target.value)} placeholder="Single tower: 22 — or Tower A: 20, Tower B: 30" /></F>
                 <F label="Area From (sq.ft.)"><Input type="number" value={f.area_from ?? ""} onChange={e => set("area_from", Number(e.target.value) || null)} /></F>
                 <F label="Area To (sq.ft.)"><Input type="number" value={f.area_to ?? ""} onChange={e => set("area_to", Number(e.target.value) || null)} /></F>
