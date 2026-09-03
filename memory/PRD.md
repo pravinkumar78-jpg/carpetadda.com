@@ -522,3 +522,6 @@
 
 ## Changed (2026-09-03 — Properties page H1)
 - Properties.jsx H1 (non-commercial) changed from "Properties for Sale & Rent" to "Properties for Rent"; commercial page heading untouched. Verified in preview: H1 renders "Properties for Rent". REDEPLOY needed for production
+
+## Changed (2026-09-03 — Properties page H1, second edit)
+- Properties.jsx H1 (non-commercial) changed from "Properties for Rent" to "Properties for Buy"; commercial heading untouched. Verified in preview: H1 renders "Properties for Buy". REDEPLOY needed for production
