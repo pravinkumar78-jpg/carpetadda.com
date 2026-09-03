@@ -530,3 +530,7 @@
 - Root cause: Buy (/properties?listing_type=sale) and Rent (/properties?listing_type=rent) share the existing Properties component with URL-driven state (listings/filters already correct), but the H1 ignored listing_type and always showed "Properties for Buy"
 - Fix (single line, Properties.jsx H1): rent → "Properties for Rent", sale/default → "Properties for Buy", commercial unchanged
 - Verified in preview: open Buy ✓, open Rent ✓, switch Buy→Rent ✓, switch Rent→Buy ✓, refresh Buy ✓, refresh Rent ✓, commercial still "Commercial Properties" ✓. REDEPLOY needed for production
+
+## Implemented (2026-09-03 — Total Units back on Project listing cards)
+- ProjectCard.jsx (grid + list layouts): added "N Units" meta line with Buildings icon next to possession date, rendered only when total_units exists; reuses the existing total_units field from the projects API. Card→detail link and detail page "Total Units" facts row already existed — untouched
+- Verified in preview: grid cards show units (e.g. Lodha Opulis 200), list layout shows units, clicking a card opens the detail page showing the same Total Units (200). REDEPLOY needed for production
