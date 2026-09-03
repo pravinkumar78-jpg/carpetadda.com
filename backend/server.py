@@ -1789,7 +1789,8 @@ async def list_amenities(category: Optional[str] = None):
     q: dict = {"active": True}
     if category:
         q["category"] = {"$regex": f"^{re.escape(category)}$", "$options": "i"}
-    return await db.amenities.find(q, PROJ).to_list(200)
+    docs = await db.amenities.find(q, PROJ).to_list(200)
+    return sorted(docs, key=lambda a: (a.get("name") or "").lower())
 
 
 @api.post("/admin/amenities", dependencies=[Depends(require_roles("admin", "agent", "developer", "owner"))])

@@ -508,3 +508,9 @@
 - Root cause: PropertyCard grid (Properties Listing page) had Call hardcoded to tel:+918828830707 and waPropertyMsg(p) called without a phone; the list endpoint GET /api/properties never included the contact object (only the detail endpoint did)
 - Fix (2 files, minimal): server.py list_properties enriches each item via the existing _listing_contact() helper (assigned_to user → agent_id agent/user → None); PropertyCard.jsx grid now uses telTo(p.contact?.phone || p.contact?.whatsapp) and waPropertyMsg(p, same) — existing helpers auto-fall back to business number 918828830707. No new fields/APIs; list layout & detail pages untouched
 - Verified in preview: assigned property (Spacious 2 BHK Kalyan West, agent Aakash Shah 9820033311) → Call tel:+919820033311, WhatsApp wa.me/919820033311; unassigned property (contact None) → both fall back to +918828830707. REDEPLOY needed for production
+
+## Implemented (2026-09-03 — Amenities A–Z dropdown multi-select across all forms)
+- GET /api/amenities now returns amenities sorted A–Z (case-insensitive) — every new amenity added from Admin automatically lands in its correct position everywhere (forms + Admin Amenities page consume this API)
+- New shared component frontend/src/components/AmenitiesSelect.jsx (popover dropdown + checkboxes, A–Z sorted options, selected amenities shown as removable chips, count in trigger) — reuses existing amenities API; no duplicate system
+- PropertyForm (Residential + Commercial via category switch) and ProjectForm amenities tabs: toggle-button grid replaced with AmenitiesSelect; existing quick-add + AddAmenity modal unchanged and feed the same list
+- Verified in preview as admin: residential dropdown sorted + chips + quick-added "Aaa Verify Test" auto-placed in A–Z position (then deleted); commercial category swaps to its own sorted list; project form sorted + chips + shared list reflected. No listings/drafts saved. REDEPLOY needed for production

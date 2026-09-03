@@ -12,6 +12,7 @@ import ImageUpload from "@/components/ImageUpload";
 import AddressSearchInput from "@/components/AddressSearchInput";
 import RichTextEditor from "@/components/RichTextEditor";
 import AddAmenity from "@/components/AddAmenity";
+import AmenitiesSelect from "@/components/AmenitiesSelect";
 import { CreateUserDialog } from "@/pages/admin/AdminUsers";
 
 const CITIES = ["mumbai", "thane", "navi-mumbai", "dombivli", "kalyan"];
@@ -469,17 +470,7 @@ export default function ProjectForm() {
                 <Input data-testid="new-amenity-quick-input" value={newAmenity} onChange={e => setNewAmenity(e.target.value)} onKeyDown={e => e.key === "Enter" && (e.preventDefault(), newAmenity.trim() ? addAmenity() : toast.error("Please enter an amenity name"))} placeholder="Quick add, e.g. Sky Deck" className="h-11 rounded-lg border-slate-300 max-w-xs" />
                 <AddAmenity existing={amenityOptions} onAdded={amenityAdded} category={f.property_category} />
               </div>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                {Array.from(new Set([...amenityOptions, ...(f.amenities || [])])).map(a => {
-                  const on = (f.amenities || []).includes(a);
-                  return (
-                    <button key={a} type="button" onClick={() => set("amenities", on ? f.amenities.filter(x => x !== a) : [...(f.amenities || []), a])}
-                      className={`text-left px-3 py-2.5 rounded-lg border text-sm ${on ? "bg-blue-600 text-white border-blue-600" : "bg-white border-slate-200 text-slate-700 hover:border-blue-300"}`}>
-                      {on ? "✓ " : ""}{a}
-                    </button>
-                  );
-                })}
-              </div>
+              <AmenitiesSelect options={amenityOptions} selected={f.amenities || []} onChange={v => set("amenities", v)} testIdPrefix="project-amenities" />
             </div>
           )}
 
