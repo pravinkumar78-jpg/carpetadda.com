@@ -2300,6 +2300,28 @@ async def delete_lead(lid: str):
     return {"deleted": res.deleted_count}
 
 
+# ---------------- Subscribe ----------------
+@api.post("/subscribe")
+async def subscribe(background: BackgroundTasks, body: dict = Body(...)):
+    email = (body.get("email") or "").strip().lower()
+    if not re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", email):
+        raise HTTPException(400, "Valid email required")
+    if not await db.subscribers.find_one({"email": email}, {"_id": 0, "id": 1}):
+        await db.subscribers.insert_one({"id": secrets.token_hex(8), "email": email, "created_at": _now_iso_str()})
+    background.add_task(_notify_subscriber, email)
+    return {"ok": True, "message": "Subscribed successfully."}
+
+
+async def _notify_subscriber(email: str):
+    """Forward a new subscriber to the business inbox via the existing email pipeline."""
+    try:
+        to = os.environ.get("LEAD_RECIPIENT_EMAIL", "contact@carpetadda.com")
+        html = f"<p>New newsletter subscriber on CarpetAdda:</p><p><strong>{escape(email)}</strong></p>"
+        await send_account_email(to, f"New Subscriber — {escape(email)}", html, kind="subscribe")
+    except Exception as e:
+        log.error("Subscribe notify failed: %s", e)
+
+
 # ---------------- Site Visits ----------------
 @api.post("/site-visits")
 async def create_site_visit(body: SiteVisit, background: BackgroundTasks):

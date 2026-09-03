@@ -545,3 +545,8 @@
 - ProjectForm.jsx gallery section: add-slot now accepts multiple files at once and appends all to the existing images list (ordering/storage/approval logic untouched); gallery previews render original aspect
 - AllImagesGallery.jsx: new opt-in `contain` prop (tiles object-contain, no crop/stretch, no hover-zoom crop); ProjectDetail passes it; PropertyDetail does NOT (unchanged)
 - Verified in preview: selected 3 files (landscape/portrait/square) in one action → all 3 uploaded and previewed uncropped (portrait letterboxed, natural 500x800 preserved); Project Detail gallery tiles object-contain; Property Detail gallery still object-cover; Property form inputs unchanged. No project saved (test form never published). REDEPLOY needed for production
+
+## Implemented (2026-09-03 — Home Subscribe section replaces List-Property CTA)
+- Home.jsx: the dark CTA section's inner content replaced — "Subscribe" heading + subtext + email input + Subscribe button (section wrapper/dark bg/glow/spacing untouched); posts to the new endpoint with success toast. Old cta-list-property link removed from THIS section only; header/mobile/dashboard List Property untouched
+- server.py: POST /api/subscribe — validates email, stores in new subscribers collection (deduped), background task forwards "New Subscriber" notification to LEAD_RECIPIENT_EMAIL (contact@carpetadda.com) via the existing email_service pipeline (send_account_email → _deliver → email_log)
+- Verified in preview: form visible in dark section, old CTA gone; submitted subverify@example.com → success toast + input cleared; subscribers collection stored it; email_log shows kind=subscribe to contact@carpetadda.com status=sent (emergent-proxy). Test subscriber cleaned up. REDEPLOY needed for production

@@ -18,6 +18,20 @@ export default function Home() {
   const settings = useSettings();
   const [req, setReq] = useState({ name: "", phone: "", email: "", message: "" });
   const [sending, setSending] = useState(false);
+  const [sub, setSub] = useState("");
+  const [subBusy, setSubBusy] = useState(false);
+
+  const subscribe = async (e) => {
+    e.preventDefault();
+    if (subBusy) return;
+    setSubBusy(true);
+    try {
+      await api.post("/subscribe", { email: sub.trim() });
+      toast.success("Subscribed successfully!");
+      setSub("");
+    } catch (err) { toast.error(err.response?.data?.detail || "Subscription failed"); }
+    finally { setSubBusy(false); }
+  };
   const [heroIdx, setHeroIdx] = useState(0);
   const heroSlides = hp?.hero_projects || [];
   const bgImages = (settings?.hero_backgrounds || []).filter(b => b && b.enabled && b.url).map(b => b.url);
@@ -303,9 +317,14 @@ export default function Home() {
       <section className="bg-slate-900 py-20 relative overflow-hidden">
         <div className="absolute inset-0 opacity-20" style={{ background: "radial-gradient(600px 300px at 20% 30%, rgba(59, 130, 246, 0.4), transparent), radial-gradient(500px 300px at 80% 70%, rgba(37, 99, 235, 0.3), transparent)" }} />
         <div className="max-w-4xl mx-auto px-6 text-center relative">
-          <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">Have a property to sell or rent?</h2>
-          <p className="text-slate-300 mb-8 max-w-xl mx-auto">List your property free and reach 50,000+ verified buyers across MMR.</p>
-          <Link to="/post-property" data-testid="cta-list-property" className="inline-flex items-center gap-2 px-8 py-4 bg-blue-500 text-white hover:bg-blue-400 rounded-lg font-semibold transition-colors shadow-lg shadow-blue-500/25">List Property Free <ArrowRight size={16} weight="bold" /></Link>
+          <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">Subscribe</h2>
+          <p className="text-slate-300 mb-8 max-w-xl mx-auto">Get new project launches, price updates and market insights across MMR — straight to your inbox.</p>
+          <form onSubmit={subscribe} data-testid="subscribe-form" className="flex flex-col sm:flex-row gap-3 max-w-xl mx-auto">
+            <Input required type="email" data-testid="subscribe-email-input" value={sub} onChange={e => setSub(e.target.value)} placeholder="Enter your email address" className="h-12 flex-1 rounded-lg border-slate-700 bg-slate-800/80 text-white placeholder:text-slate-400" />
+            <button type="submit" disabled={subBusy} data-testid="subscribe-submit-button" className="inline-flex items-center justify-center gap-2 px-8 py-3 bg-blue-500 text-white hover:bg-blue-400 rounded-lg font-semibold transition-colors shadow-lg shadow-blue-500/25 disabled:opacity-60">
+              {subBusy ? "Subscribing…" : "Subscribe"}
+            </button>
+          </form>
         </div>
       </section>
     </div>
