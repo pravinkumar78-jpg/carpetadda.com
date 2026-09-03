@@ -489,6 +489,8 @@ async def list_properties(
     skip = max(0, (page - 1) * page_size)
     cursor = db.properties.find(query, PROJ).sort(sort_by).skip(skip).limit(page_size)
     items = await cursor.to_list(page_size)
+    for it in items:
+        it["contact"] = await _listing_contact(it)
     return {"items": items, "total": total, "page": page, "page_size": page_size,
             "total_pages": (total + page_size - 1) // page_size}
 

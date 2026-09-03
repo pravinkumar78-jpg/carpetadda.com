@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { Heart, MapPin, Bathtub, Bed, ArrowsOutSimple, WhatsappLogo, PhoneCall, SealCheck, ArrowRight } from "@phosphor-icons/react";
 import { formatINR, formatArea } from "@/lib/format";
-import { waPropertyMsg } from "@/lib/whatsapp";
+import { waPropertyMsg, telTo } from "@/lib/whatsapp";
 import { useAuth } from "@/lib/auth";
 import { useFavorite } from "@/lib/favorites";
 import { toast } from "sonner";
@@ -20,7 +20,7 @@ export default function PropertyCard({ p, layout = "grid" }) {
   };
 
   const price = p.listing_type === "rent" ? formatINR(p.rent) + "/mo" : formatINR(p.price);
-  const wa = waPropertyMsg(p);
+  const wa = waPropertyMsg(p, p.contact?.phone || p.contact?.whatsapp);
 
   if (layout === "list") {
     return (
@@ -95,7 +95,7 @@ export default function PropertyCard({ p, layout = "grid" }) {
           <a href={wa} target="_blank" rel="noopener" data-testid={`whatsapp-${p.id}`} className="flex items-center justify-center gap-1.5 text-xs py-2.5 border border-slate-200 text-slate-700 rounded-lg hover:bg-emerald-50 hover:border-emerald-300 hover:text-emerald-700 transition-colors font-medium">
             <WhatsappLogo size={14} /> WhatsApp
           </a>
-          <a href="tel:+918828830707" data-testid={`call-${p.id}`} className="flex items-center justify-center gap-1.5 text-xs py-2.5 border border-blue-200 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors font-medium">
+          <a href={telTo(p.contact?.phone || p.contact?.whatsapp)} data-testid={`call-${p.id}`} className="flex items-center justify-center gap-1.5 text-xs py-2.5 border border-blue-200 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors font-medium">
             <PhoneCall size={14} /> Call
           </a>
         </div>
