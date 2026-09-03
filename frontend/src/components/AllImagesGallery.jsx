@@ -8,7 +8,7 @@ import { X, CaretLeft, CaretRight, MagnifyingGlassPlus, MagnifyingGlassMinus } f
  * (click/double-tap toggle, wheel, +/- buttons, drag pan, pinch on touch).
  * Pass pre-built items via `items` ([{src, label}]) — no fetching here.
  */
-export default function AllImagesGallery({ items = [], testid = "all-images", title = "All Images" }) {
+export default function AllImagesGallery({ items = [], testid = "all-images", title = "All Images", contain = false }) {
   const [open, setOpen] = useState(null); // index | null
   const [scale, setScale] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
@@ -117,7 +117,7 @@ export default function AllImagesGallery({ items = [], testid = "all-images", ti
           <button key={img.src} type="button" onClick={() => setOpen(i)} data-testid={`${testid}-img-${i}`}
             className="group relative aspect-[4/3] rounded-xl overflow-hidden border border-slate-200 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
             <img src={img.src} alt={img.label || `Image ${i + 1}`} loading="lazy"
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+              className={`w-full h-full ${contain ? "object-contain" : "object-cover group-hover:scale-105"} transition-transform duration-300`} />
             {img.label && (
               <span className="absolute bottom-2 left-2 text-[10px] font-semibold uppercase tracking-wider bg-slate-900/70 text-white px-2 py-1 rounded-md backdrop-blur-sm">{img.label}</span>
             )}

@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
  *   label    — optional field label above the drop zone
  *   dataTestid — root testid; child testids are derived from it
  */
-export default function ImageUpload({ value, onChange, kind = "general", label, dataTestid = "image-upload", accept = "image/*", allowUrl = true }) {
+export default function ImageUpload({ value, onChange, kind = "general", label, dataTestid = "image-upload", accept = "image/*", allowUrl = true, multiple = false, onMultiple, contain = false }) {
   const inputRef = useRef(null);
   const [dragOver, setDragOver] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -45,9 +45,38 @@ export default function ImageUpload({ value, onChange, kind = "general", label, 
     } finally { setUploading(false); }
   };
 
+  // multi-file mode: uploads each file sequentially through the same endpoint,
+  // then hands ALL urls back in picker order via onMultiple (single call)
+  const uploadFiles = async (files) => {
+    const list = Array.from(files || []).filter(f => f && f.type.startsWith("image/") && f.size <= 8 * 1024 * 1024);
+    if (!list.length) { toast.error("Please pick image files (max 8 MB each)"); return; }
+    setUploading(true);
+    const urls = [];
+    try {
+      for (const file of list) {
+        const fd = new FormData();
+        fd.append("file", file);
+        let data;
+        try {
+          ({ data } = await api.post(`/admin/uploads?kind=${encodeURIComponent(kind)}`, fd, { headers: { "Content-Type": "multipart/form-data" } }));
+        } catch (err) {
+          if (err?.response?.status !== 403) throw err;
+          ({ data } = await api.post(`/uploads?kind=${encodeURIComponent(kind)}`, fd, { headers: { "Content-Type": "multipart/form-data" } }));
+        }
+        urls.push(data.url);
+      }
+      if (urls.length === 1 && !onMultiple) onChange(urls[0]);
+      else if (onMultiple) onMultiple(urls);
+      toast.success(urls.length > 1 ? `${urls.length} images uploaded` : "Uploaded");
+    } catch (err) {
+      toast.error(err?.response?.data?.detail || "Upload failed");
+    } finally { setUploading(false); }
+  };
+
   const onDrop = (e) => {
     e.preventDefault();
     setDragOver(false);
+    if (multiple && e.dataTransfer.files?.length > 1) { uploadFiles(e.dataTransfer.files); return; }
     const file = e.dataTransfer.files?.[0];
     if (file) uploadFile(file);
   };
@@ -74,7 +103,7 @@ export default function ImageUpload({ value, onChange, kind = "general", label, 
               <span className="text-xs font-medium">Preview unavailable — use Replace or remove</span>
             </div>
           ) : (
-            <img src={preview} alt="" className="w-full h-40 object-cover bg-slate-100" onError={() => setBroken(true)} />
+            <img src={preview} alt="" className={`w-full h-40 ${contain ? "object-contain" : "object-cover"} bg-slate-100`} onError={() => setBroken(true)} />
           )}
           <div className="absolute top-2 right-2 flex items-center gap-2">
             <button type="button" onClick={() => inputRef.current?.click()} disabled={uploading} data-testid={`${dataTestid}-replace`} className="px-2.5 py-1.5 rounded-md bg-white/95 backdrop-blur text-xs font-medium text-slate-700 shadow hover:bg-white">
@@ -105,8 +134,13 @@ export default function ImageUpload({ value, onChange, kind = "general", label, 
         </label>
       )}
 
-      <input ref={inputRef} type="file" accept={accept} className="hidden" data-testid={`${dataTestid}-input`}
-        onChange={e => uploadFile(e.target.files?.[0])} />
+      <input ref={inputRef} type="file" accept={accept} multiple={multiple} className="hidden" data-testid={`${dataTestid}-input`}
+        onChange={e => {
+          const files = e.target.files;
+          if (multiple && files?.length > 1) uploadFiles(files);
+          else uploadFile(files?.[0]);
+          e.target.value = "";
+        }} />
 
       <div className="mt-2 flex items-center gap-3 text-xs">
         {!preview && (

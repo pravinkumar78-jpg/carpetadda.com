@@ -231,7 +231,7 @@ export default function ProjectDetail() {
           </section>
 
           {/* 6b. Image Gallery — only the Project Form gallery images, with lightbox */}
-          <AllImagesGallery items={allImages} testid="image-gallery" title="Image Gallery" />
+          <AllImagesGallery items={allImages} testid="image-gallery" title="Image Gallery" contain />
 
           {/* 7. Unit Plan (collapsible) */}
           {(p.units?.length > 0 || p.floor_plans?.length > 0) && (

@@ -483,8 +483,8 @@ export default function ProjectForm() {
               <F label="Main Image Description (max 300 chars)"><Textarea rows={2} maxLength={300} data-testid="project-hero-description" value={f.hero_description || ""} onChange={e => set("hero_description", e.target.value)} placeholder="One or two lines shown under the H1 on the main image" /></F>
               <F label="Project Gallery Images">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {(f.images || []).map((url, i) => <ImageUpload key={`${url}-${i}`} value={url} onChange={v => set("images", (f.images || []).map((x,j) => j===i ? v : x).filter(Boolean))} kind="projects" dataTestid={`project-image-upload-${i}`} allowUrl={false} />)}
-                  <ImageUpload value="" onChange={v => v && set("images", [...(f.images || []), v])} kind="projects" dataTestid="project-add-image-upload" allowUrl={false} />
+                  {(f.images || []).map((url, i) => <ImageUpload key={`${url}-${i}`} value={url} onChange={v => set("images", (f.images || []).map((x,j) => j===i ? v : x).filter(Boolean))} kind="projects" dataTestid={`project-image-upload-${i}`} allowUrl={false} contain />)}
+                  <ImageUpload value="" onChange={v => v && set("images", [...(f.images || []), v])} onMultiple={urls => urls.length && set("images", [...(f.images || []), ...urls])} multiple contain kind="projects" dataTestid="project-add-image-upload" allowUrl={false} />
                 </div>
               </F>
               <F label="Upload Master Plan"><ImageUpload value={f.master_plan || ""} onChange={v => set("master_plan", v)} kind="projects" dataTestid="project-master-plan-upload" allowUrl={false} /></F>
