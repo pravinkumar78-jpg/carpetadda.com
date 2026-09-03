@@ -2205,14 +2205,19 @@ async def create_lead(body: Lead, background: BackgroundTasks):
                         if agent.get("active", True) is not False and agent["email"] not in extra_recipients:
                             extra_recipients.append(agent["email"])
     if body.project_id:
-        proj = await db.projects.find_one({"id": body.project_id}, {"_id": 0, "name": 1, "owner_id": 1, "status": 1})
+        proj = await db.projects.find_one({"id": body.project_id}, {"_id": 0, "name": 1, "assigned_to": 1, "owner_id": 1, "status": 1})
         if proj:
             ctx["project_name"] = proj.get("name")
-            if proj.get("status") == "active" and proj.get("owner_id"):
-                dev = await db.users.find_one({"id": proj["owner_id"]}, {"_id": 0, "email": 1, "active": 1, "role": 1})
-                if dev and dev.get("email") and dev.get("active", True) is not False and dev.get("role") in ("developer", "agent"):
-                    if dev["email"] not in extra_recipients:
-                        extra_recipients.append(dev["email"])
+            if proj.get("status") == "active":
+                # prefer the agent assigned to the project; fall back to the project owner
+                for ref in (proj.get("assigned_to"), proj.get("owner_id")):
+                    if not ref:
+                        continue
+                    dev = await db.users.find_one({"id": ref}, {"_id": 0, "email": 1, "active": 1, "status": 1, "role": 1})
+                    if dev and dev.get("email") and dev.get("active", True) is not False and dev.get("status") not in ("blocked", "rejected") and dev.get("role") in ("developer", "agent"):
+                        if dev["email"] not in extra_recipients:
+                            extra_recipients.append(dev["email"])
+                        break
     if extra_recipients:
         ctx["extra_recipients"] = extra_recipients
 
@@ -2383,7 +2388,7 @@ async def update_site_visit(vid: str, body: dict = Body(...), u: dict = Depends(
 @api.get("/favorites")
 async def my_favorites(u: dict = Depends(current_user)):
     favs = await db.favorites.find({"user_id": u["sub"]}, PROJ).to_list(200)
-    pids = [f["property_id"] for f in favs]
+    pids = [f["property_id"] for f in favs if f.get("property_id")]
     props = await db.properties.find({"id": {"$in": pids}}, PROJ).to_list(200)
     return props
 
@@ -2401,6 +2406,29 @@ async def add_favorite(property_id: str, u: dict = Depends(current_user)):
 @api.delete("/favorites/{property_id}")
 async def remove_favorite(property_id: str, u: dict = Depends(current_user)):
     res = await db.favorites.delete_one({"user_id": u["sub"], "property_id": property_id})
+    return {"deleted": res.deleted_count}
+
+
+# Project favorites — same favorites collection/system, keyed by project_id
+@api.get("/favorites/projects")
+async def my_favorite_projects(u: dict = Depends(current_user)):
+    favs = await db.favorites.find({"user_id": u["sub"], "project_id": {"$exists": True, "$ne": None}}, PROJ).to_list(200)
+    jids = [f["project_id"] for f in favs]
+    return await db.projects.find({"id": {"$in": jids}}, PROJ).to_list(200)
+
+
+@api.post("/favorites/project/{project_id}")
+async def add_favorite_project(project_id: str, u: dict = Depends(current_user)):
+    if await db.favorites.find_one({"user_id": u["sub"], "project_id": project_id}):
+        return {"ok": True, "already": True}
+    fav = Favorite(user_id=u["sub"], project_id=project_id)
+    await db.favorites.insert_one(fav.model_dump())
+    return {"ok": True}
+
+
+@api.delete("/favorites/project/{project_id}")
+async def remove_favorite_project(project_id: str, u: dict = Depends(current_user)):
+    res = await db.favorites.delete_one({"user_id": u["sub"], "project_id": project_id})
     return {"deleted": res.deleted_count}
 
 

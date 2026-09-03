@@ -358,7 +358,8 @@ class SiteVisit(BaseDoc):
 # ---------- Favorite ----------
 class Favorite(BaseDoc):
     user_id: str
-    property_id: str
+    property_id: Optional[str] = None
+    project_id: Optional[str] = None
 
 
 # ---------- Saved Search ----------

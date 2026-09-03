@@ -1,13 +1,26 @@
 import { useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { formatINR } from "@/lib/format";
 import api from "@/lib/api";
-import { X } from "@phosphor-icons/react";
+import { X, ArrowLeft, BookmarkSimple } from "@phosphor-icons/react";
+import { toast } from "sonner";
 
 export default function Compare() {
+  const nav = useNavigate();
   const [id1, setId1] = useState(""); const [id2, setId2] = useState(""); const [id3, setId3] = useState("");
   const [items, setItems] = useState([]);
   const [q, setQ] = useState(""); const [search, setSearch] = useState([]);
+
+  // Restore a previously saved comparison (client-side only — navigation itself never saves anything)
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem("eh_compare") || "[]");
+      if (saved[0]) setId1(saved[0]);
+      if (saved[1]) setId2(saved[1]);
+      if (saved[2]) setId3(saved[2]);
+    } catch { /* ignore */ }
+  }, []);
 
   useEffect(() => {
     if (!q) { setSearch([]); return; }
@@ -50,6 +63,19 @@ export default function Compare() {
         </div>
       </div>
       <div className="max-w-7xl mx-auto px-6 lg:px-10 py-10">
+        <div className="flex items-center justify-between flex-wrap gap-3 mb-6">
+          <button type="button" data-testid="compare-back" onClick={() => nav(-1)} className="flex items-center gap-1.5 text-sm font-medium text-slate-600 hover:text-blue-600 transition-colors">
+            <ArrowLeft size={15} weight="bold" /> Back
+          </button>
+          <div className="flex items-center gap-2 flex-wrap">
+            <Link to="/properties" data-testid="compare-browse" className="px-4 py-2 border border-slate-200 rounded-lg text-sm font-medium text-slate-700 hover:border-blue-300 hover:text-blue-600 transition-colors">Browse Properties</Link>
+            <button type="button" data-testid="compare-save" disabled={![id1, id2, id3].some(Boolean)}
+              onClick={() => { localStorage.setItem("eh_compare", JSON.stringify([id1, id2, id3].filter(Boolean))); toast.success("Comparison saved — it will be here when you return"); }}
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold disabled:opacity-50 flex items-center gap-1.5 transition-colors">
+              <BookmarkSimple size={14} weight="bold" /> Save this Compare
+            </button>
+          </div>
+        </div>
         <div className="relative mb-8 max-w-lg">
           <Input data-testid="compare-search" placeholder="Search property by name or address…" value={q} onChange={e => setQ(e.target.value)} className="rounded-lg border-slate-200 h-12" />
           {search.length > 0 && (

@@ -5,7 +5,8 @@ import PropertyMap from "@/components/PropertyMap";
 import ProjectCard from "@/components/ProjectCard";
 import { formatINR, formatArea } from "@/lib/format";
 import { waProjectMsg, waUnitMsg, telTo } from "@/lib/whatsapp";
-import { MapPin, Download, PhoneCall, WhatsappLogo, CalendarBlank, Check, Compass, Bed, Bank, SquaresFour, List, QrCode, FileText, ArrowSquareOut, ShieldCheck } from "@phosphor-icons/react";
+import { useFavorite } from "@/lib/favorites";
+import { MapPin, Download, PhoneCall, WhatsappLogo, CalendarBlank, Check, Compass, Bed, Bank, SquaresFour, List, QrCode, FileText, ArrowSquareOut, ShieldCheck, Heart } from "@phosphor-icons/react";
 import { ytEmbedId } from "@/lib/utils";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
@@ -22,6 +23,7 @@ export default function ProjectDetail() {
   const [form, setForm] = useState({ name: "", phone: "", email: "", message: "" });
   const [visitOpen, setVisitOpen] = useState(false);
   const [similarView, setSimilarView] = useState("grid");
+  const [fav, toggleFavRaw] = useFavorite(p?.id, "project");
 
   useEffect(() => {
     api.get(`/projects/${slug}`).then(r => {
@@ -383,7 +385,10 @@ export default function ProjectDetail() {
         <aside>
           <div className="sticky top-24 space-y-4">
             <div className="card-premium p-6">
-              <div className="text-xs uppercase tracking-widest text-blue-600 font-semibold mb-3">Get Best Price</div>
+              <div className="flex items-center justify-between mb-3">
+                <div className="text-xs uppercase tracking-widest text-blue-600 font-semibold">Get Best Price</div>
+                <button type="button" data-testid="save-btn" aria-label="Save project to favorites" onClick={async () => { try { const on = await toggleFavRaw(); toast.success(on ? "Saved to favorites!" : "Removed from favorites"); } catch { toast.error("Please login to save"); } }} className={`p-2 border rounded-lg transition-colors ${fav ? "border-rose-300 bg-rose-50 text-rose-500" : "border-slate-200 text-slate-600 hover:border-rose-300 hover:text-rose-500"}`}><Heart size={15} weight={fav ? "fill" : "regular"} /></button>
+              </div>
               <form id="enquiry-form" onSubmit={submit} className="space-y-3">
                 <Input required data-testid="proj-enquiry-name" placeholder="Your name" value={form.name} onChange={e => setForm({...form, name: e.target.value})} className="rounded-lg border-slate-200" />
                 <Input required data-testid="proj-enquiry-phone" placeholder="Phone" value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} className="rounded-lg border-slate-200" />

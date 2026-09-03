@@ -1,9 +1,24 @@
 import { Link } from "react-router-dom";
-import { MapPin, Calendar, ArrowRight, WhatsappLogo } from "@phosphor-icons/react";
+import { Heart, MapPin, Calendar, ArrowRight, WhatsappLogo } from "@phosphor-icons/react";
 import { formatINR } from "@/lib/format";
 import { waProjectMsg } from "@/lib/whatsapp";
+import { useAuth } from "@/lib/auth";
+import { useFavorite } from "@/lib/favorites";
+import { toast } from "sonner";
 
 export default function ProjectCard({ p, layout = "grid" }) {
+  const { user } = useAuth();
+  const [fav, toggleFavRaw] = useFavorite(p.id, "project");
+
+  const toggleFav = async (e) => {
+    e.preventDefault(); e.stopPropagation();
+    if (!user) { toast.error("Please login to save projects"); return; }
+    try {
+      const on = await toggleFavRaw();
+      toast.success(on ? "Saved to favorites" : "Removed from favorites");
+    } catch { toast.error("Something went wrong"); }
+  };
+
   if (layout === "list") {
     return (
       <Link to={`/project/${p.slug}`} data-testid={`project-card-${p.id}`} className="group card-premium overflow-hidden flex flex-col sm:flex-row">
@@ -11,6 +26,9 @@ export default function ProjectCard({ p, layout = "grid" }) {
           <img src={p.main_image || p.images?.[0]} alt={p.name} className="w-full h-full object-cover sm:absolute sm:inset-0" loading="lazy"
             onError={e => { const alt = (p.images || []).find(u => u && u !== e.currentTarget.getAttribute("src")); e.currentTarget.onerror = null; if (alt) e.currentTarget.src = alt; else e.currentTarget.style.opacity = "0"; }} />
           {p.featured && <span className="absolute top-3 left-3 blue-badge">Featured</span>}
+          <button type="button" data-testid={`favorite-project-${p.id}`} onClick={toggleFav} aria-label="Save project to favorites" className="absolute top-3 right-3 w-9 h-9 rounded-full bg-white shadow-md flex items-center justify-center hover:bg-blue-50 transition-colors z-10">
+            <Heart size={16} weight={fav ? "fill" : "regular"} className={fav ? "text-rose-500" : "text-slate-600"} />
+          </button>
         </div>
         <div className="p-5 flex-1 flex flex-col justify-between gap-3">
           <div>
@@ -52,6 +70,9 @@ export default function ProjectCard({ p, layout = "grid" }) {
           <h3 className="text-xl font-semibold leading-tight">{p.name}</h3>
         </div>
         {p.featured && <span className="absolute top-3 left-3 blue-badge">Featured</span>}
+        <button type="button" data-testid={`favorite-project-${p.id}`} onClick={toggleFav} aria-label="Save project to favorites" className="absolute top-3 right-3 w-9 h-9 rounded-full bg-white shadow-md flex items-center justify-center hover:bg-blue-50 transition-colors z-10">
+          <Heart size={16} weight={fav ? "fill" : "regular"} className={fav ? "text-rose-500" : "text-slate-600"} />
+        </button>
       </div>
       <div className="p-5 space-y-3">
         <div className="text-xs text-slate-500 flex items-center gap-1"><MapPin size={12} /> {p.location}, {p.city}</div>

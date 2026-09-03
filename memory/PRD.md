@@ -493,3 +493,8 @@
 
 ## Investigation (2026-09-01 — "Leads missing in Agent profile nav")
 - Re-verified current build, desktop + mobile: Agent Workspace menu contains "Leads (n)" (role-tab-leads) and clicking it opens the scoped Agent Leads page — PASS both viewports. The user's screenshot shows Birla Vanya = PRODUCTION data → they are testing carpetadda.com, which runs an older build without the Leads menu. NO code change made (item already exists; adding would duplicate). Fix = redeploy production.
+
+## Implemented (2026-09-03 — project enquiry email to assigned agent + ProjectCard grid heart)
+1. Project lead email routing (server.py create_lead, project block ~L2211-2225): when a lead has project_id, recipients now prefer the project's assigned_to user first (active, non-blocked/rejected, role developer/agent), falling back to project owner_id if unassigned/invalid; admin business email unchanged (always receives). Reuses existing extra_recipients mechanism + guards; no schema/API changes
+2. ProjectCard grid layout: favorite heart button added (top-right of image), wired to the same useFavorite state/handler as the list layout — no other component edits
+- Verified: submitted test project enquiry with temp assigned_to → email_log recorded lead:project:cc to assigned agent (demo address → skipped delivery as designed) + primary lead:project to business email sent; temp assignment + test lead cleaned up. Grid view on /projects shows hearts on all 10 cards (list layout unchanged). No automated test suites run per user instruction. REDEPLOY needed for production

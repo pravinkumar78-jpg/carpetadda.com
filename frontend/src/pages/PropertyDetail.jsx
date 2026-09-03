@@ -5,6 +5,7 @@ import PropertyMap from "@/components/PropertyMap";
 import PropertyCard from "@/components/PropertyCard";
 import { formatINR, formatArea } from "@/lib/format";
 import { waPropertyMsg, telTo } from "@/lib/whatsapp";
+import { useFavorite } from "@/lib/favorites";
 import { MapPin, Bed, Bathtub, ArrowsOutSimple, Car, Buildings, Calendar, ShieldCheck, PhoneCall, WhatsappLogo, Heart, ShareNetwork, Download, CaretRight, CalendarBlank, Compass, FileText, Sparkle, SwimmingPool, Barbell, WifiHigh, Tree, Lightning, Elevator, Drop, GameController, Flower, SoccerBall, ShoppingBag, Bank, SquaresFour, List } from "@phosphor-icons/react";
 import { ytEmbedId } from "@/lib/utils";
 import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext } from "@/components/ui/carousel";
@@ -82,6 +83,7 @@ export default function PropertyDetail() {
   const [form, setForm] = useState({ name: "", phone: "", email: "", message: "" });
   const [visitOpen, setVisitOpen] = useState(false);
   const [similarView, setSimilarView] = useState("grid");
+  const [fav, toggleFavRaw] = useFavorite(p?.id, "property");
 
   useEffect(() => {
     api.get(`/properties/${slug}`).then(r => setP(r.data)).catch(() => setP(false));
@@ -196,7 +198,7 @@ export default function PropertyDetail() {
             </div>
             <div className="flex gap-2 lg:gap-3">
               <button data-testid="share-btn" onClick={() => { navigator.clipboard.writeText(window.location.href); toast.success("Link copied!"); }} className="p-3 border border-slate-200 rounded-lg text-slate-600 hover:border-blue-300 hover:text-blue-600 transition-colors"><ShareNetwork size={16} /></button>
-              <button data-testid="save-btn" onClick={async () => { try { await api.post(`/favorites/${p.id}`); toast.success("Saved!"); } catch { toast.error("Please login to save"); } }} className="p-3 border border-slate-200 rounded-lg text-slate-600 hover:border-rose-300 hover:text-rose-500 transition-colors"><Heart size={16} /></button>
+              <button data-testid="save-btn" onClick={async () => { try { const on = await toggleFavRaw(); toast.success(on ? "Saved to favorites!" : "Removed from favorites"); } catch { toast.error("Please login to save"); } }} className={`p-3 border rounded-lg transition-colors ${fav ? "border-rose-300 bg-rose-50 text-rose-500" : "border-slate-200 text-slate-600 hover:border-rose-300 hover:text-rose-500"}`} aria-label="Save to favorites"><Heart size={16} weight={fav ? "fill" : "regular"} /></button>
             </div>
           </div>
         </div>

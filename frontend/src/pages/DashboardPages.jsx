@@ -3,6 +3,7 @@ import { Link, Navigate } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import api from "@/lib/api";
 import PropertyCard from "@/components/PropertyCard";
+import ProjectCard from "@/components/ProjectCard";
 import { AccountPanel, MyListings } from "@/components/dashboard/AccountPanel";
 import { Heart, MagnifyingGlass, Plus, SquaresFour, UserGear, FileDashed, UserCheck } from "@phosphor-icons/react";
 import { DashNavToggle, DashSidebar } from "@/components/DashNav";
@@ -12,6 +13,7 @@ import AssignedPanel from "@/components/dashboard/AssignedPanel";
 export function UserDashboard() {
   const { user, ready } = useAuth();
   const [favs, setFavs] = useState([]);
+  const [favProjects, setFavProjects] = useState([]);
   const [saved, setSaved] = useState([]);
   const [mine, setMine] = useState([]);
   const [tab, setTab] = useState("overview");
@@ -22,6 +24,7 @@ export function UserDashboard() {
   useEffect(() => {
     if (!user) return;
     api.get("/favorites").then(r => setFavs(r.data)).catch(() => {});
+    api.get("/favorites/projects").then(r => setFavProjects(r.data)).catch(() => {});
     api.get("/saved-searches").then(r => setSaved(r.data)).catch(() => {});
     loadMine();
   }, [user]);
@@ -60,10 +63,11 @@ export function UserDashboard() {
                 <Icon size={16} /> {l}
               </button>
             ))}
-            <div className="flex items-center gap-2 px-3 py-2.5 text-slate-600"><Heart size={16} /> Favorites ({favs.length})</div>
-            <div className="flex items-center gap-2 px-3 py-2.5 text-slate-600"><MagnifyingGlass size={16} /> Saved Searches ({saved.length})</div>
+            <button onClick={() => { setTab("favorites"); setNavOpen(false); }} data-testid="dash-tab-favorites" className={`w-full flex items-center gap-2 px-3 py-2.5 rounded-lg font-medium transition-colors ${tab === "favorites" ? "bg-blue-600 text-white" : "text-slate-700 hover:bg-blue-50 hover:text-blue-600"}`}><Heart size={16} /> Favorites ({favs.length + favProjects.length})</button>
+            <button onClick={() => { setTab("saved"); setNavOpen(false); }} data-testid="dash-tab-saved" className={`w-full flex items-center gap-2 px-3 py-2.5 rounded-lg font-medium transition-colors ${tab === "saved" ? "bg-blue-600 text-white" : "text-slate-700 hover:bg-blue-50 hover:text-blue-600"}`}><MagnifyingGlass size={16} /> Saved Searches ({saved.length})</button>
             <Link to="/compare" className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-slate-700 hover:bg-blue-50 hover:text-blue-600 transition-colors">Compare</Link>
             <Link to="/properties" className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-slate-700 hover:bg-blue-50 hover:text-blue-600 transition-colors">Browse Properties</Link>
+            <Link to="/projects" data-testid="browse-projects" className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-slate-700 hover:bg-blue-50 hover:text-blue-600 transition-colors">Browse Projects</Link>
             {(user.role === "admin" || user.role === "super_admin") && <Link to="/admin" className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-blue-600 font-semibold">Admin Panel →</Link>}
           </nav>
         </aside>
@@ -83,16 +87,60 @@ export function UserDashboard() {
               </div>
               <div>
                 <h2 className="text-2xl font-bold text-slate-900 mb-6">Your Favorites</h2>
-                {favs.length === 0 ? <div className="card-premium p-8 text-center text-slate-500">No favorites yet. Browse and tap the heart to save.</div> : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">{favs.map(p => <PropertyCard key={p.id} p={p} />)}</div>
+                {favs.length === 0 && favProjects.length === 0 ? <div className="card-premium p-8 text-center text-slate-500">No favorites yet. Browse and tap the heart to save.</div> : (
+                  <div className="space-y-8">
+                    {favs.length > 0 && <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">{favs.map(p => <PropertyCard key={p.id} p={p} />)}</div>}
+                    {favProjects.length > 0 && (
+                      <div>
+                        <h3 className="text-lg font-bold text-slate-900 mb-4">Saved Projects</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">{favProjects.map(p => <ProjectCard key={p.id} p={p} />)}</div>
+                      </div>
+                    )}
+                  </div>
                 )}
               </div>
               <div>
                 <h2 className="text-2xl font-bold text-slate-900 mb-6">Saved Searches</h2>
                 {saved.length === 0 ? <div className="card-premium p-8 text-center text-slate-500">No saved searches.</div> : (
-                  <ul className="space-y-2">{saved.map(s => <li key={s.id} className="card-premium p-4 flex justify-between items-center"><span className="font-medium text-slate-800">{s.name}</span><span className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded-full font-semibold uppercase tracking-wider">{s.alert_frequency}</span></li>)}</ul>
+                  <ul className="space-y-2">{saved.map(s => (
+                    <li key={s.id} className="card-premium p-4 flex justify-between items-center gap-3">
+                      <Link to={`/properties?${new URLSearchParams(Object.fromEntries(Object.entries(s.filters || {}).map(([k, v]) => [k, String(v)])))}`} data-testid={`saved-search-${s.id}`} className="font-medium text-slate-800 hover:text-blue-600 transition-colors">{s.name}</Link>
+                      <span className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded-full font-semibold uppercase tracking-wider shrink-0">{s.alert_frequency}</span>
+                    </li>
+                  ))}</ul>
                 )}
               </div>
+            </div>
+          )}
+
+          {tab === "favorites" && (
+            <div>
+              <h2 className="text-2xl font-bold text-slate-900 mb-6">Your Favorites</h2>
+              {favs.length === 0 && favProjects.length === 0 ? <div className="card-premium p-8 text-center text-slate-500">No favorites yet. Browse and tap the heart to save.</div> : (
+                <div className="space-y-8">
+                  {favs.length > 0 && <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">{favs.map(p => <PropertyCard key={p.id} p={p} />)}</div>}
+                  {favProjects.length > 0 && (
+                    <div>
+                      <h3 className="text-lg font-bold text-slate-900 mb-4">Saved Projects</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">{favProjects.map(p => <ProjectCard key={p.id} p={p} />)}</div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {tab === "saved" && (
+            <div>
+              <h2 className="text-2xl font-bold text-slate-900 mb-6">Saved Searches</h2>
+              {saved.length === 0 ? <div className="card-premium p-8 text-center text-slate-500">No saved searches.</div> : (
+                <ul className="space-y-2">{saved.map(s => (
+                  <li key={s.id} className="card-premium p-4 flex justify-between items-center gap-3">
+                    <Link to={`/properties?${new URLSearchParams(Object.fromEntries(Object.entries(s.filters || {}).map(([k, v]) => [k, String(v)])))}`} data-testid={`saved-search-${s.id}`} className="font-medium text-slate-800 hover:text-blue-600 transition-colors">{s.name}</Link>
+                    <span className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded-full font-semibold uppercase tracking-wider shrink-0">{s.alert_frequency}</span>
+                  </li>
+                ))}</ul>
+              )}
             </div>
           )}
 

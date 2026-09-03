@@ -109,30 +109,6 @@ export default function PropertyForm() {
     if (skipRef.current) { skipRef.current = false; return; }
     dirtyRef.current = true;
   }, [f]);
-  useEffect(() => {
-    const onHide = () => {
-      const cur = fRef.current;
-      const effId = effIdRef.current;
-      if (!dirtyRef.current || doneRef.current || !(cur?.title || "").trim()) return;
-      if (effId && cur.status !== "draft") return; // never unpublish a live/pending listing on exit
-      try {
-        const payload = { ...cur, status: "draft" };
-        if (!payload.slug) payload.slug = cur.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 60);
-        if (!payload.main_image && payload.images?.[0]) payload.main_image = payload.images[0];
-        ["id", "created_at", "updated_at", "views", "developer", "agent", "project", "similar"].forEach(k => delete payload[k]);
-        const token = localStorage.getItem("eh_token");
-        const base = (process.env.REACT_APP_BACKEND_URL || "").replace(/\/$/, "");
-        fetch(`${base}/api/properties${effId ? `/${effId}` : ""}`, {
-          method: effId ? "PUT" : "POST",
-          headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-          body: JSON.stringify(payload),
-          keepalive: true,
-        });
-      } catch { /* best-effort draft autosave on exit */ }
-    };
-    window.addEventListener("pagehide", onHide);
-    return () => window.removeEventListener("pagehide", onHide);
-  }, [id]);
 
   if (!ready) return null;
   if (!user || !["admin", "super_admin", "agent", "developer", "owner", "user"].includes(user.role)) return <Navigate to="/login" />;
@@ -271,7 +247,7 @@ export default function PropertyForm() {
       <div className="sticky top-0 z-30 bg-white border-b border-slate-200 shadow-sm">
         <div className="max-w-7xl mx-auto px-6 lg:px-10 py-4 flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-4">
-            <Link to={backTo} className="p-2 rounded-lg hover:bg-slate-100 text-slate-600"><ArrowLeft size={18} /></Link>
+            <Link to={backTo} data-testid="form-back" className="p-2 rounded-lg hover:bg-slate-100 text-slate-600"><ArrowLeft size={18} /></Link>
             <div>
               <div className="text-xs uppercase tracking-widest text-blue-600 font-semibold">{id ? "Edit Property" : "New Property"}</div>
               <div className="font-semibold text-slate-900 truncate max-w-md">{f.title || "Untitled"}</div>

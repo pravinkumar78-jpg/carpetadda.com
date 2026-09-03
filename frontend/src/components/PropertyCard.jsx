@@ -3,20 +3,19 @@ import { Heart, MapPin, Bathtub, Bed, ArrowsOutSimple, WhatsappLogo, PhoneCall, 
 import { formatINR, formatArea } from "@/lib/format";
 import { waPropertyMsg } from "@/lib/whatsapp";
 import { useAuth } from "@/lib/auth";
-import api from "@/lib/api";
-import { useState } from "react";
+import { useFavorite } from "@/lib/favorites";
 import { toast } from "sonner";
 
 export default function PropertyCard({ p, layout = "grid" }) {
   const { user } = useAuth();
-  const [fav, setFav] = useState(false);
+  const [fav, toggleFavRaw] = useFavorite(p.id);
 
   const toggleFav = async (e) => {
     e.preventDefault(); e.stopPropagation();
     if (!user) { toast.error("Please login to save properties"); return; }
     try {
-      if (fav) { await api.delete(`/favorites/${p.id}`); setFav(false); toast.success("Removed from favorites"); }
-      else { await api.post(`/favorites/${p.id}`); setFav(true); toast.success("Saved to favorites"); }
+      const on = await toggleFavRaw();
+      toast.success(on ? "Saved to favorites" : "Removed from favorites");
     } catch { toast.error("Something went wrong"); }
   };
 
