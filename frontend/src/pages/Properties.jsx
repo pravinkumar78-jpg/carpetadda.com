@@ -137,7 +137,7 @@ export default function Properties({ fixedCategory }) {
           <div className="flex items-end justify-between flex-wrap gap-4">
             <div>
               <div className="text-xs text-slate-500 mb-2"><a href="/" className="hover:text-blue-600">Home</a> › {isCommercial ? "Commercial Properties" : "Properties"}</div>
-              <h1 className="text-3xl sm:text-4xl font-bold text-slate-900">{isCommercial ? "Commercial Properties" : "Properties for Sale & Rent"}</h1>
+              <h1 className="text-3xl sm:text-4xl font-bold text-slate-900">{isCommercial ? "Commercial Properties" : "Properties for Rent"}</h1>
               <div className="text-sm text-slate-600 mt-1">{loading ? "Searching…" : `${total} listings found`}</div>
             </div>
             <div className="flex items-center gap-3 flex-wrap">

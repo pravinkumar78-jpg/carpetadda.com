@@ -519,3 +519,6 @@
 1. Login/Register now always land on /dashboard: PostProperty.jsx redirects logged-out visitors to plain /login (the ?next=/post-property return removed; AuthPages default already /dashboard, generic next support left intact but no longer used)
 2. Header (desktop + mobile): "List Property" button renders only for logged-out visitors ({!user && ...}); logged-in users keep the in-dashboard List Property entry point
 - Verified in preview: desktop logged-out List Property visible → /login (no next) → login → /dashboard; desktop logged-in button hidden; mobile menu same both states; fresh registration → /dashboard. Test account cleaned up. REDEPLOY needed for production
+
+## Changed (2026-09-03 — Properties page H1)
+- Properties.jsx H1 (non-commercial) changed from "Properties for Sale & Rent" to "Properties for Rent"; commercial page heading untouched. Verified in preview: H1 renders "Properties for Rent". REDEPLOY needed for production
