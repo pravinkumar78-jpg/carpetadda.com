@@ -525,3 +525,8 @@
 
 ## Changed (2026-09-03 — Properties page H1, second edit)
 - Properties.jsx H1 (non-commercial) changed from "Properties for Rent" to "Properties for Buy"; commercial heading untouched. Verified in preview: H1 renders "Properties for Buy". REDEPLOY needed for production
+
+## Fixed (2026-09-03 — Buy/Rent page heading state)
+- Root cause: Buy (/properties?listing_type=sale) and Rent (/properties?listing_type=rent) share the existing Properties component with URL-driven state (listings/filters already correct), but the H1 ignored listing_type and always showed "Properties for Buy"
+- Fix (single line, Properties.jsx H1): rent → "Properties for Rent", sale/default → "Properties for Buy", commercial unchanged
+- Verified in preview: open Buy ✓, open Rent ✓, switch Buy→Rent ✓, switch Rent→Buy ✓, refresh Buy ✓, refresh Rent ✓, commercial still "Commercial Properties" ✓. REDEPLOY needed for production
