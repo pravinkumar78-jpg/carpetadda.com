@@ -35,7 +35,7 @@ export default function Header() {
         <nav className="hidden lg:flex items-center gap-1">
           <NavLink to="/" end data-testid="nav-home" className={linkCls}>Home</NavLink>
 
-          <DropdownMenu>
+          <DropdownMenu modal={false}>
             <DropdownMenuTrigger data-testid="nav-properties" className={`text-sm font-medium px-3 py-2 rounded-md transition-colors duration-200 text-slate-700 hover:text-blue-600 hover:bg-blue-50 inline-flex items-center gap-1 outline-none`}>
               Properties <CaretDown size={12} weight="bold" />
             </DropdownMenuTrigger>
