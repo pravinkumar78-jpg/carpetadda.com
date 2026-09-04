@@ -560,3 +560,8 @@
 - Root cause: desktop Properties nav used a modal Radix DropdownMenu (default), which locks body pointer-events while open; when the menu closed during the route transition exactly as the VisitorDisclaimer Dialog opened on listing pages, the unlock cleanup could be skipped — entire page left unclickable though visually normal ("hang"). Timing-dependent, hence repeatedly reported but rarely reproduced; earlier automated checks missed it because forced clicks bypass pointer locks
 - Fix (single prop): Header.jsx Properties DropdownMenu now modal={false} — the dropdown never locks <body>, so the lock race with the disclaimer dialog cannot occur; menu look/items/links unchanged. Mobile menu untouched (explicit state-driven close, no race found)
 - Verified in preview with REAL (non-forced) clicks: Properties→Buy opens, disclaimer dismisses by real click, body pointer-events confirmed released, layout toggles clickable; Properties→Rent same; second Buy navigation also clean. REDEPLOY needed for production
+
+## Verified (2026-09-04 — Google Ads tag AW-18415547343 already live; NO code change)
+- Tag exists once in frontend/public/index.html head (standard gtag.js snippet) — sitewide by SPA design; no duplicate created
+- Served HTML confirmed on BOTH preview and carpetadda.com (production was redeployed at some point — minified single-line head contains script src + config call)
+- Browser check on production: gtag() active, dataLayer populated (5 entries), gtag.js downloaded, Ads measurement beacon fired; page renders normally
