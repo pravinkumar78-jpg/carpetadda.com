@@ -17,12 +17,14 @@ export default function HomeLoan() {
     const projectId = sp.get("project_id") || "";
     const propertyName = sp.get("property_name") || "";
     const cost = Number(sp.get("property_cost")) || "";
-    return { propertyId, projectId, propertyName, cost };
+    const loanType = sp.get("loan_type") || "";
+    return { propertyId, projectId, propertyName, cost, loanType };
   }, [sp]);
   const [form, setForm] = useState(() => ({
     ...EMPTY,
     property_finalised: (refInfo.propertyId || refInfo.projectId) ? "yes" : "",
     property_cost: refInfo.cost || "",
+    loan_type: refInfo.loanType,
   }));
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);

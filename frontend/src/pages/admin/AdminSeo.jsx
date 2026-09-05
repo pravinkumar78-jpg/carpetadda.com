@@ -18,6 +18,7 @@ export const MAJOR_PAGES = [
   ["/home-loan", "Home Loan"],
   ["/post-property", "List Property"],
   ["/enquiry", "Enquiry"],
+  ["/loan-calculator", "Loan Calculator"],
   ["/ai-search", "AI Search"],
   ["/emi-calculator", "EMI Calculator"],
   ["/agents", "Agents"],

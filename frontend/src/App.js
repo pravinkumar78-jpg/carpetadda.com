@@ -41,6 +41,7 @@ import { NotFound, About, Contact, FAQs, VerifyEmail } from "@/pages/StaticPages
 import Testimonials from "@/pages/Testimonials";
 import Rtmi from "@/pages/Rtmi";
 import Enquiry from "@/pages/Enquiry";
+import LoanCalculator from "@/pages/LoanCalculator";
 import { useSettings } from "@/lib/useSettings";
 
 export default function App() {
@@ -88,6 +89,7 @@ export default function App() {
               <Route path="/client" element={<ClientDashboard />} />
               <Route path="/ai-search" element={<AISearch />} />
               <Route path="/emi-calculator" element={<EMICalculator />} />
+              <Route path="/loan-calculator" element={<LoanCalculator />} />
               <Route path="/compare" element={<Compare />} />
               <Route path="/post-property" element={<PostProperty />} />
               <Route path="/dashboard/list-property" element={<PropertyForm />} />

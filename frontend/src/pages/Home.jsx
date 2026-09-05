@@ -8,6 +8,7 @@ import ProjectCard from "@/components/ProjectCard";
 import api from "@/lib/api";
 import { useSettings } from "@/lib/useSettings";
 import { formatINR } from "@/lib/format";
+import SmartLoanCalculator from "@/components/SmartLoanCalculator";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -310,6 +311,18 @@ export default function Home() {
               <PaperPlaneTilt size={16} weight="bold" /> {sending ? "Sending…" : "Submit Requirement"}
             </button>
           </form>
+        </div>
+      </section>
+
+      {/* Smart Loan Calculator */}
+      <section className="py-16 bg-white" data-testid="home-loan-calculator-section">
+        <div className="max-w-5xl mx-auto px-6 lg:px-10">
+          <div className="text-center mb-8">
+            <div className="text-xs uppercase tracking-widest text-blue-600 font-semibold mb-2">Financial Tools</div>
+            <h2 className="text-3xl sm:text-4xl font-bold text-slate-900">Smart Loan Calculator</h2>
+            <p className="text-slate-600 mt-2">EMI, eligibility and mortgage estimates — instantly.</p>
+          </div>
+          <SmartLoanCalculator />
         </div>
       </section>
 

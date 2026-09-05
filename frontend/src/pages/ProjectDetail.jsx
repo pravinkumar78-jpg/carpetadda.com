@@ -5,6 +5,7 @@ import PropertyMap from "@/components/PropertyMap";
 import ProjectCard from "@/components/ProjectCard";
 import { formatINR, formatArea } from "@/lib/format";
 import { waProjectMsg, waUnitMsg, telTo } from "@/lib/whatsapp";
+import SmartLoanCalculator from "@/components/SmartLoanCalculator";
 import { useFavorite } from "@/lib/favorites";
 import { MapPin, Download, PhoneCall, WhatsappLogo, CalendarBlank, Check, Compass, Bed, Bank, SquaresFour, List, QrCode, FileText, ArrowSquareOut, ShieldCheck, Heart } from "@phosphor-icons/react";
 import { ytEmbedId } from "@/lib/utils";
@@ -425,6 +426,15 @@ export default function ProjectDetail() {
         <a href={telTo(p.contact?.phone || p.contact?.whatsapp)} data-testid="mobile-bar-call" className="flex items-center justify-center gap-1.5 py-2.5 border border-slate-200 rounded-lg text-slate-700 font-medium text-sm"><PhoneCall size={15} /> Call</a>
         <a href={waProjectMsg(p, p.contact?.whatsapp || p.contact?.phone)} target="_blank" rel="noopener" data-testid="mobile-bar-whatsapp" className="flex items-center justify-center gap-1.5 py-2.5 border border-emerald-200 bg-emerald-50 text-emerald-700 rounded-lg font-medium text-sm"><WhatsappLogo size={15} /> WhatsApp</a>
         <button type="button" data-testid="mobile-bar-enquire" onClick={() => { document.getElementById("enquiry-form")?.scrollIntoView({ behavior: "smooth", block: "center" }); setTimeout(() => document.querySelector('[data-testid="proj-enquiry-name"]')?.focus({ preventScroll: true }), 600); }} className="py-2.5 bg-blue-600 text-white rounded-lg font-semibold text-sm">Enquire</button>
+      </div>
+
+      {/* Smart Loan Calculator — defaults to this project's starting price */}
+      <div className="max-w-7xl mx-auto px-6 lg:px-10 pb-14" data-testid="project-loan-calculator">
+        <div className="mb-6">
+          <div className="text-xs uppercase tracking-widest text-blue-600 font-semibold mb-1">Financial Tools</div>
+          <h2 className="text-2xl font-bold text-slate-900">Smart Loan Calculator</h2>
+        </div>
+        <SmartLoanCalculator defaultAmount={p.price_from} context={{ projectId: p.id, name: p.name }} />
       </div>
 
       <ScheduleVisitDialog open={visitOpen} onOpenChange={setVisitOpen} projectId={p.id} targetName={p.name} />
