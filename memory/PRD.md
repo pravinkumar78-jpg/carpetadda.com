@@ -574,3 +574,7 @@
 - Buy URL fix: Header menu + Footer + Home Buy card now link to /properties (Rent ?listing_type=rent and project category URLs unchanged; heading "Properties for Buy" intact)
 - Pre-existing bug fixed (blocked settings save, required for slug management): AdminSettings form had nested required password inputs silently blocking submit — added noValidate (password change self-validates in JS); verified Save now returns 200 + toast
 - All test leads/submissions cleaned; no listings modified. REDEPLOY needed for production
+
+## Investigated (2026-09-05 — production project-category links report; NO defect found)
+- User flagged carpetadda.com/projects?category=residential + ?category=commercial as "not done something". Exhaustive check: desktop direct load, desktop Properties-menu navigation (real clicks), mobile direct, mobile menu navigation, URL variants (http/www/trailing slash all 200). Residential = 6 projects, Commercial = 1 (Lodha Signet); headings correct; no click-lock; disclaimers dismissible. No defect reproducible anywhere
+- Noted (not actioned): production now fires Google tag AW-18430417005 instead of AW-18415547343 — appears to be a user/agentic change made outside agent sessions
