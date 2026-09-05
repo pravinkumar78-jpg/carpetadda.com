@@ -359,6 +359,7 @@ async def send_lead_notification(lead: dict, kind: str = "Property", ctx: dict |
         "Home Loan": "New Home Loan Enquiry",
         "Requirement": "New Property Requirement",
         "Contact": "New Contact Enquiry",
+        "Enquiry": "New Website Enquiry",
     }
     subject = subject_map.get(kind, f"New {kind} Enquiry — {prop_name or 'CarpetAdda'}")
     html = _lead_html(lead, kind, ctx)
@@ -379,6 +380,7 @@ async def send_lead_notification_report(lead: dict, kind: str = "Property", ctx:
         "Home Loan": "New Home Loan Enquiry",
         "Requirement": "New Property Requirement",
         "Contact": "New Contact Enquiry",
+        "Enquiry": "New Website Enquiry",
     }
     subject = subject_map.get(kind, f"New {kind} Enquiry — {prop_name or 'CarpetAdda'}")
     html = _absolutize(_lead_html(lead, kind, ctx))

@@ -40,6 +40,8 @@ import CmsPage from "@/pages/CmsPage";
 import { NotFound, About, Contact, FAQs, VerifyEmail } from "@/pages/StaticPages";
 import Testimonials from "@/pages/Testimonials";
 import Rtmi from "@/pages/Rtmi";
+import Enquiry from "@/pages/Enquiry";
+import { useSettings } from "@/lib/useSettings";
 
 export default function App() {
   useEffect(() => {
@@ -104,6 +106,8 @@ export default function App() {
               <Route path="/testimonials" element={<Testimonials />} />
               <Route path="/rtmi" element={<Rtmi />} />
               <Route path="/home-loan" element={<HomeLoan />} />
+              <Route path="/enquiry" element={<Enquiry />} />
+              <Route path="/:enquirySlug" element={<EnquirySlugGate />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </main>
@@ -116,6 +120,16 @@ export default function App() {
       </BrowserRouter>
     </AuthProvider>
   );
+}
+
+// Enquiry page on its admin-configured slug (the default /enquiry is a static route above);
+// any other unmatched single-segment path falls through to NotFound exactly as before
+function EnquirySlugGate() {
+  const { pathname } = useLocation();
+  const settings = useSettings();
+  if (!settings) return null;
+  const slug = "/" + String(settings.enquiry_slug || "enquiry").replace(/^\/+|\/+$/g, "");
+  return pathname === slug ? <Enquiry /> : <NotFound />;
 }
 
 // Anonymous visitor analytics — page views on public routes, listing views, and WhatsApp/Call click tracking

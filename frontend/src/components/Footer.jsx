@@ -73,7 +73,7 @@ export default function Footer() {
           <div className="text-xs uppercase tracking-wider text-blue-600 font-semibold mb-4">Explore</div>
           <ul className="space-y-2.5 text-sm text-slate-600">
             <li><Link to="/" className="hover:text-blue-600">Home</Link></li>
-            <li><Link to="/properties?listing_type=sale" data-testid="footer-link-buy" className="hover:text-blue-600">Buy</Link></li>
+            <li><Link to="/properties" data-testid="footer-link-buy" className="hover:text-blue-600">Buy</Link></li>
             <li><Link to="/properties?listing_type=rent" className="hover:text-blue-600">Rent</Link></li>
             <li><Link to="/commercial-properties" data-testid="footer-link-commercial" className="hover:text-blue-600">Commercial Properties</Link></li>
             <li><Link to="/projects?category=residential" className="hover:text-blue-600">Residential Projects</Link></li>

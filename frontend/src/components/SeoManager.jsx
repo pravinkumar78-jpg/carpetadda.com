@@ -1,8 +1,9 @@
 import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import api from "@/lib/api";
+import { useSettings } from "@/lib/useSettings";
 
-const STATIC_PAGES = ["/", "/properties", "/commercial-properties", "/projects", "/new-launch", "/rtmi", "/blog", "/about", "/contact", "/faqs", "/home-loan", "/post-property", "/ai-search", "/emi-calculator", "/compare", "/agents", "/developers"];
+const STATIC_PAGES = ["/", "/properties", "/commercial-properties", "/projects", "/new-launch", "/rtmi", "/blog", "/about", "/contact", "/faqs", "/home-loan", "/post-property", "/ai-search", "/emi-calculator", "/compare", "/agents", "/developers", "/enquiry"];
 const DEFAULT_TITLE = "CarpetAdda — Every Dream Deserves an Address";
 
 function setMeta(selector, attrs, content) {
@@ -37,13 +38,15 @@ export function applySeo(seo, page) {
 
 export default function SeoManager() {
   const { pathname, search } = useLocation();
+  const settings = useSettings();
+  const enquiryPath = "/" + String(settings?.enquiry_slug || "enquiry").replace(/^\/+|\/+$/g, "");
   useEffect(() => {
-    if (!STATIC_PAGES.includes(pathname)) return;
+    if (!STATIC_PAGES.includes(pathname) && pathname !== enquiryPath) return;
     let cancelled = false;
     api.get(`/seo?page=${encodeURIComponent(pathname)}`)
       .then(r => { if (!cancelled) applySeo(r.data, pathname); })
       .catch(() => {});
     return () => { cancelled = true; };
-  }, [pathname, search]); // search included: query-only navigation (e.g. ?category=commercial) must reapply SEO
+  }, [pathname, search, enquiryPath]); // search included: query-only navigation (e.g. ?category=commercial) must reapply SEO
   return null;
 }

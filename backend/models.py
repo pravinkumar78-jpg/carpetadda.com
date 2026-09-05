@@ -463,6 +463,8 @@ class SiteSettings(BaseDoc):
     hero_backgrounds: list = Field(default_factory=list)
     # Footer content
     footer_tagline: str = "India's premium real estate platform. Verified listings, expert agents, and market intelligence across Mumbai, Thane, Navi Mumbai, Dombivli & Kalyan."
+    # Enquiry page
+    enquiry_slug: str = "enquiry"  # URL slug of the public Enquiry page (main menu links here)
     # Site-wide SEO defaults
     site_title_suffix: str = "CarpetAdda"
     default_meta_description: str = "CarpetAdda — India's premium property marketplace."

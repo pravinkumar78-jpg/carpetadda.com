@@ -2233,6 +2233,7 @@ async def create_lead(body: Lead, background: BackgroundTasks):
         "footer": "Contact",
         "home_loan": "Home Loan",
         "home_vip_concierge": "Concierge",
+        "enquiry_page": "Enquiry",
     }
     kind = kind_map.get(body.source, "Website")
 

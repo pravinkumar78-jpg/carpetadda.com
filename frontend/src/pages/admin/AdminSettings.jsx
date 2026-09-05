@@ -31,7 +31,7 @@ export default function AdminSettings() {
   const set = (k, v) => setS({ ...s, [k]: v });
 
   return (
-    <form onSubmit={save} className="space-y-6">
+    <form onSubmit={save} noValidate className="space-y-6">{/* noValidate: nested password-change inputs are required but self-validated; they must not block settings save */}
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-xl font-bold text-slate-900">Website Settings</h2>
@@ -48,6 +48,7 @@ export default function AdminSettings() {
           <Field label="Business email (lead recipient)"><Input data-testid="s-email" value={s.contact_email || ""} onChange={e => set("contact_email", e.target.value)} className="h-11 rounded-lg border-slate-200" /></Field>
           <Field label="Contact phone"><Input value={s.contact_phone || ""} onChange={e => set("contact_phone", e.target.value)} placeholder="+91 22 0000 0000" className="h-11 rounded-lg border-slate-200" /></Field>
           <Field label="WhatsApp number (digits only, incl. country code)"><Input data-testid="s-whatsapp" value={s.whatsapp_number || ""} onChange={e => set("whatsapp_number", e.target.value)} placeholder="919820000000" className="h-11 rounded-lg border-slate-200" /></Field>
+          <Field label="Enquiry page slug (URL)"><Input data-testid="s-enquiry-slug" value={s.enquiry_slug || "enquiry"} onChange={e => set("enquiry_slug", e.target.value.toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, ""))} placeholder="enquiry" className="h-11 rounded-lg border-slate-200" /></Field>
           <Field label="Office address" full><Textarea rows={2} value={s.office_address || ""} onChange={e => set("office_address", e.target.value)} className="rounded-lg border-slate-200" /></Field>
         </Grid>
       </Section>

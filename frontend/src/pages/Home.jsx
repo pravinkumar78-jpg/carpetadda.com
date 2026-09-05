@@ -178,7 +178,7 @@ export default function Home() {
             const cards = [
               { to: "/properties?category=residential", label: "Residential", count: bc.residential, Icon: House, tid: "residential" },
               { to: "/commercial-properties", label: "Commercial", count: bc.commercial, Icon: Buildings, tid: "commercial" },
-              { to: "/properties?listing_type=sale", label: "Buy", count: bc.sale, Icon: CurrencyCircleDollar, tid: "buy" },
+              { to: "/properties", label: "Buy", count: bc.sale, Icon: CurrencyCircleDollar, tid: "buy" },
               { to: "/properties?listing_type=rent", label: "Rent", count: bc.rent, Icon: Key, tid: "rent" },
               { to: "/projects", label: "Projects", count: bc.projects, Icon: City, tid: "projects" },
               { to: "/home-loan", label: "Home Loan", sub: "EMI & eligibility", Icon: Bank, tid: "home-loan" },

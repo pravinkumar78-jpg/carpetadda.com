@@ -565,3 +565,12 @@
 - Tag exists once in frontend/public/index.html head (standard gtag.js snippet) — sitewide by SPA design; no duplicate created
 - Served HTML confirmed on BOTH preview and carpetadda.com (production was redeployed at some point — minified single-line head contains script src + config call)
 - Browser check on production: gtag() active, dataLayer populated (5 entries), gtag.js downloaded, Ads measurement beacon fired; page renders normally
+
+## Implemented (2026-09-04/05 — Enquiry page + menu, Buy URL fix, settings-save unblock)
+- Enquiry menu item (desktop + mobile header) opens the Enquiry page in a NEW TAB (target=_blank), linking the admin-configured slug
+- New Enquiry page (frontend/src/pages/Enquiry.jsx): form (Name*/Number*/Location*/Budget*/Loan Amount*/Email/Visited Date-Time + Select Listed Property + Select Listed Project dropdowns fed by existing /properties + /projects APIs) → submits into the EXISTING Leads CRM (POST /api/leads, source "enquiry_page"; Lead model's preferred_visit_date/time reused — no model change); below the form, listed projects via ProjectCard + shared ProjectFilters left bar (extracted from Projects.jsx — single filter system, Projects page refactored to use it)
+- Email routing: existing pipeline — always contact@carpetadda.com + assigned agent/developer registered email when a listing is selected (verified: lead:enquiry SENT to business, lead:enquiry:cc routed to property's agent email); kind_map + subject_map gained "Enquiry" label entries
+- SEO: /enquiry registered in SeoManager STATIC_PAGES + AdminSeo MAJOR_PAGES (title/desc/OG/canonical verified live); configurable slug via SiteSettings.enquiry_slug (Admin → Settings) with App.js EnquirySlugGate route — verified /enquire-now renders the page and menu href follows; unknown paths still 404; slug restored to "enquiry"
+- Buy URL fix: Header menu + Footer + Home Buy card now link to /properties (Rent ?listing_type=rent and project category URLs unchanged; heading "Properties for Buy" intact)
+- Pre-existing bug fixed (blocked settings save, required for slug management): AdminSettings form had nested required password inputs silently blocking submit — added noValidate (password change self-validates in JS); verified Save now returns 200 + toast
+- All test leads/submissions cleaned; no listings modified. REDEPLOY needed for production

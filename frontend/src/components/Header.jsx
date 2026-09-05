@@ -1,6 +1,7 @@
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { List, CaretDown, Heart } from "@phosphor-icons/react";
 import { useAuth } from "@/lib/auth";
+import { useSettings } from "@/lib/useSettings";
 import { useState } from "react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -8,7 +9,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 const DARK_LOGO = "https://customer-assets-jt897jd0.emergentagent.net/job_dombivli-properties-1/artifacts/doh3cm7v_CarpetAdda%20Dark%20Logo.png";
 
 const PROPERTY_MENU = [
-  { to: "/properties?listing_type=sale", label: "Buy", tid: "nav-prop-buy" },
+  { to: "/properties", label: "Buy", tid: "nav-prop-buy" },
   { to: "/properties?listing_type=rent", label: "Rent", tid: "nav-prop-rent" },
   { to: "/commercial-properties", label: "Commercial Properties", tid: "nav-prop-commercial-properties" },
   { to: "/projects?category=residential", label: "Residential Projects", tid: "nav-prop-residential" },
@@ -20,6 +21,8 @@ const linkCls = ({ isActive }) =>
 
 export default function Header() {
   const { user, logout } = useAuth();
+  const settings = useSettings();
+  const enquiryPath = "/" + String(settings?.enquiry_slug || "enquiry").replace(/^\/+|\/+$/g, "");
   const nav = useNavigate();
   const [open, setOpen] = useState(false);
   const [propOpen, setPropOpen] = useState(false);
@@ -52,6 +55,7 @@ export default function Header() {
           <NavLink to="/new-launch" data-testid="nav-new-launch" className={linkCls}>New Launch</NavLink>
           <NavLink to="/rtmi" data-testid="nav-rtmi" className={linkCls}>RTMI</NavLink>
           <NavLink to="/blog" data-testid="nav-blog" className={linkCls}>Blog</NavLink>
+          <a href={enquiryPath} target="_blank" rel="noopener" data-testid="nav-enquiry" className="text-sm font-medium px-3 py-2 rounded-md transition-colors duration-200 text-slate-700 hover:text-blue-600 hover:bg-blue-50">Enquiry</a>
         </nav>
 
         <div className="hidden lg:flex items-center gap-2">
@@ -102,6 +106,7 @@ export default function Header() {
               <Link to="/new-launch" onClick={() => setOpen(false)} data-testid="mobile-nav-new-launch" className="text-base font-medium py-3 px-3 rounded-md hover:bg-blue-50 hover:text-blue-600 text-slate-800">New Launch</Link>
               <Link to="/rtmi" onClick={() => setOpen(false)} data-testid="mobile-nav-rtmi" className="text-base font-medium py-3 px-3 rounded-md hover:bg-blue-50 hover:text-blue-600 text-slate-800">RTMI</Link>
               <Link to="/blog" onClick={() => setOpen(false)} data-testid="mobile-nav-blog" className="text-base font-medium py-3 px-3 rounded-md hover:bg-blue-50 hover:text-blue-600 text-slate-800">Blog</Link>
+              <a href={enquiryPath} target="_blank" rel="noopener" onClick={() => setOpen(false)} data-testid="mobile-nav-enquiry" className="text-base font-medium py-3 px-3 rounded-md hover:bg-blue-50 hover:text-blue-600 text-slate-800">Enquiry</a>
               <div className="h-px bg-slate-200 my-2" />
               <Link to="/emi-calculator" onClick={() => setOpen(false)} className="text-base py-3 px-3 rounded-md hover:bg-blue-50 hover:text-blue-600 text-slate-800">EMI Calculator</Link>
               <Link to="/faqs" onClick={() => setOpen(false)} className="text-base py-3 px-3 rounded-md hover:bg-blue-50 hover:text-blue-600 text-slate-800">FAQs</Link>
