@@ -156,6 +156,16 @@ class Property(BaseDoc):
     maintenance: Optional[float] = None
     negotiable: bool = False
 
+    # Quotation / pricing extras (Property form — Price tab)
+    stamp_duty_rate: Optional[float] = None            # %
+    registration_amount: Optional[float] = None        # ₹
+    society_charges: Optional[float] = None            # ₹ (GST not included)
+    society_maintenance_rate: Optional[float] = None   # ₹/sq.ft.
+    city_maintenance_applicable: bool = False
+    city_maintenance_rate: Optional[float] = None      # ₹/sq.ft. per month
+    city_maintenance_months: Optional[int] = None
+    balcony_type: Optional[str] = None                 # hall | bedroom | all
+
     carpet_area: Optional[float] = None
     builtup_area: Optional[float] = None
     plot_area: Optional[float] = None

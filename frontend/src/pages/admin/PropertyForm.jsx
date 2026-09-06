@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ArrowLeft, FloppyDisk, Upload, Eye, Info, House, MapPin, Sparkle, Image as ImageIcon, MagnifyingGlass, Flag, Camera, Crosshair, CircleNotch } from "@phosphor-icons/react";
+import { ArrowLeft, FloppyDisk, Upload, Eye, Info, House, MapPin, Sparkle, Image as ImageIcon, MagnifyingGlass, Flag, Camera, Crosshair, CircleNotch, CurrencyInr } from "@phosphor-icons/react";
 import ImageUpload from "@/components/ImageUpload";
 import AddressSearchInput from "@/components/AddressSearchInput";
 import MultiImageUpload from "@/components/MultiImageUpload";
@@ -160,7 +160,7 @@ export default function PropertyForm() {
 
   const publishError = () => {
     if (!f.title.trim()) return { msg: "Property title is required to publish", tab: "basic" };
-    if (f.listing_type === "sale" ? !(f.price > 0) : !(f.rent > 0)) return { msg: "A price (or monthly rent) is required to publish", tab: "basic" };
+    if (f.listing_type === "sale" ? !(f.price > 0) : !(f.rent > 0)) return { msg: "A price (or monthly rent) is required to publish", tab: "price" };
     if (!f.city || !(f.location || "").trim()) return { msg: "City and Locality are required to publish", tab: "location" };
     if (!f.main_image && !(f.images || []).length) return { msg: "Add at least a main image to publish", tab: "media" };
     return null;
@@ -235,6 +235,7 @@ export default function PropertyForm() {
   const sections = [
     { k: "basic", label: "Basic", icon: Info },
     { k: "details", label: "Details", icon: House },
+    { k: "price", label: "Price", icon: CurrencyInr },
     { k: "location", label: "Location", icon: MapPin },
     { k: "amenities", label: "Amenities", icon: Sparkle },
     { k: "media", label: "Media", icon: ImageIcon },
@@ -290,13 +291,40 @@ export default function PropertyForm() {
               <F label="Property Typology">
                 <Sel value={f.property_type} onChange={v => set("property_type", v)} options={typologyOptions.map(t => [t, t.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase())])} />
               </F>
+            </div>
+          )}
+
+          {tab === "price" && (
+            <div className="space-y-4" data-testid="tab-panel-price">
               {f.listing_type === "sale" ? (
-                <F label="Starting Price (₹)"><Input type="number" value={f.price ?? 0} onChange={e => set("price", Number(e.target.value))} /></F>
+                <F label="Property Cost / Sale Price (₹)"><Input data-testid="pf-price" type="number" value={f.price ?? 0} onChange={e => set("price", Number(e.target.value))} /></F>
               ) : (
                 <div className="grid grid-cols-2 gap-4">
-                  <F label="Monthly Rent (₹)"><Input type="number" value={f.rent ?? 0} onChange={e => set("rent", Number(e.target.value))} /></F>
-                  <F label="Security Deposit (₹)"><Input type="number" value={f.deposit ?? 0} onChange={e => set("deposit", Number(e.target.value))} /></F>
+                  <F label="Monthly Rent (₹)"><Input data-testid="pf-rent" type="number" value={f.rent ?? 0} onChange={e => set("rent", Number(e.target.value))} /></F>
+                  <F label="Security Deposit (₹)"><Input data-testid="pf-deposit" type="number" value={f.deposit ?? 0} onChange={e => set("deposit", Number(e.target.value))} /></F>
                 </div>
+              )}
+              <div className="grid grid-cols-2 gap-4">
+                <F label="Stamp Duty Rate (%)"><Input data-testid="pf-stamp-duty" type="number" step="0.1" value={f.stamp_duty_rate ?? ""} onChange={e => set("stamp_duty_rate", Number(e.target.value) || null)} /></F>
+                <F label="Registration Amount (₹)"><Input data-testid="pf-registration" type="number" value={f.registration_amount ?? ""} onChange={e => set("registration_amount", Number(e.target.value) || null)} /></F>
+              </div>
+              <div>
+                <F label="Society Charges (₹)"><Input data-testid="pf-society-charges" type="number" value={f.society_charges ?? ""} onChange={e => set("society_charges", Number(e.target.value) || null)} /></F>
+                <p className="text-xs text-slate-500 mt-1.5" data-testid="pf-society-note">GST amount is not included in Society Charges.</p>
+              </div>
+              <F label="Society Maintenance Rate (₹/sq.ft.)"><Input data-testid="pf-society-maint-rate" type="number" step="0.1" value={f.society_maintenance_rate ?? ""} onChange={e => set("society_maintenance_rate", Number(e.target.value) || null)} /></F>
+              <F label="City Maintenance Applicable?"><Sel value={f.city_maintenance_applicable ? "yes" : "no"} onChange={v => set("city_maintenance_applicable", v === "yes")} options={[["yes", "Yes"], ["no", "No"]]} /></F>
+              {f.city_maintenance_applicable && (
+                <>
+                  <div className="grid grid-cols-2 gap-4">
+                    <F label="Monthly City Maintenance Rate (₹/sq.ft.)"><Input data-testid="pf-city-maint-rate" type="number" step="0.1" value={f.city_maintenance_rate ?? ""} onChange={e => set("city_maintenance_rate", Number(e.target.value) || null)} /></F>
+                    <F label="City Maintenance Months"><Input data-testid="pf-city-maint-months" type="number" value={f.city_maintenance_months ?? ""} onChange={e => set("city_maintenance_months", Number(e.target.value) || null)} /></F>
+                  </div>
+                  <div className="rounded-lg bg-blue-50 border border-blue-100 px-4 py-3 text-sm text-slate-700" data-testid="pf-city-maint-total">
+                    City Maintenance Total = Carpet Area ({f.carpet_area || 0} sq.ft.) × ₹{f.city_maintenance_rate || 0}/sq.ft. × {f.city_maintenance_months || 0} months
+                    = <span className="font-bold text-blue-700 rupee">₹{((f.carpet_area || 0) * (f.city_maintenance_rate || 0) * (f.city_maintenance_months || 0)).toLocaleString("en-IN")}</span>
+                  </div>
+                </>
               )}
             </div>
           )}
@@ -310,6 +338,7 @@ export default function PropertyForm() {
                 <F label="Built-up Area (sq.ft.)"><Input type="number" value={f.builtup_area ?? ""} onChange={e => set("builtup_area", Number(e.target.value) || null)} /></F>
                 <F label="Bathrooms"><Input type="number" value={f.bathrooms ?? ""} onChange={e => set("bathrooms", Number(e.target.value) || null)} /></F>
                 <F label="Balconies"><Input type="number" value={f.balcony ?? ""} onChange={e => set("balcony", Number(e.target.value) || null)} /></F>
+                <F label="Balcony Type"><Sel value={f.balcony_type || ""} onChange={v => set("balcony_type", v || null)} options={[["hall", "Hall"], ["bedroom", "Bedroom"], ["all", "All"]]} placeholder="Select" /></F>
                 <F label="Parking (count)"><Input type="number" value={f.parking ?? ""} onChange={e => set("parking", Number(e.target.value) || null)} /></F>
                 <F label="Floor"><Input type="number" value={f.floor ?? ""} onChange={e => set("floor", Number(e.target.value) || null)} /></F>
                 <F label="Total Floors"><Input type="number" value={f.total_floors ?? ""} onChange={e => set("total_floors", Number(e.target.value) || null)} /></F>
