@@ -263,6 +263,20 @@ async def reset_password(body: dict = Body(...)):
     return {"ok":True}
 
 # ---------------- Locations ----------------
+@api.get("/cities")
+async def list_cities():
+    """Available cities derived from active listings — the single shared source for every city dropdown.
+    A city appears automatically once a property/project is listed there and disappears when none remain."""
+    prop_cities = await db.properties.distinct("city", {"status": "active"})
+    proj_cities = await db.projects.distinct("city", {"status": "active"})
+    slugs = {str(c).strip().lower() for c in [*prop_cities, *proj_cities] if c and str(c).strip()}
+    loc_docs = await db.locations.find({"type": "city"}, {"_id": 0, "slug": 1, "name": 1}).to_list(200)
+    name_map = {(d.get("slug") or "").strip().lower(): d.get("name") for d in loc_docs if d.get("slug") and d.get("name")}
+    out = [{"slug": s, "name": name_map.get(s) or s.replace("-", " ").title()} for s in slugs]
+    out.sort(key=lambda x: x["name"].lower())
+    return out
+
+
 @api.get("/locations")
 async def list_locations(type: Optional[str] = None, city: Optional[str] = None, q: Optional[str] = None,
                          limit: int = 200):

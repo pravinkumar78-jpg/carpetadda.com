@@ -9,8 +9,7 @@ import { formatINR } from "@/lib/format";
 import RejectDialog from "@/pages/admin/RejectDialog";
 import AssignUserDialog from "@/components/admin/AssignUserDialog";
 import { Link } from "react-router-dom";
-
-const CITIES = ["mumbai", "thane", "navi-mumbai", "dombivli", "kalyan"];
+import { useCities } from "@/lib/useCities";
 
 export default function AdminProjects() {
   const nav = useNavigate();
@@ -18,6 +17,7 @@ export default function AdminProjects() {
   const [total, setTotal] = useState(0);
   const [q, setQ] = useState("");
   const [city, setCity] = useState("");
+  const cityOptions = useCities();
   const [page, setPage] = useState(1);
   const [rejecting, setRejecting] = useState(null);
   const [assigning, setAssigning] = useState(null);
@@ -75,7 +75,7 @@ export default function AdminProjects() {
             <SelectTrigger className="w-36 h-10 border-slate-200 rounded-lg"><SelectValue placeholder="All cities" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All cities</SelectItem>
-              {CITIES.map(c => <SelectItem key={c} value={c} className="capitalize">{c.replace("-"," ")}</SelectItem>)}
+              {cityOptions.map(c => <SelectItem key={c.slug} value={c.slug}>{c.name}</SelectItem>)}
             </SelectContent>
           </Select>
           <button data-testid="admin-proj-new" onClick={() => nav("/admin/projects/new")} className="h-10 bg-blue-600 text-white px-4 rounded-lg text-sm font-medium hover:bg-blue-700 inline-flex items-center gap-1.5 shadow-sm whitespace-nowrap">

@@ -6,11 +6,11 @@ import api from "@/lib/api";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { useCities } from "@/lib/useCities";
 import { Checkbox } from "@/components/ui/checkbox";
 import FilterChips from "@/components/FilterChips";
 import { formatINR } from "@/lib/format";
 
-const CITIES = ["mumbai", "thane", "navi-mumbai", "dombivli", "kalyan"];
 const COMMERCIAL_TYPES = [
   ["office", "Office"], ["shop", "Shop"], ["showroom", "Showroom"],
   ["warehouse", "Warehouse"], ["industrial", "Industrial"],
@@ -31,6 +31,7 @@ const CHIP_LABELS = {
 export default function Properties({ fixedCategory }) {
   const isCommercial = fixedCategory === "commercial";
   const [sp, setSp] = useSearchParams();
+  const cityOptions = useCities();
   const [layout, setLayout] = useState("grid");
   const [items, setItems] = useState([]);
   const [total, setTotal] = useState(0);
@@ -91,7 +92,7 @@ export default function Properties({ fixedCategory }) {
       <FilterGroup label="City">
         <Select value={params.city || ""} onValueChange={v => update("city", v)}>
           <SelectTrigger data-testid="filter-city" className="rounded-lg border-slate-200"><SelectValue placeholder="Any city" /></SelectTrigger>
-          <SelectContent>{CITIES.map(c => <SelectItem key={c} value={c} className="capitalize">{c.replace("-", " ")}</SelectItem>)}</SelectContent>
+          <SelectContent>{cityOptions.map(c => <SelectItem key={c.slug} value={c.slug}>{c.name}</SelectItem>)}</SelectContent>
         </Select>
       </FilterGroup>
       {isCommercial || params.category === "commercial" ? (

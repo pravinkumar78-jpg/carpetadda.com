@@ -13,9 +13,9 @@ import AddressSearchInput from "@/components/AddressSearchInput";
 import RichTextEditor from "@/components/RichTextEditor";
 import AddAmenity from "@/components/AddAmenity";
 import AmenitiesSelect from "@/components/AmenitiesSelect";
+import { useCities } from "@/lib/useCities";
 import { CreateUserDialog } from "@/pages/admin/AdminUsers";
 
-const CITIES = ["mumbai", "thane", "navi-mumbai", "dombivli", "kalyan"];
 const PROJECT_FLAGS = [["featured", "Featured"], ["new_launch", "New Launch"], ["rtmi", "RTMI (Ready to Move)"], ["best_payment_plan", "Best Payment Plan"], ["best_performer", "Best Performer"]];
 const AMENITIES = ["Swimming Pool", "Gym", "Clubhouse", "Landscaped Garden", "Children's Play Area", "Jogging Track", "24x7 Security", "CCTV", "Covered Parking", "Power Backup", "EV Charging", "Fire Safety", "Yoga Deck", "Multipurpose Hall", "Amphitheatre", "Senior Citizen Area", "Rainwater Harvesting"];
 const AMENITIES_COMMERCIAL = ["24x7 Access", "High-Speed Elevators", "Central Air Conditioning", "Conference Room", "Reception / Lobby", "Visitor Parking", "Power Backup", "Fire Safety", "CCTV Surveillance", "Loading / Unloading Bay", "Signage Space", "Pantry / Cafeteria", "Fiber Internet", "Access Control", "Ample Parking"];
@@ -40,6 +40,7 @@ const empty = () => ({
 
 export default function ProjectForm() {
   const { id } = useParams();
+  const cityOptions = useCities();
   const nav = useNavigate();
   const { user, ready } = useAuth();
   const [f, setF] = useState(empty());
@@ -405,8 +406,8 @@ export default function ProjectForm() {
               <h2 className="text-xl font-semibold text-slate-900 mb-4">Location</h2>
               <div className="grid grid-cols-2 gap-4">
                 <F label="City">
-                  <Sel value={CITIES.includes(f.city) ? f.city : "__other"} onChange={v => set("city", v === "__other" ? "" : v)} options={[...CITIES.map(c => [c, c.replace("-", " ").replace(/\b\w/g, x => x.toUpperCase())]), ["__other", "Other — Add City"]]} />
-                  {!CITIES.includes(f.city) && (
+                  <Sel value={cityOptions.some(c => c.slug === f.city) ? f.city : "__other"} onChange={v => set("city", v === "__other" ? "" : v)} options={[...cityOptions.map(c => [c.slug, c.name]), ["__other", "Other — Add City"]]} />
+                  {!cityOptions.some(c => c.slug === f.city) && (
                     <Input data-testid="city-custom" value={f.city || ""} onChange={e => set("city", e.target.value.trim().toLowerCase().replace(/\s+/g, "-"))} placeholder="Type city name (e.g. pune)" className="h-11 rounded-lg border-slate-300 mt-2" />
                   )}
                 </F>

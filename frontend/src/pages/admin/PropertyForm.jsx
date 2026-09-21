@@ -16,10 +16,10 @@ import MultiImageUpload from "@/components/MultiImageUpload";
 import RichTextEditor from "@/components/RichTextEditor";
 import AddAmenity from "@/components/AddAmenity";
 import AmenitiesSelect from "@/components/AmenitiesSelect";
+import { useCities } from "@/lib/useCities";
 
 const RES_TYPES = ["apartment", "studio_apartment", "penthouse", "duplex", "independent_house", "villa", "farmhouse", "builder_floor", "plot", "residential_land"];
 const COM_TYPES = ["office_space", "doctor_space", "coworker_space", "retail_shop", "showroom", "business_centre", "warehouse", "industrial_shed", "industrial_space", "commercial_land", "industrial_land"];
-const CITIES = ["mumbai", "thane", "navi-mumbai", "dombivli", "kalyan"];
 const DIRECTIONS = ["east", "west", "north", "south", "north-east", "north-west", "south-east", "south-west"];
 const FURNISHING = ["furnished", "semi", "unfurnished"];
 const OWNERSHIP = ["freehold", "leasehold", "co_operative"];
@@ -44,6 +44,7 @@ const empty = () => ({
 
 export default function PropertyForm() {
   const { id } = useParams();
+  const cityOptions = useCities();
   const nav = useNavigate();
   const { user, ready } = useAuth();
   const [f, setF] = useState(() => {
@@ -375,8 +376,8 @@ export default function PropertyForm() {
               <h2 className="text-xl font-semibold text-slate-900 mb-4">Location</h2>
               <div className="grid grid-cols-2 gap-4">
                 <F label="City">
-                  <Sel value={CITIES.includes(f.city) ? f.city : "__other"} onChange={v => set("city", v === "__other" ? "" : v)} options={[...CITIES.map(c => [c, c.replace("-", " ").replace(/\b\w/g, x => x.toUpperCase())]), ["__other", "Other — Add City"]]} />
-                  {!CITIES.includes(f.city) && (
+                  <Sel value={cityOptions.some(c => c.slug === f.city) ? f.city : "__other"} onChange={v => set("city", v === "__other" ? "" : v)} options={[...cityOptions.map(c => [c.slug, c.name]), ["__other", "Other — Add City"]]} />
+                  {!cityOptions.some(c => c.slug === f.city) && (
                     <Input data-testid="city-custom" value={f.city || ""} onChange={e => set("city", e.target.value.trim().toLowerCase().replace(/\s+/g, "-"))} placeholder="Type city name (e.g. pune)" className="h-11 rounded-lg border-slate-300 mt-2" />
                   )}
                 </F>

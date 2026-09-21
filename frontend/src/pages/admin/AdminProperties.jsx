@@ -8,8 +8,8 @@ import { Pencil, Copy, Plus, MagnifyingGlass, ShieldCheck, Star, Archive, Eye, U
 import { formatINR } from "@/lib/format";
 import RejectDialog from "@/pages/admin/RejectDialog";
 import AssignUserDialog from "@/components/admin/AssignUserDialog";
+import { useCities } from "@/lib/useCities";
 
-const CITIES = ["mumbai", "thane", "navi-mumbai", "dombivli", "kalyan"];
 const STATUSES = ["draft", "pending_review", "active", "rejected", "sold", "rented", "archived"];
 const STATUS_LABEL = { pending_review: "Pending Review", active: "Approved", rejected: "Rejected", draft: "Draft", archived: "Archived" };
 
@@ -21,6 +21,7 @@ export default function AdminProperties() {
   const [q, setQ] = useState("");
   const [status, setStatus] = useState("");
   const [city, setCity] = useState("");
+  const cityOptions = useCities();
   const [page, setPage] = useState(1);
   const [rejecting, setRejecting] = useState(null);
   const [assigning, setAssigning] = useState(null);
@@ -89,7 +90,7 @@ export default function AdminProperties() {
             <SelectTrigger className="w-36 h-10 border-slate-200 rounded-lg" data-testid="admin-prop-city"><SelectValue placeholder="All cities" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All cities</SelectItem>
-              {CITIES.map(c => <SelectItem key={c} value={c} className="capitalize">{c.replace("-"," ")}</SelectItem>)}
+              {cityOptions.map(c => <SelectItem key={c.slug} value={c.slug}>{c.name}</SelectItem>)}
             </SelectContent>
           </Select>
           <button data-testid="admin-prop-new" onClick={() => nav("/admin/properties/new")} className="h-10 bg-blue-600 text-white px-4 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors inline-flex items-center gap-1.5 shadow-sm whitespace-nowrap">

@@ -4,11 +4,11 @@ import { MagnifyingGlass } from "@phosphor-icons/react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-
-const CITIES = ["mumbai", "thane", "navi-mumbai", "dombivli", "kalyan"];
+import { useCities } from "@/lib/useCities";
 
 export default function SearchBar({ compact = false }) {
   const nav = useNavigate();
+  const cities = useCities();
   const [tab, setTab] = useState("sale");
   const [city, setCity] = useState("");
   const [priceMax, setPriceMax] = useState("");
@@ -49,7 +49,7 @@ export default function SearchBar({ compact = false }) {
       <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
         <Select value={city} onValueChange={setCity}>
           <SelectTrigger data-testid="search-city" className="h-12 border-slate-200 rounded-lg"><SelectValue placeholder="City" /></SelectTrigger>
-          <SelectContent>{CITIES.map(c => <SelectItem key={c} value={c} className="capitalize">{c.replace("-", " ")}</SelectItem>)}</SelectContent>
+          <SelectContent>{cities.map(c => <SelectItem key={c.slug} value={c.slug}>{c.name}</SelectItem>)}</SelectContent>
         </Select>
 
         {isProject ? (

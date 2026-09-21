@@ -590,3 +590,8 @@
 - Details tab kept balconies/parking; added Balcony Type select (Hall/Bedroom/All) — field didn't exist before (confirmed with user)
 - Backend: Property model gained optional fields (stamp_duty_rate, registration_amount, society_charges, society_maintenance_rate, city_maintenance_applicable/rate/months, balcony_type) — same collection/API, no quotation generator (out of scope). Publish validation for missing price now jumps to the Price tab
 - Verified in preview as admin: tab order, all fields + GST note, Yes/No gating, exact computed total using existing Carpet Area, draft save persists new fields (test draft deleted). REDEPLOY needed for production
+
+## Implemented (2026-09-06 — dynamic shared city source for all city dropdowns)
+- New read-only GET /api/cities: union of distinct city from ACTIVE properties + projects, case-insensitively deduped (mulund/Mulund/MULUND → one), display name from locations collection else title-cased slug ("navi-mumbai" → "Navi Mumbai"), sorted. Cities auto-appear when a listing is added there and auto-disappear when the last active one is removed — verified with temp listings incl. case variants (then cleaned up)
+- New shared frontend hook lib/useCities.js (module-cached, same pattern as useSettings); replaced ALL 6 hardcoded city arrays: Home SearchBar, Properties page city filter, PropertyForm city select, ProjectForm city select, AdminProperties filter, AdminProjects filter. Forms keep "Other — Add City"; locality stays separate; geocoded city auto-fill (applyGeo) unchanged
+- Verified in preview: home smart search cities dynamic + capitalized, city filter → /properties?city=thane works (10 listings), form select dynamic + Other option, admin filters dynamic. REDEPLOY needed for production
