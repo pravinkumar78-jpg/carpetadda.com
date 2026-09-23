@@ -600,3 +600,9 @@
 - Header: flat "Loans" + "Loan Calculator" links replaced with a Loans dropdown (modal={false}, same pattern as Properties) containing Loans (/home-loan) + Loan Calculator (/loan-calculator); mobile menu got the same collapsible Loans submenu
 - HomeLoan page: existing loan form left + existing SmartLoanCalculator right (lg two-col grid, stacked form-first on mobile, calculator sticky on desktop); form logic untouched
 - Verified: old flat items gone; dropdown opens both routes; form submits (test lead cleaned); calculator computes on the Loans page; mobile stacks without overflow; mobile submenu navigates correctly. REDEPLOY needed for production (a deployment was already in progress during this change — confirm it picks up this commit or redeploy again)
+
+## Changed (2026-09-05 — sitewide colour palette update to reference)
+- tailwind.config.js: custom blue scale recentered on #4F7FEA (600 = primary buttons/active tabs/prices); slate scale overridden to navy family (900 #17213A text, 600 #596A82 secondary, 200 #D7DFEA borders) — flows to every component automatically
+- index.css targeted remaps only: body bg #E0F6FA → #F0F4F7, text → #17213A; CSS vars (primary/foreground/border/muted-foreground/ring); .section-blue, .bg-soft-blue, .card-premium, .btn-primary/secondary/ghost, .blue-badge/.brass-badge, .hero-blue-bg/.hero-decor, light border/text overrides, rich-content; all rgba(112,141,230) tints → rgba(79,127,234)
+- No component/layout/typography/route/API changes; dark-mode toggle system intact (follows new primary)
+- Verified: production build compiles; computed styles on preview = body bg rgb(240,244,247), heading text rgb(23,33,58), primary button rgb(79,127,234), card border rgb(215,223,234); home/listings/footer render cleanly. REDEPLOY needed for production
