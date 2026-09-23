@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import api from "@/lib/api";
 import { formatINR } from "@/lib/format";
+import SmartLoanCalculator from "@/components/SmartLoanCalculator";
 
 const EMPTY = { name: "", phone: "", email: "", profession: "", designation: "", company_name: "", property_finalised: "", property_cost: "", loan_amount: "", loan_type: "" };
 const LOAN_TYPES = ["Home Loan", "Loan Against Property", "Mortgage Loan", "Balance Transfer", "Top-up Loan", "Other"];
@@ -73,7 +74,8 @@ export default function HomeLoan() {
         </div>
       </div>
 
-      <div className="max-w-3xl mx-auto px-6 py-14">
+      <div className="max-w-7xl mx-auto px-6 py-14 grid grid-cols-1 lg:grid-cols-2 gap-10 items-start">
+        <div>
         {done ? (
           <div data-testid="hl-thankyou" className="card-premium p-10 text-center">
             <div className="w-16 h-16 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto mb-5">
@@ -132,6 +134,14 @@ export default function HomeLoan() {
             <p className="text-xs text-slate-400 text-center">By submitting, you agree to be contacted by our loan desk.</p>
           </form>
         )}
+        </div>
+        <div className="lg:sticky lg:top-24" data-testid="loans-calculator">
+          <div className="mb-5">
+            <div className="text-xs uppercase tracking-widest text-blue-600 font-semibold mb-1">Financial Tools</div>
+            <h2 className="text-2xl font-bold text-slate-900">Smart Loan Calculator</h2>
+          </div>
+          <SmartLoanCalculator />
+        </div>
       </div>
     </div>
   );

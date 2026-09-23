@@ -26,6 +26,7 @@ export default function Header() {
   const nav = useNavigate();
   const [open, setOpen] = useState(false);
   const [propOpen, setPropOpen] = useState(false);
+  const [loanOpen, setLoanOpen] = useState(false);
 
   return (
     <header data-testid="site-header" className="sticky top-0 z-40 bg-white border-b border-slate-200 shadow-[0_1px_3px_rgba(15,23,42,0.05)]">
@@ -51,8 +52,18 @@ export default function Header() {
             </DropdownMenuContent>
           </DropdownMenu>
 
-          <NavLink to="/home-loan" data-testid="nav-home-loan" className={linkCls}>Loans</NavLink>
-          <NavLink to="/loan-calculator" data-testid="nav-loan-calculator" className={linkCls}>Loan Calculator</NavLink>
+          <DropdownMenu modal={false}>
+            <DropdownMenuTrigger data-testid="nav-loans" className={`text-sm font-medium px-3 py-2 rounded-md transition-colors duration-200 text-slate-700 hover:text-blue-600 hover:bg-blue-50 inline-flex items-center gap-1 outline-none`}>
+              Loans <CaretDown size={12} weight="bold" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-56">
+              {[{ to: "/home-loan", label: "Loans", tid: "nav-loans-home" }, { to: "/loan-calculator", label: "Loan Calculator", tid: "nav-loans-calculator" }].map(i => (
+                <DropdownMenuItem key={i.to} asChild>
+                  <Link to={i.to} data-testid={i.tid} className="cursor-pointer">{i.label}</Link>
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
           <NavLink to="/new-launch" data-testid="nav-new-launch" className={linkCls}>New Launch</NavLink>
           <NavLink to="/rtmi" data-testid="nav-rtmi" className={linkCls}>RTMI</NavLink>
           <NavLink to="/blog" data-testid="nav-blog" className={linkCls}>Blog</NavLink>
@@ -103,8 +114,22 @@ export default function Header() {
                 )}
               </div>
 
-              <Link to="/home-loan" onClick={() => setOpen(false)} data-testid="mobile-nav-home-loan" className="text-base font-medium py-3 px-3 rounded-md hover:bg-blue-50 hover:text-blue-600 text-slate-800">Loans</Link>
-              <Link to="/loan-calculator" onClick={() => setOpen(false)} data-testid="mobile-nav-loan-calculator" className="text-base font-medium py-3 px-3 rounded-md hover:bg-blue-50 hover:text-blue-600 text-slate-800">Loan Calculator</Link>
+              <div>
+                <button onClick={() => setLoanOpen(o => !o)}
+                  data-testid="mobile-nav-loans-toggle"
+                  aria-expanded={loanOpen}
+                  className="w-full flex items-center justify-between text-base font-medium py-3 px-3 rounded-md hover:bg-blue-50 hover:text-blue-600 text-slate-800"
+                >
+                  Loans
+                  <CaretDown size={14} weight="bold" className={`transition-transform duration-200 ${loanOpen ? "rotate-180" : ""}`} />
+                </button>
+                {loanOpen && (
+                  <div className="flex flex-col gap-0.5 pb-1">
+                    <Link to="/home-loan" onClick={() => setOpen(false)} data-testid="mobile-nav-loans-home" className="text-sm py-2.5 px-6 rounded-md hover:bg-blue-50 hover:text-blue-600 text-slate-700">Loans</Link>
+                    <Link to="/loan-calculator" onClick={() => setOpen(false)} data-testid="mobile-nav-loans-calculator" className="text-sm py-2.5 px-6 rounded-md hover:bg-blue-50 hover:text-blue-600 text-slate-700">Loan Calculator</Link>
+                  </div>
+                )}
+              </div>
               <Link to="/new-launch" onClick={() => setOpen(false)} data-testid="mobile-nav-new-launch" className="text-base font-medium py-3 px-3 rounded-md hover:bg-blue-50 hover:text-blue-600 text-slate-800">New Launch</Link>
               <Link to="/rtmi" onClick={() => setOpen(false)} data-testid="mobile-nav-rtmi" className="text-base font-medium py-3 px-3 rounded-md hover:bg-blue-50 hover:text-blue-600 text-slate-800">RTMI</Link>
               <Link to="/blog" onClick={() => setOpen(false)} data-testid="mobile-nav-blog" className="text-base font-medium py-3 px-3 rounded-md hover:bg-blue-50 hover:text-blue-600 text-slate-800">Blog</Link>
